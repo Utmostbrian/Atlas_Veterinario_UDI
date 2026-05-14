@@ -204,6 +204,104 @@ Indica cuáles combinaciones son seguras para uso veterinario conjunto.`
   return data.content?.[0]?.text ?? ''
 }
 
+/**
+ * fetchDrugProfileWithAI — Úsalo cuando el fármaco NO está en DRUGS_DATABASE.
+ * La IA actúa como farmacólogo veterinario y devuelve el perfil clínico completo
+ * en el mismo formato que usa DRUGS_DATABASE, para que el hook lo trate igual
+ * que un fármaco de la base de datos local.
+ *
+ * El perfil retornado incluye: name, doseUnit, dosageRange (por especie),
+ * species (válidas), allowedRoutes, standardConcentrations, note.
+ */
+export async function fetchDrugProfileWithAI(drug) {
+  const apiKey = getApiKey()
+  if (!apiKey) throw new Error('API Key no configurada. Ingresa tu API Key en la configuración.')
+
+  const prompt = `Eres un farmacólogo veterinario experto. Devuelve el perfil clínico veterinario del fármaco "${drug}".
+Responde EXCLUSIVAMENTE con JSON válido, sin texto adicional antes ni después.
+
+Si "${drug}" NO es un fármaco veterinario reconocido: { "esFarmacoReal": false }
+
+Si ES un fármaco veterinario real, devuelve:
+{
+  "esFarmacoReal": true,
+  "name": "nombre farmacológico oficial",
+  "doseUnit": "mg/kg" (o "UI/kg" si aplica),
+  "dosageRange": {
+    "Perro":   { "min": N, "max": N } o null si no tiene indicación veterinaria en esta especie,
+    "Gato":    { "min": N, "max": N } o null,
+    "Bovino":  { "min": N, "max": N } o null,
+    "Equino":  { "min": N, "max": N } o null,
+    "Ovino":   { "min": N, "max": N } o null,
+    "Porcino": { "min": N, "max": N } o null,
+    "Ave":     { "min": N, "max": N } o null
+  },
+  "species": ["lista de especies donde tiene indicación veterinaria aprobada"],
+  "allowedRoutes": ["solo las vías permitidas, usando EXACTAMENTE estos nombres: VO (oral), IM (intramuscular), IV (intravenosa), SC (subcutánea), Tópico, Intramamario"],
+  "standardConcentrations": [concentraciones comerciales reales en mg/mL o UI/mL, como números],
+  "note": "advertencias clínicas críticas (toxicidad, contraindicaciones, restricciones de especie) o null"
+}`
+
+  const response = await fetchWithFallback({
+    max_tokens: 900,
+    system: 'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido, sin texto adicional.',
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const data = await response.json()
+  const rawText = data.content?.[0]?.text ?? ''
+
+  // Extrae el JSON tolerando bloques markdown (```json ... ```)
+  let jsonStr = rawText
+  const fenced = rawText.match(/```(?:json)?\s*([\s\S]*?)```/s)
+  if (fenced) {
+    jsonStr = fenced[1].trim()
+  } else {
+    const plain = rawText.match(/\{[\s\S]*\}/s)
+    if (plain) jsonStr = plain[0].trim()
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(jsonStr)
+  } catch {
+    throw new Error('La IA no devolvió datos estructurados válidos. Intenta de nuevo.')
+  }
+
+  if (!parsed.esFarmacoReal) return null  // señal de "no es un fármaco real"
+
+  // Normalizar y sanear el perfil para que sea compatible con DRUGS_DATABASE
+  const VALID_ROUTES = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario']
+  const VALID_SPECIES = ['Perro', 'Gato', 'Bovino', 'Equino', 'Ovino', 'Porcino', 'Ave']
+
+  // Filtrar rutas inválidas que la IA pueda haber generado con otro formato
+  const allowedRoutes = (parsed.allowedRoutes || []).filter(r => VALID_ROUTES.includes(r))
+  if (allowedRoutes.length === 0) allowedRoutes.push('VO (oral)') // fallback seguro
+
+  // Filtrar especies inválidas
+  const species = (parsed.species || []).filter(s => VALID_SPECIES.includes(s))
+  if (species.length === 0) species.push('Perro') // fallback seguro
+
+  // Limpiar dosageRange: solo incluir entradas no-null con min/max válidos
+  const dosageRange = {}
+  for (const sp of VALID_SPECIES) {
+    const r = parsed.dosageRange?.[sp]
+    if (r && typeof r.min === 'number' && typeof r.max === 'number') {
+      dosageRange[sp] = { min: r.min, max: r.max }
+    }
+  }
+
+  return {
+    name:                  parsed.name || drug,
+    doseUnit:              parsed.doseUnit || 'mg/kg',
+    dosageRange,
+    species,
+    allowedRoutes,
+    standardConcentrations: (parsed.standardConcentrations || []).filter(n => typeof n === 'number'),
+    note:                  parsed.note || null,
+  }
+}
+
 export async function compareDrugs(drug1, drug2) {
   const apiKey = getApiKey()
   if (!apiKey) throw new Error('API Key no configurada.')
