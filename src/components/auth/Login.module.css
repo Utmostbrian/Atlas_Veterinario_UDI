@@ -1,0 +1,356 @@
+/* ── BACKDROP (modal overlay) ── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn .18s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── CARD ── */
+.card {
+  position: relative;
+  background: var(--white);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .28), 0 4px 16px rgba(0, 0, 0, .1);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  animation: slideUp .22s cubic-bezier(.2, .8, .4, 1) both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(18px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);   }
+}
+
+/* ── BOTÓN CERRAR ── */
+.closeBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, .14);
+  color: rgba(255, 255, 255, .75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, .26);
+  color: #fff;
+}
+
+/* ── CARD HEAD ── */
+.cardHead {
+  background: linear-gradient(135deg, #1a2535 0%, #1e2d3d 100%);
+  padding: 28px 28px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.cardHeadText {
+  min-width: 0;
+}
+
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  margin: 0 0 2px;
+}
+
+.subtitle {
+  font-size: .71rem;
+  color: rgba(255, 255, 255, .6);
+  margin: 0 0 6px;
+}
+
+.badge {
+  display: inline-block;
+  background: #CC0000;
+  color: #fff;
+  font-size: .6rem;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+/* ── ROLE TOGGLE ── */
+.roleToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.roleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 13px 10px;
+  background: var(--gl);
+  border: none;
+  color: var(--soft);
+  font-size: .84rem;
+  font-weight: 600;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: .2s;
+  border-bottom: 3px solid transparent;
+}
+
+.roleBtn:first-child {
+  border-right: 1px solid var(--border);
+}
+
+.roleBtn:hover {
+  background: #fff;
+  color: var(--text);
+}
+
+.roleBtnActive {
+  background: #fff;
+  color: #CC0000;
+  border-bottom-color: #CC0000;
+}
+
+/* ── FORM ── */
+.form {
+  padding: 24px 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 11px;
+  color: var(--gray);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: .88rem;
+  font-family: 'Source Sans 3', sans-serif;
+  color: var(--text);
+  background: var(--gl);
+  outline: none;
+  transition: .2s;
+}
+
+.input:focus {
+  border-color: #CC0000;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(204, 0, 0, .1);
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: .15s;
+}
+
+.eyeBtn:hover {
+  color: var(--text);
+}
+
+/* ── ERROR ── */
+.error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #FFF0F0;
+  border: 1px solid #FECACA;
+  border-left: 4px solid #CC0000;
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: .83rem;
+  color: #991B1B;
+  line-height: 1.4;
+}
+
+/* ── SUBMIT ── */
+.submitBtn {
+  width: 100%;
+  padding: 12px;
+  background: #CC0000;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .9rem;
+  font-weight: 700;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: .2s;
+  margin-top: 2px;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #AA0000;
+  box-shadow: 0 4px 16px rgba(204, 0, 0, .3);
+  transform: translateY(-1px);
+}
+
+.submitBtn:disabled {
+  background: var(--gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.spinnerWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, .4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── HINT ── */
+.hint {
+  padding: 0 28px 20px;
+  font-size: .75rem;
+  color: var(--gray);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── DARK MODE ── */
+:global(.dark) .card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+}
+
+:global(.dark) .roleToggle {
+  border-bottom-color: #334155;
+}
+
+:global(.dark) .roleBtn {
+  background: #0f172a;
+  color: #94a3b8;
+  border-right-color: #334155;
+}
+
+:global(.dark) .roleBtn:hover,
+:global(.dark) .roleBtnActive {
+  background: #1e293b;
+}
+
+:global(.dark) .input {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+:global(.dark) .input:focus {
+  background: #0f172a;
+  border-color: #CC0000;
+}
+
+:global(.dark) .error {
+  background: #2d0a0a;
+  border-color: #991b1b;
+  color: #fca5a5;
+}
+
+:global(.dark) .label {
+  color: #e2e8f0;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 480px) {
+  .cardHead {
+    padding: 20px 18px;
+    gap: 12px;
+  }
+  .logo {
+    width: 52px;
+    height: 52px;
+  }
+  .title {
+    font-size: .9rem;
+  }
+  .form {
+    padding: 20px 18px 16px;
+  }
+  .hint {
+    padding: 0 18px 16px;
+  }
+}

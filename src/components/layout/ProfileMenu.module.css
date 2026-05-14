@@ -1,0 +1,472 @@
+/* ── WRAPPER (posicionamiento relativo para el dropdown) ── */
+.wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ── AVATAR base ── */
+.avatar {
+  border: 2px solid rgba(255, 255, 255, .25);
+  transition: border-color .2s;
+}
+
+.avatarInitials {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  font-family: 'Source Sans 3', sans-serif;
+  flex-shrink: 0;
+  letter-spacing: .03em;
+  border: 2px solid rgba(255, 255, 255, .25);
+  transition: border-color .2s;
+}
+
+.avatarAdmin   { background: linear-gradient(135deg, #CC0000, #ff2222); }
+.avatarStudent { background: linear-gradient(135deg, #1e3a5f, #2563eb); }
+
+/* ── TRIGGER BUTTON ── */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .08);
+  color: rgba(255, 255, 255, .88);
+  font-size: .8rem;
+  font-family: 'Source Sans 3', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.trigger:hover,
+.triggerOpen {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .35);
+}
+
+.triggerOpen .avatar,
+.triggerOpen .avatarInitials {
+  border-color: rgba(255, 255, 255, .6);
+}
+
+.triggerName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.chevron {
+  flex-shrink: 0;
+  opacity: .65;
+  transition: transform .2s;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+/* ── DROPDOWN ── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 300px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shlg), 0 2px 8px rgba(0, 0, 0, .08);
+  z-index: 9999;
+  animation: dropIn .2s cubic-bezier(.2, .8, .4, 1) both;
+  overflow: hidden;
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── CABECERA DEL DROPDOWN ── */
+.dropHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 18px 16px;
+  background: linear-gradient(135deg, #1a2535 0%, #1e2d3d 100%);
+}
+
+.photoZone {
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform .2s;
+}
+
+.photoZone:hover {
+  transform: scale(1.04);
+}
+
+.bigAvatar {
+  display: block;
+  border: 3px solid rgba(255, 255, 255, .3) !important;
+}
+
+.photoOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .62);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #fff;
+  font-size: .6rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity .2s;
+}
+
+.photoOverlayVisible {
+  opacity: 1;
+}
+
+.photoSpinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, .3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dropInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.dropName {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropBadge {
+  display: inline-block;
+  font-size: .6rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.dropBadgeAdmin   { background: rgba(204, 0, 0, .65); color: #fff; }
+.dropBadgeStudent { background: rgba(255, 255, 255, .18); color: rgba(255, 255, 255, .9); }
+
+.removePhoto {
+  display: block;
+  margin-top: 6px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, .45);
+  font-size: .7rem;
+  cursor: pointer;
+  font-family: 'Source Sans 3', sans-serif;
+  padding: 0;
+  transition: color .2s;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.removePhoto:hover {
+  color: #fca5a5;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0;
+}
+
+/* ── SECCIÓN ── */
+.section {
+  padding: 14px 18px;
+}
+
+.sectionTitle {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--soft);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── CAMPO ── */
+.field {
+  margin-bottom: 8px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--gl);
+  color: var(--soft);
+  font-size: .62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.fieldRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.fieldInput {
+  flex: 1;
+  padding: 8px 11px;
+  border: 2px solid var(--border);
+  border-radius: var(--rs);
+  font-size: .86rem;
+  font-family: 'Source Sans 3', sans-serif;
+  color: var(--text);
+  background: var(--gl);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  min-width: 0;
+}
+
+.fieldInput:focus {
+  border-color: var(--blue);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(204, 0, 0, .1);
+}
+
+.fieldInputLocked {
+  background: var(--gl);
+  color: var(--soft);
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.fieldInputLocked:focus {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+/* ── BOTÓN GUARDAR ── */
+.saveBtn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--rs);
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: #aa0000;
+  transform: scale(1.06);
+}
+
+.saveBtn:disabled {
+  background: var(--gray);
+  cursor: not-allowed;
+}
+
+.saveBtnOk {
+  background: var(--color-success) !important;
+}
+
+.savingSpinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, .4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+
+/* ── MENSAJES DE ESTADO ── */
+.savedMsg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .74rem;
+  color: var(--color-success);
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+.fieldHint {
+  font-size: .73rem;
+  color: var(--gray);
+  line-height: 1.45;
+  margin-top: 5px;
+}
+
+.photoHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: .73rem;
+  color: var(--gray);
+  margin-top: 10px;
+  line-height: 1.45;
+}
+
+/* ── LOGOUT ── */
+.logoutSection {
+  padding: 10px 18px 14px;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 13px;
+  border-radius: var(--rs);
+  border: 1px solid transparent;
+  background: none;
+  color: #CC0000;
+  font-size: .85rem;
+  font-weight: 600;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  text-align: left;
+}
+
+.logoutBtn:hover {
+  background: #FFF0F0;
+  border-color: #FECACA;
+}
+
+/* ── DARK MODE ── */
+:global(.dark) .dropdown {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+}
+
+:global(.dark) .divider {
+  background: #334155;
+}
+
+:global(.dark) .fieldInput {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+:global(.dark) .fieldInput:focus {
+  background: #0f172a;
+  border-color: #CC0000;
+}
+
+:global(.dark) .fieldInputLocked {
+  background: #0f172a;
+  color: #64748b;
+}
+
+:global(.dark) .lockBadge {
+  background: #0f172a;
+  border-color: #334155;
+  color: #64748b;
+}
+
+:global(.dark) .logoutBtn:hover {
+  background: rgba(204, 0, 0, .15);
+  border-color: rgba(204, 0, 0, .35);
+}
+
+:global(.dark) .removePhoto:hover {
+  color: #f87171;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .triggerName {
+    display: none;
+  }
+
+  .chevron {
+    display: none;
+  }
+
+  .trigger {
+    padding: 4px;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 50%;
+  }
+
+  .trigger:hover,
+  .triggerOpen {
+    background: rgba(255, 255, 255, .15);
+    border-color: rgba(255, 255, 255, .3);
+  }
+
+  .dropdown {
+    right: -8px;
+    width: 290px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dropdown {
+    width: calc(100vw - 24px);
+    right: -12px;
+  }
+}

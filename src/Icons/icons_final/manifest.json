@@ -1,0 +1,127 @@
+{
+  "summary": {
+    "total_svgs_in_source": 44,
+    "unique_icons": 17
+  },
+  "icons": [
+    {
+      "name": "activity",
+      "module": "Chat Farmacológico / Pulso",
+      "hash": "b2789c52",
+      "file": "activity.svg",
+      "occurrences": 2
+    },
+    {
+      "name": "book",
+      "module": "Glosario / Libro",
+      "hash": "d4c94786",
+      "file": "book.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "book-open",
+      "module": "Atlas Farmacológico",
+      "hash": "56185bac",
+      "file": "book-open.svg",
+      "occurrences": 4
+    },
+    {
+      "name": "calculator",
+      "module": "Calculadora de Dosis",
+      "hash": "d4d59fb1",
+      "file": "calculator.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "check-square",
+      "module": "Quiz / Comprobado",
+      "hash": "d3dcec8a",
+      "file": "check-square.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "droplet",
+      "module": "Diluciones / Gota",
+      "hash": "0f2cbd09",
+      "file": "droplet.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "file-edit",
+      "module": "Receta Veterinaria",
+      "hash": "c2e80b75",
+      "file": "file-edit.svg",
+      "occurrences": 2
+    },
+    {
+      "name": "file-text",
+      "module": "Resumen / Documento",
+      "hash": "020d303a",
+      "file": "file-text.svg",
+      "occurrences": 4
+    },
+    {
+      "name": "flask-conical",
+      "module": "Diluciones IV",
+      "hash": "394a0915",
+      "file": "flask-conical.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "graduation-cap",
+      "module": "Aviso Académico",
+      "hash": "b72892f8",
+      "file": "graduation-cap.svg",
+      "occurrences": 1
+    },
+    {
+      "name": "info",
+      "module": "Acerca de",
+      "hash": "df70d750",
+      "file": "info.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "monitor",
+      "module": "Tecnologías Web",
+      "hash": "50d254d2",
+      "file": "monitor.svg",
+      "occurrences": 1
+    },
+    {
+      "name": "scale",
+      "module": "Comparador / Balanza",
+      "hash": "b91b85e7",
+      "file": "scale.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "search",
+      "module": "Buscar / Consultar IA",
+      "hash": "f4d61186",
+      "file": "search.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "sparkles",
+      "module": "Tecnología IA",
+      "hash": "7a632c6e",
+      "file": "sparkles.svg",
+      "occurrences": 1
+    },
+    {
+      "name": "syringe",
+      "module": "Vacunas y Recordatorios",
+      "hash": "815de25f",
+      "file": "syringe.svg",
+      "occurrences": 3
+    },
+    {
+      "name": "zap",
+      "module": "Interacciones / Rayo",
+      "hash": "b96707e7",
+      "file": "zap.svg",
+      "occurrences": 2
+    }
+  ]
+}
