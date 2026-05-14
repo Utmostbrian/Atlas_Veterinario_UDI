@@ -45,18 +45,18 @@ export default function MainLayout({
           <div className="fcol">
             <h4>Secciones</h4>
             <ul>
-              <li><a href="#atlas">Atlas Farmacológico</a></li>
-              <li><a href="#calc">Calculadora de Dosis</a></li>
-              <li><a href="#inter">Interacciones</a></li>
-              <li><a href="#enf">Protocolos</a></li>
-              <li><a href="#glos">Glosario</a></li>
+              <li><button onClick={() => onTabChange('atlas')} className="footer-link">Atlas Farmacológico</button></li>
+              <li><button onClick={() => onTabChange('calc')} className="footer-link">Calculadora de Dosis</button></li>
+              <li><button onClick={() => onTabChange('inter')} className="footer-link">Interacciones</button></li>
+              <li><button onClick={() => onTabChange('enf')} className="footer-link">Protocolos</button></li>
+              <li><button onClick={() => onTabChange('glos')} className="footer-link">Glosario</button></li>
             </ul>
           </div>
           <div className="fcol">
             <h4>Información</h4>
             <ul>
-              <li><a href="#receta">Generador de Recetas</a></li>
-              <li><a href="#audit">Historial de Consultas</a></li>
+              <li><button onClick={() => onTabChange('receta')} className="footer-link">Generador de Recetas</button></li>
+              <li><button onClick={() => onTabChange('audit')} className="footer-link">Historial de Consultas</button></li>
             </ul>
             <h4 style={{ marginTop: 14 }}>Aviso Legal</h4>
             <p style={{ fontSize: '.73rem', lineHeight: 1.5 }}>

@@ -6,7 +6,7 @@ import { searchDrugWithAI, relatedDrugs } from '../../modules/atlas'
 
 const STRIPE_CLASS = { AB: 'ab', AP: 'ap', AI: 'ai', AN: 'an', AF: 'af', HO: 'ho' }
 
-export default function DrugCard({ drug, onChatOpen, onAskAI }) {
+export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired }) {
   const [expanded,  setExpanded]  = useState(false)
   const [aiData,    setAiData]    = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -19,6 +19,10 @@ export default function DrugCard({ drug, onChatOpen, onAskAI }) {
     if (expanded) {
       setExpanded(false)
       setAiData(null)
+      return
+    }
+    if (onLoginRequired) {
+      onLoginRequired()
       return
     }
     logDrugSearch(drug.name, drug.species)
@@ -223,11 +227,15 @@ export default function DrugCard({ drug, onChatOpen, onAskAI }) {
             ) : (
               /* Error / sin API key — fallback a datos locales */
               <>
-                {aiData?.mensaje && (
-                  <div className="abox rr" style={{ marginBottom: 14 }}>
-                    <p style={{ fontSize: '.84rem', color: 'var(--red-dark)' }}>{aiData.mensaje}</p>
+                {aiData === null ? (
+                  <div className="abox b" style={{ marginBottom: 14, fontSize: '.84rem' }}>
+                    Configura tu API Key de Anthropic en el encabezado para enriquecer este fármaco con IA.
                   </div>
-                )}
+                ) : aiData?.mensaje ? (
+                  <div className="abox rr" style={{ marginBottom: 14 }}>
+                    <p style={{ fontSize: '.84rem' }}>{aiData.mensaje}</p>
+                  </div>
+                ) : null}
 
                 <div className="aisec">
                   <h3>Descripción</h3>
@@ -276,13 +284,6 @@ export default function DrugCard({ drug, onChatOpen, onAskAI }) {
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {drug.warnings && (
-                  <div className="wbox">
-                    <span>⚠</span>
-                    <span>{drug.warnings}</span>
                   </div>
                 )}
 

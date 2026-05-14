@@ -1,5 +1,5 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
-const MODELS = ['claude-sonnet-4-5', 'claude-opus-4-5', 'claude-sonnet-4-6']
+const MODELS = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
 const MAX_TOKENS = 1500
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.
@@ -78,7 +78,7 @@ async function fetchWithFallback(body, signal) {
       body: JSON.stringify({ ...body, model }),
       signal,
     })
-    if (response.status === 529 || response.status === 503 || response.status === 529) {
+    if (response.status === 529 || response.status === 503 || response.status === 429) {
       lastError = new Error(`Modelo ${model} no disponible (${response.status})`)
       continue
     }

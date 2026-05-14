@@ -29,7 +29,7 @@ function Message({ msg }) {
     <div className={`${styles.msgRow} ${isUser ? styles.userRow : styles.botRow}`}>
       {!isUser && (
         <div className={styles.avatar}>
-          <img src={chatIAIcon} alt="IA" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          <img src={chatIAIcon} alt="IA" style={{ width: 54, height: 54, objectFit: 'contain' }} />
         </div>
       )}
 
@@ -160,11 +160,16 @@ export default function AIChatFloating({ open, onToggle, apiKey, onAuthRequired 
     inputRef.current?.focus()
   }
 
+  function handleToggle() {
+    if (streamRef.current) closeCamera()
+    onToggle()
+  }
+
   if (!open) {
     return (
       <button
         className={styles.fab}
-        onClick={onToggle}
+        onClick={handleToggle}
         title="Abrir Asistente IA"
         aria-label="Abrir chat con IA"
       >
@@ -177,7 +182,7 @@ export default function AIChatFloating({ open, onToggle, apiKey, onAuthRequired 
   return (
     <>
       {/* Backdrop on mobile */}
-      <div className={styles.backdrop} onClick={onToggle} />
+      <div className={styles.backdrop} onClick={handleToggle} />
 
       {cameraOpen && (
         <div className={styles.cameraOverlay}>
@@ -213,7 +218,7 @@ export default function AIChatFloating({ open, onToggle, apiKey, onAuthRequired 
             <button className={styles.iconBtn} onClick={() => setMinimized((v) => !v)} title="Minimizar">
               <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
             </button>
-            <button className={styles.iconBtn} onClick={onToggle} title="Cerrar">
+            <button className={styles.iconBtn} onClick={handleToggle} title="Cerrar">
               <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
             </button>
           </div>
@@ -356,7 +361,7 @@ function markdownToHtml(md) {
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>[\s\S]+?<\/li>)(?=\n|$)/g, '<ul>$1</ul>')
+    .replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, (m) => `<ul>${m.replace(/\n/g, '')}</ul>`)
     .replace(/\n\n/g, '<br><br>')
     .replace(/\n/g, '<br>')
 }

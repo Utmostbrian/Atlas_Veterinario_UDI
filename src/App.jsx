@@ -52,6 +52,8 @@ function AppContent() {
 
   // ¿El tab actual requiere autenticación para interactuar?
   const gated = !user && !FREE_TABS.has(activeTab)
+  // El atlas permite buscar y filtrar sin sesión; solo bloquea al abrir una tarjeta
+  const overlayGated = gated && activeTab !== 'atlas'
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -66,8 +68,8 @@ function AppContent() {
       >
         <div style={{ position: 'relative' }}>
           <Suspense fallback={<TabLoader />}>
-            {activeTab === 'atlas'  && <DrugGrid onChatOpen={user ? setChatOpen : undefined} />}
-            {activeTab === 'calc'   && <DosageCalculator />}
+            {activeTab === 'atlas'  && <DrugGrid onChatOpen={user ? setChatOpen : undefined} onLoginRequired={!user ? openLogin : undefined} />}
+            {activeTab === 'calc'   && <DosageCalculator onLoginRequired={!user ? openLogin : undefined} />}
             {activeTab === 'dil'    && <DilutionCalculator />}
             {activeTab === 'inter'  && <InteractionChecker />}
             {activeTab === 'enf'    && <DiseaseProtocols />}
@@ -76,8 +78,8 @@ function AppContent() {
             {activeTab === 'audit'  && user?.role === 'admin' && <ConsultationHistory />}
           </Suspense>
 
-          {/* Capa invisible que intercepta clics solo en tabs restringidos */}
-          {gated && (
+          {/* Capa invisible que intercepta clics solo en tabs completamente restringidos */}
+          {overlayGated && (
             <div
               aria-hidden="true"
               style={{ position: 'absolute', inset: 0, zIndex: 10 }}

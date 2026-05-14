@@ -4,7 +4,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage'
 import DrugCard from './DrugCard'
 import { SearchIcon } from '../../Icons/Icons'
 
-export default function DrugGrid({ onChatOpen }) {
+export default function DrugGrid({ onChatOpen, onLoginRequired }) {
   const [query,          setQuery]          = useState('')
   const [activeCategory, setActiveCategory] = useState('ALL')
   const [recentSearches, setRecentSearches] = useLocalStorage('vet_recent_searches', [])
@@ -18,14 +18,20 @@ export default function DrugGrid({ onChatOpen }) {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()
-    return DRUGS.filter(d => {
+    const matches = DRUGS.filter(d => {
       const matchCat = activeCategory === 'ALL' || d.category === activeCategory
-      const matchQ   = !q ||
-        d.name.toLowerCase().includes(q) ||
-        d.latin.toLowerCase().includes(q) ||
-        d.species.toLowerCase().includes(q) ||
-        d.description.toLowerCase().includes(q)
+      if (!q) return matchCat
+      const matchQ =
+        d.name.toLowerCase().startsWith(q) ||
+        d.latin.toLowerCase().startsWith(q) ||
+        d.species.toLowerCase().includes(q)
       return matchCat && matchQ
+    })
+    if (!q) return matches
+    return [...matches].sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1
+      const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1
+      return aStarts - bStarts
     })
   }, [query, activeCategory])
 
@@ -151,6 +157,7 @@ export default function DrugGrid({ onChatOpen }) {
                   drug={drug}
                   onChatOpen={onChatOpen}
                   onAskAI={() => addRecent(drug.name)}
+                  onLoginRequired={onLoginRequired}
                 />
               ))}
             </div>

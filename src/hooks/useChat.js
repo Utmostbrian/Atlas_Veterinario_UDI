@@ -47,7 +47,7 @@ export function useChat() {
       abortRef.current = new AbortController()
 
       try {
-        await sendMessage({
+        const fullResponse = await sendMessage({
           history,
           userText: text,
           imageData,
@@ -69,7 +69,7 @@ export function useChat() {
           )
         )
 
-        logAiConsultation(text, '')
+        logAiConsultation(text, typeof fullResponse === 'string' ? fullResponse.slice(0, 200) : '')
       } catch (err) {
         if (err.name === 'AbortError') {
           setMessages((prev) => prev.filter((m) => m.id !== placeholderId))

@@ -5,7 +5,7 @@ import { logDoseCalculation, logDoseValidation } from '../../services/auditServi
 import { CalculatorIcon, SparklesIcon } from '../../Icons/Icons'
 import { DRUG_NAMES } from '../../data/drugsDatabase'
 
-export default function DosageCalculator() {
+export default function DosageCalculator({ onLoginRequired }) {
   const calc = useDrugCalculator()
 
   // Estado para el "Buscar con IA" (obtiene el perfil clínico del fármaco)
@@ -34,6 +34,7 @@ export default function DosageCalculator() {
   async function handleFetchAiProfile() {
     const drug = calc.drugInput.trim()
     if (!drug) return
+    if (onLoginRequired) { onLoginRequired(); return }
     setProfileLoading(true)
     setProfileError('')
     setAiResult('')
@@ -54,6 +55,7 @@ export default function DosageCalculator() {
 
   async function handleValidate() {
     if (!calc.result || !calc.matchedDrug) return
+    if (onLoginRequired) { onLoginRequired(); return }
     setAiLoading(true)
     setAiError('')
     setAiResult('')
@@ -84,10 +86,12 @@ export default function DosageCalculator() {
   // ── Etiquetas dinámicas ───────────────────────────────────────────────────
 
   function calcButtonLabel() {
-    if (!calc.matchedDrug) return 'Calcular dosis'
-    if (calc.routeError)    return 'Vía no permitida'
-    if (calc.speciesError)  return 'Especie no indicada'
-    if (!calc.canCalculate) return 'Completar datos'
+    if (!calc.matchedDrug && !calc.drugInput.trim()) return 'Ingresa un fármaco'
+    if (!calc.matchedDrug && needsAiLookup)           return 'Busca el perfil con IA'
+    if (!calc.matchedDrug)                            return 'Calcular dosis'
+    if (calc.routeError)                              return 'Vía no permitida'
+    if (calc.speciesError)                            return 'Especie no indicada'
+    if (!calc.canCalculate)                           return 'Completar datos'
     return 'Calcular dosis'
   }
 
@@ -587,12 +591,16 @@ export default function DosageCalculator() {
 }
 
 function markdownToHtml(md) {
+  if (!md) return ''
   return md
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^- (.*$)/gm, '<li>$1</li>')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, (m) => `<ul>${m.replace(/\n/g, '')}</ul>`)
     .replace(/\n\n/g, '<br><br>')
     .replace(/\n/g, '<br>')
 }

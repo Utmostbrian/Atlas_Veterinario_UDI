@@ -9,10 +9,16 @@ export default function DiseaseProtocols() {
   const [query, setQuery] = useState('')
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase()
-    return DISEASES.filter(
-      d => !q || d.name.toLowerCase().includes(q) || d.species.toLowerCase().includes(q)
+    const q = query.toLowerCase().trim()
+    const matches = DISEASES.filter(
+      d => !q || d.name.toLowerCase().startsWith(q) || d.species.toLowerCase().includes(q)
     )
+    if (!q) return matches
+    return [...matches].sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1
+      const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1
+      return aStarts - bStarts
+    })
   }, [query])
 
   return (
@@ -78,7 +84,11 @@ function DiseaseCard({ disease }) {
     <>
       <div className="ecard" onClick={handleExpand}>
         <div className="ech" style={{ background: disease.color || 'var(--blue)' }}>{disease.name}</div>
-        <div className="ecb">{disease.description?.slice(0, 90)}...</div>
+        <div className="ecb">
+          {disease.description && disease.description.length > 90
+            ? disease.description.slice(0, 90) + '...'
+            : disease.description}
+        </div>
         <div className="ecf">
           <span>{disease.species}</span>
           <span style={{ color: SEVERITY_COLOR[disease.severity] || 'var(--soft)', fontWeight: 700 }}>

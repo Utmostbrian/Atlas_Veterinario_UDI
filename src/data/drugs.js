@@ -35,9 +35,10 @@ export const DRUGS = [
       'Fluoroquinolona bactericida de amplio espectro. Inhibe la ADN-girasa bacteriana. Eficaz frente a gramnegativos.',
     dosages: [
       ['Perro',   '5–20 mg/kg',   'VO',  'c/24 h'],
+      ['Gato',    '2.5–5 mg/kg',  'SC/VO', 'c/24 h'],
       ['Bovino',  '2.5–5 mg/kg',  'SC',  'c/24 h'],
     ],
-    warnings: 'No usar en animales jóvenes en crecimiento. Fotosensibilización en gatos.',
+    warnings: 'GATOS: máximo 5 mg/kg/día. Dosis superiores causan degeneración retinal irreversible y ceguera permanente. No usar en animales jóvenes en crecimiento (condrocitos).',
     interactions: 'Reducción de absorción con antiácidos de aluminio/magnesio.',
   },
   {
@@ -210,10 +211,11 @@ export const DRUGS = [
     description:
       'Anestésico de inducción IV ultra-corto. Recuperación rápida y suave. Estándar en anestesia de pequeños animales.',
     dosages: [
-      ['Perro (premedicado)', '1–2 mg/kg', 'IV lenta', 'Dosis única'],
-      ['Gato',               '6–8 mg/kg', 'IV lenta', 'Dosis única'],
+      ['Perro (premedicado)', '1–4 mg/kg',  'IV lenta', 'Dosis única'],
+      ['Gato (premedicado)',  '2–4 mg/kg',  'IV lenta', 'Dosis única'],
+      ['Gato (sin premedicar)', '4–6 mg/kg', 'IV lenta', 'Dosis única'],
     ],
-    warnings: 'Solo IV. Puede causar apnea transitoria. Formulación: emulsión lipídica, no reutilizar viales.',
+    warnings: 'EXCLUSIVO IV. Máximo 6 mg/kg en gatos — dosis superiores causan apnea severa y paro respiratorio. No usar en infusión continua prolongada en gatos (síndrome de Heinz). No reutilizar viales abiertos.',
     interactions: 'Potencia opioides y benzodiacepinas. No mezclar con otros fármacos en la misma jeringa.',
   },
   {

@@ -22,8 +22,20 @@ export default function Prescription() {
   function removeDrug(idx) { if (drugs.length > 1) setDrugs(p => p.filter((_, i) => i !== idx)) }
 
   function generatePrescription() {
+    if (!vetName.trim()) {
+      alert('Por favor ingresa el nombre del veterinario antes de generar la receta.')
+      return
+    }
+    if (!vetReg.trim()) {
+      alert('El número de registro profesional es obligatorio. Una receta sin matrícula no tiene validez legal.')
+      return
+    }
+    if (!drugs.some(d => d.name.trim())) {
+      alert('Agrega al menos un medicamento con nombre para generar la receta.')
+      return
+    }
     setGenerated(true)
-    logPrescription({ drugName: drugs.map(d => d.name).join(', '), species: patient.species, weight: patient.weight, owner: patient.owner })
+    logPrescription({ drugName: drugs.map(d => d.name).filter(Boolean).join(', '), species: patient.species, weight: patient.weight, owner: patient.owner })
   }
 
   function handlePrint() {

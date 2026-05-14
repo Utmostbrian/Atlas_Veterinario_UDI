@@ -118,7 +118,19 @@ export function logDrugSearch(drugName, species) {
 }
 
 export function logDoseCalculation(data) {
-  return logEvent(EVENT_TYPES.DOSE_CALCULATED, data)
+  // Normalize field names for consistency: drug → drugName, totalMg → doseCalculated
+  return logEvent(EVENT_TYPES.DOSE_CALCULATED, {
+    drugName:       data.drug,
+    doseCalculated: data.totalMg,
+    ...data,
+  })
+}
+
+export function logInteractionCheck(drugs) {
+  return logEvent(EVENT_TYPES.INTERACTION_CHECK, {
+    query:    drugs.join(', '),
+    drugName: drugs[0] || '',
+  })
 }
 
 export function logDoseValidation(data) {
@@ -161,15 +173,15 @@ export function exportToCsv() {
   const log = readLog()
   if (!log.length) return
 
-  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Dosis']
+  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Dosis / Consulta']
   const rows = log.map((e) => [
     e.id,
     new Date(e.timestamp).toLocaleString('es-BO'),
     e.eventType,
-    e.drugName || '',
+    e.drugName || e.drug || '',
     e.species || '',
     e.weight ? `${e.weight} kg` : '',
-    e.doseCalculated || e.query?.slice(0, 50) || '',
+    e.doseCalculated ? `${e.doseCalculated} mg (${e.volMl || ''} mL)` : (e.query?.slice(0, 80) || ''),
   ])
 
   const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')

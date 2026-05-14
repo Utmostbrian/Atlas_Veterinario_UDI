@@ -30,9 +30,9 @@ export const DISEASES = [
     color: '#CC0000',
     description:
       'Enfermedad hemoparasitaria transmitida por garrapatas. Causada por Anaplasma marginale. Cursa con anemia hemolítica.',
-    drugs: ['Oxitetraciclina', 'Ivermectina'],
+    drugs: ['Oxitetraciclina'],
     protocol:
-      'Oxitetraciclina como tratamiento específico. Control de garrapatas vectores con ivermectina.',
+      'Oxitetraciclina como único tratamiento específico (10–20 mg/kg IM c/24 h por 3–5 días). La ivermectina controla las garrapatas vectores pero NO tiene actividad contra Anaplasma marginale y no debe usarse como tratamiento de la enfermedad.',
     severity: 'Alta',
   },
   {
@@ -104,7 +104,7 @@ export const DISEASES = [
       'Exceso crónico de cortisol por neoplasia hipofisaria (PDH 80%) o adrenal. Signos: PU/PD, alopecia, abdomen péndulo.',
     drugs: ['Ketoconazol'],
     protocol:
-      'Ketoconazol como tratamiento temporal o en espera de trilostano. Monitoreo de ACTH y cortisol basal.',
+      'Trilostano es el tratamiento de primera línea aprobado para PDH canino (2–5 mg/kg VO c/24 h; ajustar según test ACTH estimulación). Ketoconazol es segunda línea y uso paliativo (15 mg/kg/día VO dividido c/12 h). Mitotano disponible para casos refractarios. Monitoreo de ACTH y cortisol basal cada 3 meses.',
     severity: 'Media',
   },
   {

@@ -148,12 +148,12 @@ export default function ConsultationHistory() {
                         </span>
                       </td>
                       <td style={{ color: 'var(--soft)', fontSize: '.78rem' }}>{formatDate(item.timestamp)}</td>
-                      <td>{item.drugName || '—'}</td>
+                      <td>{item.drugName || item.drug || '—'}</td>
                       <td>{item.species || '—'}</td>
                       <td style={{ color: 'var(--soft)', fontSize: '.78rem' }}>
-                        {item.doseCalculated || item.query?.slice(0, 60) || item.totalDose
-                          ? `${item.totalDose || item.doseCalculated} mg`
-                          : '—'}
+                        {item.doseCalculated
+                          ? `${item.doseCalculated} mg → ${item.volMl} mL`
+                          : item.query?.slice(0, 60) || '—'}
                       </td>
                     </tr>
                   )

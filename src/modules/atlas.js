@@ -36,6 +36,7 @@ function safeParseJSON(str) {
 }
 
 export async function searchDrugWithAI(name) {
+  if (!localStorage.getItem('vet_atlas_api_key')) return null
   try {
     const text = await sendMessage({ history: [], userText: buildDrugPrompt(name) })
     const match = text.match(/\{[\s\S]*\}/)
@@ -43,6 +44,19 @@ export async function searchDrugWithAI(name) {
     return safeParseJSON(match[0])
   } catch (e) {
     return { encontrado: false, mensaje: e.message || 'Error al consultar con la IA.' }
+  }
+}
+
+export async function validateDrugWithAI(name) {
+  const prompt = `¿Es "${name}" un fármaco, medicamento o principio activo real (veterinario o humano)? Responde ÚNICAMENTE con JSON sin texto extra:\n{"esFarmaco": true}\no\n{"esFarmaco": false}`
+  try {
+    const text = await sendMessage({ history: [], userText: prompt })
+    const match = text.match(/\{[\s\S]*?\}/)
+    if (!match) return { esFarmaco: false }
+    const parsed = safeParseJSON(match[0])
+    return { esFarmaco: !!parsed.esFarmaco }
+  } catch {
+    return { esFarmaco: true } // si falla la IA, no bloqueamos al usuario
   }
 }
 

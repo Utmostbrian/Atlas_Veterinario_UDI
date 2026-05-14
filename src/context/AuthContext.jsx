@@ -1,9 +1,9 @@
 import { createContext, useContext, useCallback } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 
-const ADMIN_USER = 'admin'
-const ADMIN_PASS = 'AtlasVet2026'
-const STUDENT_PASS = 'vet2026'
+const ADMIN_USER   = import.meta.env.VITE_ADMIN_USER   || 'admin'
+const ADMIN_PASS   = import.meta.env.VITE_ADMIN_PASS   || 'AtlasVet2026'
+const STUDENT_PASS = import.meta.env.VITE_STUDENT_PASS || 'vet2026'
 
 const AuthContext = createContext(null)
 

@@ -149,20 +149,30 @@ export default function DilutionCalculator() {
 
             {/* Reference table */}
             <div style={{ marginTop: 16 }}>
-              <div className="crtitle">Tasas de mantenimiento</div>
+              <div className="crtitle">Tasas de referencia clínica</div>
               <table className="dtbl" style={{ marginTop: 8 }}>
-                <thead><tr><th>Especie</th><th>Tasa</th></tr></thead>
+                <thead>
+                  <tr><th>Especie / Contexto</th><th>Tasa</th><th>Uso</th></tr>
+                </thead>
                 <tbody>
                   {[
-                    ['Perro / Gato', '2–5 mL/kg/h'],
-                    ['Bovino adulto', '10–15 mL/kg/h'],
-                    ['Equino (choque)', '20–40 mL/kg/h'],
-                    ['Ovino / Caprino', '2–4 mL/kg/h'],
-                  ].map(([e, r]) => (
-                    <tr key={e}><td>{e}</td><td><strong>{r}</strong></td></tr>
+                    ['Perro / Gato',             '2–5 mL/kg/h',   'Mantenimiento'],
+                    ['Bovino adulto',             '2–4 mL/kg/h',   'Mantenimiento'],
+                    ['Equino',                    '2–4 mL/kg/h',   'Mantenimiento'],
+                    ['Ovino / Caprino',           '2–4 mL/kg/h',   'Mantenimiento'],
+                    ['Equino / Bovino (choque)',  '20–40 mL/kg/h', 'Reanimación — NO mantenimiento'],
+                  ].map(([e, r, u]) => (
+                    <tr key={e}>
+                      <td>{e}</td>
+                      <td><strong>{r}</strong></td>
+                      <td style={{ fontSize: '.75rem', color: u.includes('NO') ? 'var(--red)' : 'inherit', fontWeight: u.includes('NO') ? 700 : 'normal' }}>{u}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
+              <div className="abox rr" style={{ marginTop: 8, padding: '6px 10px', fontSize: '.78rem' }}>
+                La tasa de reanimación de choque (20–40 mL/kg/h) se usa SOLO en urgencia hipovolémica. Administrarla como mantenimiento causa sobrehidratación y edema pulmonar.
+              </div>
             </div>
           </div>
         </div>
