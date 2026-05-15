@@ -4,3 +4,16 @@ dist/
 .env.local
 *.local
 .DS_Store
+
+# Claude Code
+.claude/settings.local.json
+
+# Archivos temporales
+implementation_plan.md.resolved
+scripts/
+
+# Documentos confidenciales — no subir al repo
+Reporte_Tecnico_DoD.docx
+
+# Supabase CLI cache
+supabase/.temp/

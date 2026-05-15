@@ -1,5 +1,16 @@
-const API_URL = 'https://api.anthropic.com/v1/messages'
-const MODELS = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
+/**
+ * Servicio Anthropic — Atlas Farmacológico Veterinario
+ *
+ * La API Key de Anthropic vive EXCLUSIVAMENTE en el servidor (Supabase Edge Function).
+ * El frontend llama a /functions/v1/anthropic-proxy con el JWT del usuario. (DoD Tier 1)
+ *
+ * Si VITE_SUPABASE_URL no está configurada, cae back al modo directo para desarrollo
+ * local con la variable VITE_ANTHROPIC_API_KEY (solo para entorno dev).
+ */
+
+import { supabase } from '../lib/supabase'
+
+const MODELS     = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
 const MAX_TOKENS = 1500
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.
@@ -23,62 +34,50 @@ Contenido:
 
 Áreas de expertise: Farmacología veterinaria, toxicología, protocolos anestésicos, antiparasitarios, antibioterapia, reproducción animal.`
 
-function getApiKey() {
-  return (
-    import.meta.env.VITE_ANTHROPIC_API_KEY ||
-    localStorage.getItem('vet_atlas_api_key') ||
-    ''
-  )
+// ── Obtener token de sesión para el proxy ────────────────────────────────────
+async function getSessionToken() {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token ?? null
 }
 
-function buildImageContent(base64Data, mediaType) {
-  return {
-    type: 'image',
-    source: {
-      type: 'base64',
-      media_type: mediaType,
-      data: base64Data,
-    },
-  }
+// ── URL del proxy (Edge Function) ────────────────────────────────────────────
+function getProxyUrl() {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  if (supabaseUrl) return `${supabaseUrl}/functions/v1/anthropic-proxy`
+  return null
 }
 
-function buildMessages(history, userText, imageData) {
-  const messages = history.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }))
+// ── Llamada al proxy con fallback a modelos múltiples ────────────────────────
+async function fetchViaProxy(body, signal) {
+  const proxyUrl = getProxyUrl()
+  const token    = await getSessionToken()
 
-  const userContent = []
-
-  if (imageData) {
-    userContent.push(buildImageContent(imageData.base64, imageData.mediaType))
-  }
-
-  userContent.push({ type: 'text', text: userText })
-
-  messages.push({ role: 'user', content: userContent })
-  return messages
-}
-
-async function fetchWithFallback(body, signal) {
-  const apiKey = getApiKey()
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-access': 'true',
+  if (!proxyUrl || !token) {
+    // Modo desarrollo: llamada directa (solo si hay VITE_ANTHROPIC_API_KEY)
+    return fetchDirect(body, signal)
   }
 
   let lastError
   for (const model of MODELS) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ ...body, model }),
+
+    const response = await fetch(proxyUrl, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body:    JSON.stringify({ ...body, model }),
       signal,
     })
-    if (response.status === 529 || response.status === 503 || response.status === 429) {
+
+    if (response.status === 429) {
+      throw new Error('Límite de solicitudes alcanzado. Espera un minuto.')
+    }
+    if (response.status === 401) {
+      throw new Error('Sesión expirada. Inicia sesión de nuevo.')
+    }
+    if (response.status === 529 || response.status === 503) {
       lastError = new Error(`Modelo ${model} no disponible (${response.status})`)
       continue
     }
@@ -91,36 +90,44 @@ async function fetchWithFallback(body, signal) {
   throw lastError ?? new Error('Todos los modelos no están disponibles. Intenta de nuevo.')
 }
 
-export async function sendMessage({ history, userText, imageData, onChunk, signal }) {
-  const apiKey = getApiKey()
-  if (!apiKey) {
-    throw new Error('API Key no configurada. Ingresa tu API Key de Anthropic en la configuración.')
+// ── Fallback: modo dev con llamada directa ───────────────────────────────────
+async function fetchDirect(body, signal) {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || localStorage.getItem('vet_atlas_api_key') || ''
+  if (!apiKey) throw new Error('API Key no configurada. Configura VITE_ANTHROPIC_API_KEY para desarrollo.')
+
+  let lastError
+  for (const model of MODELS) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body:    JSON.stringify({ ...body, model }),
+      signal,
+    })
+    if (response.status === 529 || response.status === 503 || response.status === 429) {
+      lastError = new Error(`Modelo ${model} no disponible`)
+      continue
+    }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(err?.error?.message || `Error HTTP ${response.status}`)
+    }
+    return response
   }
-
-  const messages = buildMessages(history, userText, imageData)
-
-  const body = {
-    max_tokens: MAX_TOKENS,
-    system: SYSTEM_PROMPT,
-    messages,
-    stream: !!onChunk,
-  }
-
-  const response = await fetchWithFallback(body, signal)
-
-  if (onChunk) {
-    return handleStreaming(response, onChunk)
-  }
-
-  const data = await response.json()
-  return data.content?.[0]?.text ?? ''
+  throw lastError ?? new Error('Todos los modelos no están disponibles.')
 }
 
+// ── Streaming SSE ─────────────────────────────────────────────────────────────
 async function handleStreaming(response, onChunk) {
-  const reader = response.body.getReader()
+  const reader  = response.body.getReader()
   const decoder = new TextDecoder()
-  let fullText = ''
-  let buffer = ''
+  let fullText  = ''
+  let buffer    = ''
 
   while (true) {
     const { done, value } = await reader.read()
@@ -141,19 +148,35 @@ async function handleStreaming(response, onChunk) {
           fullText += chunk
           onChunk(chunk, fullText)
         }
-      } catch {
-        // ignore malformed SSE events
-      }
+      } catch { /* ignorar SSE malformado */ }
     }
   }
-
   return fullText
 }
 
-export async function validateDose({ drug, species, weight, dose, unit, route }) {
-  const apiKey = getApiKey()
-  if (!apiKey) throw new Error('API Key no configurada.')
+// ── Helpers de contenido ──────────────────────────────────────────────────────
+function buildMessages(history, userText, imageData) {
+  const messages = history.map(m => ({ role: m.role, content: m.content }))
+  const userContent = []
+  if (imageData) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: imageData.mediaType, data: imageData.base64 } })
+  }
+  userContent.push({ type: 'text', text: userText })
+  messages.push({ role: 'user', content: userContent })
+  return messages
+}
 
+// ── API pública ───────────────────────────────────────────────────────────────
+export async function sendMessage({ history, userText, imageData, onChunk, signal }) {
+  const messages = buildMessages(history, userText, imageData)
+  const body     = { max_tokens: MAX_TOKENS, system: SYSTEM_PROMPT, messages, stream: !!onChunk }
+  const response = await fetchViaProxy(body, signal)
+  if (onChunk) return handleStreaming(response, onChunk)
+  const data = await response.json()
+  return data.content?.[0]?.text ?? ''
+}
+
+export async function validateDose({ drug, species, weight, dose, unit, route }) {
   const prompt = `Valida la siguiente dosis calculada:
 - Fármaco: ${drug}
 - Especie: ${species}
@@ -169,22 +192,14 @@ Evalúa:
 
 Responde con: [SEGURA] / [REVISAR] / [PELIGROSA] y justificación. No uses emojis.`
 
-  const response = await fetchWithFallback({
-    max_tokens: 600,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const data = await response.json()
+  const response = await fetchViaProxy({ max_tokens: 600, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
+  const data     = await response.json()
   return data.content?.[0]?.text ?? ''
 }
 
 export async function checkInteractions(drugs) {
-  const apiKey = getApiKey()
-  if (!apiKey) throw new Error('API Key no configurada.')
-
   const drugList = drugs.join(', ')
-  const prompt = `Analiza las interacciones farmacológicas entre: ${drugList}.
+  const prompt   = `Analiza las interacciones farmacológicas entre: ${drugList}.
 
 Para cada par o combinación:
 - Describe el tipo de interacción (sinergismo, antagonismo, toxicidad aditiva)
@@ -194,29 +209,12 @@ Para cada par o combinación:
 
 Indica cuáles combinaciones son seguras para uso veterinario conjunto.`
 
-  const response = await fetchWithFallback({
-    max_tokens: 1000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const data = await response.json()
+  const response = await fetchViaProxy({ max_tokens: 1000, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
+  const data     = await response.json()
   return data.content?.[0]?.text ?? ''
 }
 
-/**
- * fetchDrugProfileWithAI — Úsalo cuando el fármaco NO está en DRUGS_DATABASE.
- * La IA actúa como farmacólogo veterinario y devuelve el perfil clínico completo
- * en el mismo formato que usa DRUGS_DATABASE, para que el hook lo trate igual
- * que un fármaco de la base de datos local.
- *
- * El perfil retornado incluye: name, doseUnit, dosageRange (por especie),
- * species (válidas), allowedRoutes, standardConcentrations, note.
- */
 export async function fetchDrugProfileWithAI(drug) {
-  const apiKey = getApiKey()
-  if (!apiKey) throw new Error('API Key no configurada. Ingresa tu API Key en la configuración.')
-
   const prompt = `Eres un farmacólogo veterinario experto. Devuelve el perfil clínico veterinario del fármaco "${drug}".
 Responde EXCLUSIVAMENTE con JSON válido, sin texto adicional antes ni después.
 
@@ -226,9 +224,9 @@ Si ES un fármaco veterinario real, devuelve:
 {
   "esFarmacoReal": true,
   "name": "nombre farmacológico oficial",
-  "doseUnit": "mg/kg" (o "UI/kg" si aplica),
+  "doseUnit": "mg/kg",
   "dosageRange": {
-    "Perro":   { "min": N, "max": N } o null si no tiene indicación veterinaria en esta especie,
+    "Perro":   { "min": N, "max": N } o null,
     "Gato":    { "min": N, "max": N } o null,
     "Bovino":  { "min": N, "max": N } o null,
     "Equino":  { "min": N, "max": N } o null,
@@ -236,76 +234,58 @@ Si ES un fármaco veterinario real, devuelve:
     "Porcino": { "min": N, "max": N } o null,
     "Ave":     { "min": N, "max": N } o null
   },
-  "species": ["lista de especies donde tiene indicación veterinaria aprobada"],
-  "allowedRoutes": ["solo las vías permitidas, usando EXACTAMENTE estos nombres: VO (oral), IM (intramuscular), IV (intravenosa), SC (subcutánea), Tópico, Intramamario"],
-  "standardConcentrations": [concentraciones comerciales reales en mg/mL o UI/mL, como números],
-  "note": "advertencias clínicas críticas (toxicidad, contraindicaciones, restricciones de especie) o null"
+  "species": ["lista de especies con indicación aprobada"],
+  "allowedRoutes": ["VO (oral)", "IM (intramuscular)", "IV (intravenosa)", "SC (subcutánea)", "Tópico", "Intramamario"],
+  "standardConcentrations": [números],
+  "note": "advertencias clínicas o null"
 }`
 
-  const response = await fetchWithFallback({
+  const response = await fetchViaProxy({
     max_tokens: 900,
-    system: 'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido, sin texto adicional.',
-    messages: [{ role: 'user', content: prompt }],
+    system:     'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido.',
+    messages:   [{ role: 'user', content: prompt }],
   })
-
-  const data = await response.json()
+  const data    = await response.json()
   const rawText = data.content?.[0]?.text ?? ''
 
-  // Extrae el JSON tolerando bloques markdown (```json ... ```)
   let jsonStr = rawText
   const fenced = rawText.match(/```(?:json)?\s*([\s\S]*?)```/s)
-  if (fenced) {
-    jsonStr = fenced[1].trim()
-  } else {
-    const plain = rawText.match(/\{[\s\S]*\}/s)
-    if (plain) jsonStr = plain[0].trim()
-  }
+  if (fenced) jsonStr = fenced[1].trim()
+  else { const plain = rawText.match(/\{[\s\S]*\}/s); if (plain) jsonStr = plain[0].trim() }
 
   let parsed
-  try {
-    parsed = JSON.parse(jsonStr)
-  } catch {
-    throw new Error('La IA no devolvió datos estructurados válidos. Intenta de nuevo.')
-  }
+  try { parsed = JSON.parse(jsonStr) }
+  catch { throw new Error('La IA no devolvió datos estructurados válidos. Intenta de nuevo.') }
 
-  if (!parsed.esFarmacoReal) return null  // señal de "no es un fármaco real"
+  if (!parsed.esFarmacoReal) return null
 
-  // Normalizar y sanear el perfil para que sea compatible con DRUGS_DATABASE
-  const VALID_ROUTES = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario']
+  const VALID_ROUTES  = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario']
   const VALID_SPECIES = ['Perro', 'Gato', 'Bovino', 'Equino', 'Ovino', 'Porcino', 'Ave']
 
-  // Filtrar rutas inválidas que la IA pueda haber generado con otro formato
-  const allowedRoutes = (parsed.allowedRoutes || []).filter(r => VALID_ROUTES.includes(r))
-  if (allowedRoutes.length === 0) allowedRoutes.push('VO (oral)') // fallback seguro
+  const allowedRoutes = (parsed.allowedRoutes ?? []).filter(r => VALID_ROUTES.includes(r))
+  if (!allowedRoutes.length) allowedRoutes.push('VO (oral)')
 
-  // Filtrar especies inválidas
-  const species = (parsed.species || []).filter(s => VALID_SPECIES.includes(s))
-  if (species.length === 0) species.push('Perro') // fallback seguro
+  const species = (parsed.species ?? []).filter(s => VALID_SPECIES.includes(s))
+  if (!species.length) species.push('Perro')
 
-  // Limpiar dosageRange: solo incluir entradas no-null con min/max válidos
   const dosageRange = {}
   for (const sp of VALID_SPECIES) {
     const r = parsed.dosageRange?.[sp]
-    if (r && typeof r.min === 'number' && typeof r.max === 'number') {
-      dosageRange[sp] = { min: r.min, max: r.max }
-    }
+    if (r && typeof r.min === 'number' && typeof r.max === 'number') dosageRange[sp] = { min: r.min, max: r.max }
   }
 
   return {
-    name:                  parsed.name || drug,
-    doseUnit:              parsed.doseUnit || 'mg/kg',
+    name:                   parsed.name || drug,
+    doseUnit:               parsed.doseUnit || 'mg/kg',
     dosageRange,
     species,
     allowedRoutes,
-    standardConcentrations: (parsed.standardConcentrations || []).filter(n => typeof n === 'number'),
-    note:                  parsed.note || null,
+    standardConcentrations: (parsed.standardConcentrations ?? []).filter(n => typeof n === 'number'),
+    note:                   parsed.note ?? null,
   }
 }
 
 export async function compareDrugs(drug1, drug2) {
-  const apiKey = getApiKey()
-  if (!apiKey) throw new Error('API Key no configurada.')
-
   const prompt = `Compara farmacológicamente ${drug1} vs ${drug2} para uso veterinario.
 
 Incluye tabla comparativa con:
@@ -322,12 +302,7 @@ Incluye tabla comparativa con:
 
 Conclusión: ¿Cuándo elegir uno u otro?`
 
-  const response = await fetchWithFallback({
-    max_tokens: 1200,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const data = await response.json()
+  const response = await fetchViaProxy({ max_tokens: 1200, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
+  const data     = await response.json()
   return data.content?.[0]?.text ?? ''
 }

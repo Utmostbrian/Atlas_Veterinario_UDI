@@ -1,17 +1,18 @@
 /**
- * Servicio de Auditoría / Historial de Consultas
+ * Servicio de Auditoría — Atlas Farmacológico Veterinario
  *
- * Arquitectura dual:
- * 1. localStorage  → Funciona sin backend (demo/feria)
- * 2. Backend REST  → Llama a Procedimientos Almacenados en el servidor
+ * Arquitectura dual (DoD Punto 3):
+ * 1. Supabase (PostgreSQL) — fuente de verdad en el servidor, inmutable por el cliente
+ * 2. localStorage           — caché offline; se usa si Supabase no está disponible
  *
- * Para activar el backend, establece VITE_BACKEND_URL en .env
+ * Idempotencia: cada evento lleva un event_id único para evitar duplicados
+ * en reintentos (equivalente al patrón del sp_InsertAuditLog del DoD).
  */
 
-const STORAGE_KEY = 'vet_atlas_audit_log'
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || null
+import { supabase } from '../lib/supabase'
 
-/* ───────────────────────── Tipos de eventos ───────────────────────── */
+const STORAGE_KEY = 'vet_atlas_audit_log'
+
 export const EVENT_TYPES = {
   DRUG_SEARCH:      'DRUG_SEARCH',
   DOSE_CALCULATED:  'DOSE_CALCULATED',
@@ -21,104 +22,203 @@ export const EVENT_TYPES = {
   INTERACTION_CHECK:'INTERACTION_CHECK',
 }
 
-/* ───────────────────────── Helpers localStorage ───────────────────── */
-function readLog() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-  } catch {
-    return []
+// ── localStorage helpers (caché offline) ────────────────────────────────────
+function readLocalLog() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+}
+function writeLocalLog(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 500)))
+}
+
+// ── Normalizar filas de Supabase al formato del componente ──────────────────
+function fromDb(row) {
+  return {
+    id:             row.id,
+    timestamp:      row.created_at,
+    eventType:      row.event_type,
+    drugName:       row.drug_name  ?? null,
+    species:        row.species    ?? null,
+    weight:         row.weight_kg  ?? null,
+    doseCalculated: row.dose_calculated ?? null,
+    volMl:          row.vol_ml    ?? null,
+    route:          row.route     ?? null,
+    query:          row.query_text ?? null,
+    summary:        row.summary   ?? null,
   }
 }
 
-function writeLog(entries) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-}
-
-function generateId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-}
-
-/* ───────────────────────── Core: registrar evento ─────────────────── */
+// ── Core: registrar evento ───────────────────────────────────────────────────
 export async function logEvent(eventType, payload) {
-  const entry = {
-    id:        generateId(),
+  const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+  // 1. Guardar en localStorage inmediatamente (experiencia sin latencia)
+  const localEntry = {
+    id:        eventId,
     timestamp: new Date().toISOString(),
     eventType,
     ...payload,
   }
+  const log = readLocalLog()
+  log.unshift(localEntry)
+  writeLocalLog(log)
 
-  // Guardar localmente siempre (cache offline)
-  const log = readLog()
-  log.unshift(entry)
-  if (log.length > 500) log.splice(500) // cap 500 registros
-  writeLog(log)
-
-  // Si hay backend configurado, sincronizar
-  if (BACKEND_URL) {
-    syncToBackend(entry).catch(console.warn)
-  }
-
-  return entry
-}
-
-/**
- * syncToBackend → llama al endpoint REST que internamente
- * ejecuta un Stored Procedure.
- *
- * Ejemplo de SP en SQL Server:
- *   EXEC sp_InsertAuditLog @EventType, @DrugName, @Species, @Weight,
- *                          @DoseCalculated, @UserId, @Timestamp
- */
-async function syncToBackend(entry) {
-  const response = await fetch(`${BACKEND_URL}/audit/log`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(entry),
+  // 2. Persistir en Supabase de forma asíncrona (patrón post-response, DoD 3.2)
+  //    No await: nunca bloquea al usuario (equivalente a setImmediate del DoD)
+  persistToSupabase(eventId, eventType, payload).catch(() => {
+    // Fallo silencioso: el usuario ya tiene el resultado, el log queda en caché local
   })
-  if (!response.ok) throw new Error(`Backend sync failed: ${response.status}`)
-  return response.json()
+
+  return localEntry
 }
 
-/* ───────────────────────── Consultar historial ─────────────────────── */
+async function persistToSupabase(eventId, eventType, payload) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.rpc('sp_insert_audit_log', {
+    p_event_id:        eventId,
+    p_user_id:         user.id,
+    p_event_type:      eventType,
+    p_drug_name:       payload.drugName  ?? payload.drug ?? null,
+    p_species:         payload.species   ?? null,
+    p_weight_kg:       payload.weight    ?? null,
+    p_dose_calculated: payload.doseCalculated ?? payload.totalMg ?? null,
+    p_vol_ml:          payload.volMl     ?? null,
+    p_query_text:      payload.query     ?? null,
+    p_summary:         payload.summary?.slice(0, 200) ?? null,
+    p_metadata:        {},
+  })
+}
+
+// ── Consultar historial ──────────────────────────────────────────────────────
 export async function getHistory({ limit = 50, offset = 0, eventType, search } = {}) {
-  // Si hay backend, consultar desde allí (SP de lectura)
-  if (BACKEND_URL) {
-    try {
-      const params = new URLSearchParams({ limit, offset })
-      if (eventType) params.set('eventType', eventType)
-      if (search)    params.set('search', search)
-      const res = await fetch(`${BACKEND_URL}/audit/history?${params}`)
-      if (res.ok) return res.json()
-    } catch {
-      // fallback a localStorage
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión activa')
+
+    const isAdmin = await checkIsAdmin(user.id)
+
+    const { data, error } = await supabase.rpc('sp_get_audit_history', {
+      p_user_id:    user.id,
+      p_limit:      limit,
+      p_offset:     offset,
+      p_event_type: eventType ?? null,
+      p_search:     search    ?? null,
+      p_admin_view: isAdmin,
+    })
+
+    if (error) throw error
+
+    const total = data?.[0]?.total_count ?? 0
+    return { total, items: (data ?? []).map(fromDb) }
+  } catch {
+    // Fallback a localStorage
+    let log = readLocalLog()
+    if (eventType) log = log.filter(e => e.eventType === eventType)
+    if (search) {
+      const q = search.toLowerCase()
+      log = log.filter(e =>
+        e.drugName?.toLowerCase().includes(q) ||
+        e.species?.toLowerCase().includes(q)  ||
+        e.query?.toLowerCase().includes(q)
+      )
+    }
+    return { total: log.length, items: log.slice(offset, offset + limit) }
+  }
+}
+
+async function checkIsAdmin(userId) {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+    return data?.role === 'admin'
+  } catch { return false }
+}
+
+// ── Estadísticas (KPIs para el dashboard) ───────────────────────────────────
+export async function getStats({ days = 30 } = {}) {
+  try {
+    const { data, error } = await supabase.rpc('sp_get_dashboard_kpis', { p_days: days })
+    if (error) throw error
+    return data
+  } catch {
+    // Fallback a localStorage
+    const log = readLocalLog()
+    const today = new Date().toDateString()
+    return {
+      total:      log.length,
+      today:      log.filter(e => new Date(e.timestamp).toDateString() === today).length,
+      by_type:    Object.fromEntries(
+        Object.values(EVENT_TYPES).map(t => [t, log.filter(e => e.eventType === t).length])
+      ),
+      top_drugs:  getTopDrugsLocal(log),
+      by_hour:    [],
+      by_species: {},
     }
   }
+}
 
-  // Fallback: localStorage
-  let log = readLog()
-  if (eventType) log = log.filter((e) => e.eventType === eventType)
-  if (search) {
-    const q = search.toLowerCase()
-    log = log.filter(
-      (e) =>
-        e.drugName?.toLowerCase().includes(q) ||
-        e.species?.toLowerCase().includes(q) ||
-        e.query?.toLowerCase().includes(q)
-    )
-  }
-  return {
-    total: log.length,
-    items: log.slice(offset, offset + limit),
+function getTopDrugsLocal(log) {
+  const freq = {}
+  log.filter(e => e.drugName).forEach(e => {
+    freq[e.drugName] = (freq[e.drugName] ?? 0) + 1
+  })
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([drug_name, total_searches]) => ({ drug_name, total_searches }))
+}
+
+// ── Exportar CSV ─────────────────────────────────────────────────────────────
+export async function exportToCsv() {
+  const { items: log } = await getHistory({ limit: 10_000 })
+  if (!log.length) return
+
+  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Dosis / Consulta']
+  const rows = log.map(e => [
+    e.id,
+    new Date(e.timestamp).toLocaleString('es-BO'),
+    e.eventType,
+    e.drugName  ?? '',
+    e.species   ?? '',
+    e.weight    ? `${e.weight} kg` : '',
+    e.doseCalculated
+      ? `${e.doseCalculated} mg (${e.volMl ?? ''} mL)`
+      : (e.query?.slice(0, 80) ?? ''),
+  ])
+
+  const csv  = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `historial_atlas_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── Limpiar historial ────────────────────────────────────────────────────────
+export async function clearHistory() {
+  localStorage.removeItem(STORAGE_KEY)
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from('audit_logs').delete().eq('user_id', user.id)
+    }
+  } catch {
+    // Si falla Supabase, localStorage ya fue limpiado
   }
 }
 
-/* ───────────────────────── Helpers especializados ──────────────────── */
+// ── Helpers especializados (API pública — sin cambios de firma) ──────────────
 export function logDrugSearch(drugName, species) {
   return logEvent(EVENT_TYPES.DRUG_SEARCH, { drugName, species })
 }
 
 export function logDoseCalculation(data) {
-  // Normalize field names for consistency: drug → drugName, totalMg → doseCalculated
   return logEvent(EVENT_TYPES.DOSE_CALCULATED, {
     drugName:       data.drug,
     doseCalculated: data.totalMg,
@@ -129,7 +229,7 @@ export function logDoseCalculation(data) {
 export function logInteractionCheck(drugs) {
   return logEvent(EVENT_TYPES.INTERACTION_CHECK, {
     query:    drugs.join(', '),
-    drugName: drugs[0] || '',
+    drugName: drugs[0] ?? '',
   })
 }
 
@@ -138,63 +238,9 @@ export function logDoseValidation(data) {
 }
 
 export function logAiConsultation(query, summary) {
-  return logEvent(EVENT_TYPES.AI_CONSULTATION, {
-    query,
-    summary: summary?.slice(0, 200),
-  })
+  return logEvent(EVENT_TYPES.AI_CONSULTATION, { query, summary })
 }
 
 export function logPrescription(data) {
   return logEvent(EVENT_TYPES.PRESCRIPTION_GEN, data)
-}
-
-/* ───────────────────────── Estadísticas ───────────────────────────── */
-export function getStats() {
-  const log = readLog()
-  const today = new Date().toDateString()
-  return {
-    total:          log.length,
-    today:          log.filter((e) => new Date(e.timestamp).toDateString() === today).length,
-    byType:         Object.fromEntries(
-      Object.values(EVENT_TYPES).map((t) => [t, log.filter((e) => e.eventType === t).length])
-    ),
-    mostSearched:   getMostFrequent(log.filter((e) => e.drugName).map((e) => e.drugName)),
-  }
-}
-
-function getMostFrequent(arr) {
-  if (!arr.length) return null
-  const freq = arr.reduce((acc, v) => ({ ...acc, [v]: (acc[v] || 0) + 1 }), {})
-  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0]
-}
-
-/* ───────────────────────── Exportar CSV ───────────────────────────── */
-export function exportToCsv() {
-  const log = readLog()
-  if (!log.length) return
-
-  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Dosis / Consulta']
-  const rows = log.map((e) => [
-    e.id,
-    new Date(e.timestamp).toLocaleString('es-BO'),
-    e.eventType,
-    e.drugName || e.drug || '',
-    e.species || '',
-    e.weight ? `${e.weight} kg` : '',
-    e.doseCalculated ? `${e.doseCalculated} mg (${e.volMl || ''} mL)` : (e.query?.slice(0, 80) || ''),
-  ])
-
-  const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `historial_atlas_${new Date().toISOString().slice(0, 10)}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-/* ───────────────────────── Limpiar historial ───────────────────────── */
-export function clearHistory() {
-  localStorage.removeItem(STORAGE_KEY)
 }

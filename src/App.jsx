@@ -26,8 +26,17 @@ function TabLoader() {
   )
 }
 
+function AuthLoader() {
+  return (
+    <div className="ld" style={{ minHeight: '100vh', justifyContent: 'center', alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="sp" />
+      <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: '0.9rem' }}>Restaurando sesión...</p>
+    </div>
+  )
+}
+
 function AppContent() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('atlas')
   const [chatOpen,  setChatOpen]  = useState(false)
   const [apiKey,    setApiKey]    = useLocalStorage('vet_atlas_api_key', '')
@@ -47,6 +56,9 @@ function AppContent() {
   useEffect(() => {
     if (user?.role === 'student' && activeTab === 'audit') setActiveTab('atlas')
   }, [user, activeTab])
+
+  // Mientras Supabase restaura la sesión, mostrar pantalla de carga
+  if (loading) return <AuthLoader />
 
   function openLogin() { setLoginOpen(true) }
 

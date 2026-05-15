@@ -6,8 +6,7 @@ import styles from './Login.module.css'
 export default function LoginModal({ onClose }) {
   const { login } = useAuth()
 
-  const [role,     setRole]     = useState('student')
-  const [username, setUsername] = useState('')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error,    setError]    = useState('')
@@ -26,18 +25,16 @@ export default function LoginModal({ onClose }) {
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    setTimeout(() => {
-      const result = login(username, password, role)
-      if (!result.ok) {
-        setError(result.error)
-        setLoading(false)
-      }
-      // Si ok: App.jsx detecta el cambio en `user` y cierra el modal
-    }, 350)
+    const result = await login(email.trim(), password)
+    if (!result.ok) {
+      setError(result.error)
+      setLoading(false)
+    }
+    // Si ok: AuthContext detecta el cambio de sesión y App.jsx cierra el modal
   }
 
   return (
@@ -63,54 +60,27 @@ export default function LoginModal({ onClose }) {
           </div>
         </div>
 
-        {/* Toggle de rol */}
-        <div className={styles.roleToggle}>
-          <button
-            type="button"
-            className={`${styles.roleBtn} ${role === 'student' ? styles.roleBtnActive : ''}`}
-            onClick={() => { setRole('student'); setError('') }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-              <path d="M6 12v5c3 3 9 3 12 0v-5" />
-            </svg>
-            Estudiante
-          </button>
-          <button
-            type="button"
-            className={`${styles.roleBtn} ${role === 'admin' ? styles.roleBtnActive : ''}`}
-            onClick={() => { setRole('admin'); setError('') }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            Administrador
-          </button>
-        </div>
-
         {/* Formulario */}
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="lm-user">
-              {role === 'admin' ? 'Usuario' : 'Tu nombre completo'}
+            <label className={styles.label} htmlFor="lm-email">
+              Correo electrónico institucional
             </label>
             <div className={styles.inputWrap}>
               <svg className={styles.inputIcon} viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                 strokeLinejoin="round" width="16" height="16">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
               </svg>
               <input
-                id="lm-user"
-                type="text"
+                id="lm-email"
+                type="email"
                 className={styles.input}
-                placeholder={role === 'admin' ? 'admin' : 'Ej: María García López'}
-                value={username}
-                onChange={e => { setUsername(e.target.value); setError('') }}
-                autoComplete="username"
+                placeholder="usuario@udi.edu.bo"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError('') }}
+                autoComplete="email"
                 autoFocus
                 required
               />
@@ -119,7 +89,7 @@ export default function LoginModal({ onClose }) {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="lm-pass">
-              {role === 'admin' ? 'Contraseña' : 'Clave de acceso del curso'}
+              Contraseña
             </label>
             <div className={styles.inputWrap}>
               <svg className={styles.inputIcon} viewBox="0 0 24 24" fill="none"
@@ -181,21 +151,14 @@ export default function LoginModal({ onClose }) {
                 Verificando...
               </span>
             ) : (
-              `Ingresar como ${role === 'admin' ? 'Administrador' : 'Estudiante'}`
+              'Iniciar sesión'
             )}
           </button>
         </form>
 
-        {role === 'student' && (
-          <p className={styles.hint}>
-            Ingresa tu nombre y la clave de acceso proporcionada por tu docente.
-          </p>
-        )}
-        {role === 'admin' && (
-          <p className={styles.hint}>
-            Acceso exclusivo para docentes y personal administrativo.
-          </p>
-        )}
+        <p className={styles.hint}>
+          Acceso con correo institucional. Contacta al administrador si no tienes cuenta.
+        </p>
       </div>
     </div>
   )

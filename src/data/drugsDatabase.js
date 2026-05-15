@@ -17,27 +17,30 @@ export const DRUGS_DATABASE = {
     dosageRange: {
       Perro:  { min: 11, max: 22 },
       Gato:   { min: 11, max: 22 },
+      // Plumb's 10ª ed.: 7–10 mg/kg para infecciones; 10 mg/kg en infecciones severas
       Bovino: { min: 7,  max: 10 },
     },
-    allowedRoutes: ['VO (oral)', 'IM (intramuscular)', 'SC (subcutánea)'],
+    allowedRoutes: ['VO (oral)', 'IM (intramuscular)', 'SC (subcutánea)', 'Intramamario'],
     // 50 mg/mL = suspensión oral; 150 mg/mL = Vetrimoxin LA inyectable
+    // Intramamario: tubos de 200 mg — dosis fija por cuarto mamario (no calcular por kg)
     standardConcentrations: [50, 150],
     doseUnit: 'mg/kg',
+    note: 'Bovino vía Intramamario: se usan tubos de dosis fija (200 mg/cuarto mamario) — no calcular por kg. La calculadora aplica solo a las vías sistémicas (IM, SC, VO).',
   },
 
   'Enrofloxacina': {
     species: ['Perro', 'Gato', 'Bovino'],
     dosageRange: {
-      Perro:  { min: 5,   max: 20 },
-      // CRÍTICO: FDA/AAFP limitan a 5 mg/kg/día en gatos por riesgo de ceguera irreversible
-      Gato:   { min: 2.5, max: 5  },
+      Perro:  { min: 5,   max: 20  },
+      // hardMax: true — superar este límite bloquea el cálculo (ceguera irreversible, FDA/AAFP)
+      Gato:   { min: 2.5, max: 5, hardMax: true },
       Bovino: { min: 2.5, max: 5  },
     },
     allowedRoutes: ['VO (oral)', 'IM (intramuscular)', 'SC (subcutánea)'],
     // Baytril 2.5% = 25 mg/mL, 5% = 50 mg/mL, 10% = 100 mg/mL
     standardConcentrations: [25, 50, 100],
     doseUnit: 'mg/kg',
-    note: 'GATOS: máximo 5 mg/kg/día. Dosis superiores causan degeneración retinal irreversible (ceguera). Monitorear si se usan ≥5 mg/kg.',
+    note: 'GATOS — LÍMITE ABSOLUTO: máximo 5 mg/kg/día. Cualquier dosis superior causa degeneración retinal irreversible y CEGUERA PERMANENTE (FDA label, AAFP guidelines). La calculadora bloquea el cálculo si se supera este límite.',
   },
 
   'Oxitetraciclina': {
@@ -57,9 +60,10 @@ export const DRUGS_DATABASE = {
   'Penicilina G Procaínica': {
     species: ['Bovino', 'Equino', 'Ovino'],
     dosageRange: {
-      Bovino: { min: 20000, max: 22000 },
-      Equino: { min: 20000, max: 22000 },
-      Ovino:  { min: 20000, max: 22000 },
+      // Plumb's Veterinary Drug Handbook 10ª ed.: dosis estándar 22 000 UI/kg
+      Bovino: { min: 22000, max: 22000 },
+      Equino: { min: 22000, max: 22000 },
+      Ovino:  { min: 22000, max: 22000 },
     },
     allowedRoutes: ['IM (intramuscular)'],
     // Presentaciones: 300,000 UI/mL y 400,000 UI/mL
@@ -79,11 +83,14 @@ export const DRUGS_DATABASE = {
       // 0.006 mg/kg = profilaxis heartworm mensual; hasta 0.05 mg/kg para sarna
       Perro:  { min: 0.006, max: 0.05  },
     },
-    allowedRoutes: ['SC (subcutánea)', 'VO (oral)'],
-    // 1 mg/mL = solución oral diluida (pequeños animales); 10 mg/mL = inyectable bovino/equino (Ivomec 1%)
-    standardConcentrations: [1, 10],
+    // Pour-on bovino: formulación al 5% (500 µg/kg = 0.5 mg/kg), dosis diferente a SC.
+    // Se documenta en nota clínica; la calculadora usa la vía SC/VO para el cálculo de dosis.
+    allowedRoutes: ['SC (subcutánea)', 'VO (oral)', 'Pour-on (bovino)'],
+    // 1 mg/mL = solución oral (pequeños animales); 10 mg/mL = inyectable bovino/equino (Ivomec 1%)
+    // Pour-on: 5 mg/mL (Ivomec Pour-on 0.5%)
+    standardConcentrations: [1, 5, 10],
     doseUnit: 'mg/kg',
-    note: 'TÓXICO en razas MDR1/ABCB1+ (Collie, Pastor Australiano). Para profilaxis cardiaca en Perro: 0.006 mg/kg/mes. Diluir la presentación de 10 mg/mL para dosis pequeñas en animales de compañía.',
+    note: 'TÓXICO en razas MDR1/ABCB1+ (Collie, Pastor Australiano, Shetland). Para profilaxis cardiaca en Perro: 0.006 mg/kg/mes. Vía SC/VO: 0.2 mg/kg en bovinos/equinos. POUR-ON (bovino): dosis 0.5 mg/kg con formulación al 5% (500 µg/kg) — dosis diferente a la inyectable. Diluir la presentación de 10 mg/mL para pequeños animales.',
   },
 
   'Albendazol': {
@@ -188,7 +195,7 @@ export const DRUGS_DATABASE = {
     // Rompun 2% = 20 mg/mL (pequeños animales), Rompun 10% = 100 mg/mL (grandes animales)
     standardConcentrations: [20, 100],
     doseUnit: 'mg/kg',
-    note: 'Bovinos: 10× más sensibles que equinos — usar 0.05–0.1 mg/kg IM. IV produce efectos en 1–2 min. Antagonista: Yohimbina o Atipamezol.',
+    note: 'Bovinos: 10× más sensibles que equinos — usar 0.05–0.1 mg/kg IM. IV produce efectos en 1–2 min. ANTAGONISTAS: Bovinos/Equinos: Yohimbina 0.1–0.125 mg/kg IV lento (antagonista de elección para Xilazina). Pequeños animales: Yohimbina o Atipamezol (Atipamezol es selectivo para medetomidina/dexmedetomidina, no para Xilazina específicamente).',
   },
 
   'Propofol': {
@@ -241,18 +248,34 @@ export const DRUGS_DATABASE = {
   'Oxitocina': {
     species: ['Bovino', 'Equino', 'Perro', 'Gato'],
     dosageRange: {
-      // Bovino ~500 kg: 20–40 UI totales ÷ 500 kg ≈ 0.04–0.08 UI/kg
-      Bovino: { min: 0.04, max: 0.08 },
-      Equino: { min: 0.04, max: 0.08 },
-      // Perro/Gato: 2–5 UI totales; para perro ~3 kg ≈ 0.5–1.5 UI/kg
-      Perro:  { min: 0.5,  max: 1.5  },
-      Gato:   { min: 0.5,  max: 1.5  },
+      // Dosis clínica establecida como DOSIS TOTAL (no por kg) — Plumb's 10ª ed.
+      Bovino: { min: 20, max: 40 },
+      Equino: { min: 20, max: 40 },
+      Perro:  { min: 2,  max: 5  },
+      Gato:   { min: 2,  max: 5  },
     },
     allowedRoutes: ['IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)'],
     // Syntocinon 10 UI/mL y 20 UI/mL
     standardConcentrations: [10, 20],
-    doseUnit: 'UI/kg',
-    note: 'Dosis clínica habitual como dosis TOTAL (no por kg): Bovino 20–40 UI, Perro/Gato 2–5 UI. CONTRAINDICADO ante obstrucción o mala presentación fetal.',
+    // doseMode 'total': la calculadora usa la dosis directamente sin multiplicar por peso
+    doseMode: 'total',
+    doseUnit: 'UI',
+    note: 'ATENCIÓN — DOSIS TOTAL (no por kg): Bovino/Equino 20–40 UI totales; Perro/Gato 2–5 UI totales. La calculadora opera en modo "dosis total". CONTRAINDICADO ante obstrucción o mala presentación fetal. Riesgo de tetania uterina con sobredosis.',
+  },
+
+  // ── INHIBIDORES ADRENALES ─────────────────────────────────────────────────
+
+  'Trilostano': {
+    species: ['Perro'],
+    dosageRange: {
+      // Dosis inicial Plumb's 10ª ed.: 2–5 mg/kg VO c/24h; ajustar según test ACTH estimulación
+      Perro: { min: 2, max: 5 },
+    },
+    allowedRoutes: ['VO (oral)'],
+    // Vetoryl cápsulas: 10 mg, 30 mg, 60 mg, 120 mg
+    standardConcentrations: [10, 30, 60, 120],
+    doseUnit: 'mg/kg',
+    note: 'TRATAMIENTO DE PRIMERA LÍNEA para Hiperadrenocorticismo canino (PDH/HAC) — Plumb\'s, FDA, EMA. Dosis inicial 2–5 mg/kg VO c/24h. Ajustar según test ACTH estimulación (cortisol post-ACTH objetivo: 27–150 nmol/L). No iniciar si creatinina elevada o hipoadrenocorticismo. Monitoreo de cortisol y electrolitos cada 3 meses. No usar en gestación.',
   },
 
   'Progesterona': {

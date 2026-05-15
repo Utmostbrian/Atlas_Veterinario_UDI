@@ -1,30 +1,29 @@
 :root {
-  --blue: #CC0000;
-  --blue-mid: #CC0000;
-  --red: #CC0000;
-  --red-dark: #CC0000;
-  --white: #fff;
-  --cream: #F8F5F0;
-  --gl: #EEF0F4;
-  --gray: #9AA0AF;
-  --dark: #111827;
-  --text: #1F2937;
-  --soft: #4B5563;
+  /* ── Paleta de marca (rojo institucional) ── */
+  --blue:      #CC0000;   /* primario: rojo brand — nombre histórico conservado */
+  --blue-mid:  #AA0000;   /* hover sobre primario — más oscuro para feedback visual */
+  --red:       #CC0000;   /* alias semántico del primario */
+  --red-dark:  #990000;   /* énfasis/secciones críticas — visualmente distinto */
+
+  --white:  #fff;
+  --cream:  #F8F5F0;
+  --gl:     #EEF0F4;
+  --gray:   #9AA0AF;
+  --dark:   #111827;
+  --text:   #1F2937;
+  --soft:   #4B5563;
   --border: #D1D5DB;
-  --sh: 0 4px 24px rgba(204,0,0,.10);
+  --sh:   0 4px 24px rgba(204,0,0,.10);
   --shlg: 0 12px 40px rgba(204,0,0,.18);
-  --r: 12px;
+  --r:  12px;
   --rs: 8px;
   --dark-toggle-bg: #1e293b;
-  /* compat aliases */
-  --brand-primary: #CC0000;
-  --brand-secondary: #CC0000;
   --color-success: #16a34a;
   --color-warning: #d97706;
-  --color-danger: #CC0000;
-  --text-primary: #1F2937;
-  --text-secondary: #4B5563;
-  --bg-app: #F8F5F0;
+  --color-danger:  #CC0000;
+  /* Altura del header y tabbar para sticky offsets calculados */
+  --header-h: 76px;
+  --tabbar-h: 72px;
 }
 
 .dark {
@@ -210,7 +209,7 @@ header {
 .tabbar {
   background: #fff;
   border-bottom: 3px solid #D1D5DB;
-  position: sticky; top: 76px; z-index: 150;
+  position: sticky; top: var(--header-h); z-index: 150;
   box-shadow: 0 3px 16px rgba(0,0,0,.07);
 }
 .dark .tabbar { background: #1e293b; border-color: #334155; }
@@ -230,7 +229,8 @@ header {
   margin-bottom: -3px; transition: .2s;
   white-space: nowrap; letter-spacing: .02em;
 }
-.tbtn:hover { color: var(--blue); background: rgba(204,0,0,.06); border-radius: 8px 8px 0 0; }
+.tbtn:hover        { color: var(--blue); background: rgba(204,0,0,.06); border-radius: 8px 8px 0 0; }
+.tbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; border-radius: 8px 8px 0 0; }
 .tbtn.on {
   color: #fff;
   background: var(--blue);
@@ -251,7 +251,7 @@ header {
 
 /* ── SIDEBAR ── */
 .sb {
-  position: sticky; top: 148px;
+  position: sticky; top: calc(var(--header-h) + var(--tabbar-h));
   height: fit-content;
   display: flex; flex-direction: column; gap: 14px;
 }
@@ -281,6 +281,7 @@ header {
 .catlist button:hover,.catlist button.on {
   background: var(--gl); color: var(--blue); font-weight: 600;
 }
+.catlist button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 
 .ccnt {
   background: var(--gl); color: var(--soft);
@@ -365,6 +366,7 @@ header {
   font-size: .75rem; font-weight: 600; color: var(--soft); transition: .2s;
 }
 .chip:hover,.chip.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.chip:focus-visible  { outline: 2px solid var(--blue); outline-offset: 2px; }
 .dark .chip { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 
 /* ── SECTION HEADER ── */
@@ -400,7 +402,7 @@ header {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.dcard:hover { transform: translateY(-4px); box-shadow: var(--shlg); border-color: #2255cc; }
+.dcard:hover { transform: translateY(-4px); box-shadow: var(--shlg); border-color: var(--blue); }
 
 .dct { padding: 15px 17px 10px; position: relative; }
 
@@ -573,6 +575,9 @@ header {
 }
 .fc:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(204,0,0,.1); }
 .dark .fc { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+.fc--err { border-color: #ef4444 !important; }
+.fc--err:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15) !important; }
+.fc-err-msg { font-size: .75rem; color: #ef4444; margin-top: 3px; font-weight: 500; }
 
 .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 
@@ -784,13 +789,13 @@ header {
 .dot {
   width: 7px; height: 7px;
   background: var(--gray); border-radius: 50%;
-  animation: bou .9s infinite;
+  animation: bou 1.2s infinite ease-in-out;
 }
-.dot:nth-child(2) { animation-delay: .2s; }
-.dot:nth-child(3) { animation-delay: .4s; }
+.dot:nth-child(2) { animation-delay: .24s; }
+.dot:nth-child(3) { animation-delay: .48s; }
 @keyframes bou {
-  0%,80%,100% { transform: scale(0); }
-  40% { transform: scale(1); }
+  0%,60%,100% { transform: scale(0.3); opacity: .4; }
+  30%          { transform: scale(1);   opacity: 1;  }
 }
 
 /* ── GLOSARIO ── */
@@ -812,6 +817,7 @@ header {
   transition: .2s; display: flex; align-items: center; justify-content: center;
 }
 .abtn:hover,.abtn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.abtn:focus-visible  { outline: 2px solid var(--blue); outline-offset: 2px; }
 .abtn:disabled { opacity: .35; cursor: default; }
 .dark .abtn { background: #1e293b; border-color: #334155; color: #94a3b8; }
 
@@ -835,7 +841,7 @@ header {
   overflow: hidden; transition: max-height .3s, padding .3s;
   font-size: .84rem; color: var(--soft); line-height: 1.6;
 }
-.gdef.open { max-height: 200px; padding: 0 15px 12px; }
+.gdef.open { max-height: 600px; padding: 0 15px 12px; }
 
 /* ── RECETA ── */
 .receta-wrap { max-width: 720px; margin: 0 auto; }
@@ -896,7 +902,8 @@ header {
 .dark .receta-preview { background: #1e293b; border-color: #334155; }
 
 @media print {
-  body > *:not(#printarea) { display: none !important; }
+  /* Oculta todo excepto el área de impresión, pero solo cuando existe */
+  body:has(#printarea) > *:not(#printarea) { display: none !important; }
   #printarea {
     position: fixed; left: 0; top: 0; width: 100%; height: auto;
     background: #fff; padding: 24px; z-index: 99999; display: block !important;
