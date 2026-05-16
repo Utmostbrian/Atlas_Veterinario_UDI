@@ -229,7 +229,7 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
               <>
                 {aiData === null ? (
                   <div className="abox b" style={{ marginBottom: 14, fontSize: '.84rem' }}>
-                    Configura tu API Key de Anthropic en el encabezado para enriquecer este fármaco con IA.
+                    Error con la configuracion de API Key de Anthropic. No es posible ampliar tu consulta sobre este fármaco con IA por el error mencionado.
                   </div>
                 ) : aiData?.mensaje ? (
                   <div className="abox rr" style={{ marginBottom: 14 }}>
