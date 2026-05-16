@@ -24,9 +24,9 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Absolute backstop: never hang on loading longer than 8 s
+  // Absolute backstop: never hang on loading longer than 3 s
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 8000)
+    const timer = setTimeout(() => setLoading(false), 3000)
     return () => clearTimeout(timer)
   }, [])
 
