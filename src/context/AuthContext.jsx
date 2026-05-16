@@ -20,10 +20,12 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) loadProfile(session.user)
-      else setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session?.user) loadProfile(session.user)
+        else setLoading(false)
+      })
+      .catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
