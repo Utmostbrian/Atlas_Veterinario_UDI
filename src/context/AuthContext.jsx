@@ -20,13 +20,19 @@ const BOM = '﻿'
 const ANON_KEY_CLEAN   = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').replace(new RegExp('^' + BOM), '').trim()
 const PROXY_BASE_CLEAN = (import.meta.env.VITE_SUPABASE_URL      ?? '').replace(new RegExp('^' + BOM), '').trim()
 
+// Wraps a promise with a rejection after `ms` milliseconds
+function withTimeout(promise, ms, msg = 'Tiempo de espera agotado. Intenta de nuevo.') {
+  const timer = new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
+  return Promise.race([promise, timer])
+}
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Absolute backstop: never hang on loading longer than 3 s
+  // Absolute backstop: never hang on loading longer than 5 s
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 3000)
+    const timer = setTimeout(() => setLoading(false), 5000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -50,15 +56,13 @@ export function AuthProvider({ children }) {
 
   async function loadProfile(authUser) {
     try {
-      const { data: profile, error } = await supabase
+      const query = supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
         .single()
 
-      if (error && error.code !== 'PGRST116') {
-        console.warn('[Auth] Profile fetch warning:', error.message)
-      }
+      const { data: profile } = await withTimeout(query, 6000)
 
       const storedStudentName = localStorage.getItem('vet_student_name')
       setUser({
@@ -69,8 +73,7 @@ export function AuthProvider({ children }) {
         licenseNumber: profile?.license_number ?? null,
         institution:   profile?.institution ?? 'UDI',
       })
-    } catch (e) {
-      console.warn('[Auth] Profile fetch failed, using auth defaults:', e?.message)
+    } catch {
       setUser({
         id:            authUser.id,
         email:         authUser.email,
@@ -84,61 +87,69 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Admin login — does NOT touch global loading so the modal stays mounted
   const login = useCallback(async (email, password) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        10000
+      )
       if (error) return { ok: false, error: friendlyError(error.message) }
       return { ok: true }
-      // onAuthStateChange fires → loadProfile → setUser + setLoading(false)
-    } catch {
-      return { ok: false, error: 'Error de conexión. Verifica tu internet.' }
+    } catch (e) {
+      return { ok: false, error: e.message ?? 'Error de conexión. Verifica tu internet.' }
     }
   }, [])
 
-  // Student login via secure Edge Function (class code validated server-side)
   const loginStudent = useCallback(async (name, classCode) => {
+    const controller = new AbortController()
+    const timeoutId  = setTimeout(() => controller.abort(), 10000)
     try {
       const response = await fetch(
         `${PROXY_BASE_CLEAN}/functions/v1/student-login`,
         {
-          method: 'POST',
+          method:  'POST',
           headers: {
             'Content-Type':  'application/json',
             'Authorization': `Bearer ${ANON_KEY_CLEAN}`,
           },
-          body: JSON.stringify({ name: name.trim(), classCode: classCode.trim() }),
+          body:   JSON.stringify({ name: name.trim(), classCode: classCode.trim() }),
+          signal: controller.signal,
         }
       )
+      clearTimeout(timeoutId)
 
       const data = await response.json()
       if (!response.ok) return { ok: false, error: data.error ?? 'Error al iniciar sesión.' }
 
-      // Store name BEFORE setSession so loadProfile picks it up
       localStorage.setItem('vet_student_name', data.studentName)
 
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token:  data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      })
+      const { error: sessionError } = await withTimeout(
+        supabase.auth.setSession({
+          access_token:  data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        }),
+        8000
+      )
 
       if (sessionError) {
         localStorage.removeItem('vet_student_name')
         return { ok: false, error: 'Error al establecer sesión.' }
       }
-
       return { ok: true }
-    } catch {
-      return { ok: false, error: 'Error de conexión. Verifica tu internet.' }
+    } catch (e) {
+      clearTimeout(timeoutId)
+      const msg = e?.name === 'AbortError'
+        ? 'La solicitud tardó demasiado. Verifica tu internet.'
+        : 'Error de conexión. Verifica tu internet.'
+      return { ok: false, error: msg }
     }
   }, [])
 
-  // Clear user state immediately so UI responds; signOut fires in background
   const logout = useCallback(async () => {
     localStorage.removeItem('vet_student_name')
     setUser(null)
     setLoading(false)
-    try { await supabase.auth.signOut() } catch { /* ignore network errors */ }
+    try { await supabase.auth.signOut() } catch { /* ignore */ }
   }, [])
 
   const updateProfile = useCallback(async (updates) => {
