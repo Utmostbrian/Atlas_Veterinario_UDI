@@ -42,7 +42,7 @@ async function getSessionToken() {
 
 // ── URL del proxy (Edge Function) ────────────────────────────────────────────
 function getProxyUrl() {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').replace(/^﻿/, '').trim()
   if (supabaseUrl) return `${supabaseUrl}/functions/v1/anthropic-proxy`
   return null
 }
