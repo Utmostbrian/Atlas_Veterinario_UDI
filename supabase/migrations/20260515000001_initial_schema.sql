@@ -374,60 +374,73 @@ ALTER TABLE public.drugs        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.diseases     ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: cada usuario ve y edita solo el suyo; admin ve todos
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
 CREATE POLICY "profiles_select_own"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "profiles_select_admin" ON public.profiles;
 CREATE POLICY "profiles_select_admin"
   ON public.profiles FOR SELECT
   USING (public.get_user_role(auth.uid()) = 'admin');
 
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 CREATE POLICY "profiles_insert_own"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
 -- Audit logs: usuarios insertan solo los suyos; admin lee todos
+DROP POLICY IF EXISTS "audit_insert_own" ON public.audit_logs;
 CREATE POLICY "audit_insert_own"
   ON public.audit_logs FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "audit_select_own" ON public.audit_logs;
 CREATE POLICY "audit_select_own"
   ON public.audit_logs FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "audit_select_admin" ON public.audit_logs;
 CREATE POLICY "audit_select_admin"
   ON public.audit_logs FOR SELECT
   USING (public.get_user_role(auth.uid()) = 'admin');
 
 -- Prescripciones: CRUD propio; admin lee todas
+DROP POLICY IF EXISTS "prescriptions_own" ON public.prescriptions;
 CREATE POLICY "prescriptions_own"
   ON public.prescriptions FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "prescriptions_select_admin" ON public.prescriptions;
 CREATE POLICY "prescriptions_select_admin"
   ON public.prescriptions FOR SELECT
   USING (public.get_user_role(auth.uid()) = 'admin');
 
 -- Fármacos: lectura pública autenticada; escritura solo admin
+DROP POLICY IF EXISTS "drugs_select_authenticated" ON public.drugs;
 CREATE POLICY "drugs_select_authenticated"
   ON public.drugs FOR SELECT
   TO authenticated USING (TRUE);
 
+DROP POLICY IF EXISTS "drugs_write_admin" ON public.drugs;
 CREATE POLICY "drugs_write_admin"
   ON public.drugs FOR ALL
   USING (public.get_user_role(auth.uid()) = 'admin')
   WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
 
 -- Enfermedades: igual que fármacos
+DROP POLICY IF EXISTS "diseases_select_authenticated" ON public.diseases;
 CREATE POLICY "diseases_select_authenticated"
   ON public.diseases FOR SELECT
   TO authenticated USING (TRUE);
 
+DROP POLICY IF EXISTS "diseases_write_admin" ON public.diseases;
 CREATE POLICY "diseases_write_admin"
   ON public.diseases FOR ALL
   USING (public.get_user_role(auth.uid()) = 'admin')

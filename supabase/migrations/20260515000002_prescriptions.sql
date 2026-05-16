@@ -300,7 +300,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER prescription_audit_trigger
+-- Eliminar trigger anterior si existe (para evitar duplicados)
+DROP TRIGGER IF EXISTS prescription_audit_trigger ON public.prescriptions;
+
+-- Crear trigger de auditoría
+CREATE TRIGGER prescription_audit_trigger
   AFTER INSERT ON public.prescriptions
   FOR EACH ROW EXECUTE FUNCTION public.trigger_log_prescription_audit();
 
