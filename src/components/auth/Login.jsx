@@ -57,21 +57,36 @@ export default function LoginModal({ onClose }) {
     e.preventDefault()
     setError('')
     setBusy(true)
-    const result = await login(email.trim(), password)
-    if (!result.ok) {
-      setError(result.error)
+    try {
+      const result = await login(email.trim(), password)
+      if (result.ok) {
+        // onAuthStateChange → loadProfile → App.jsx useEffect closes modal
+        // setBusy stays true until modal unmounts; reset defensively on timeout
+        setTimeout(() => setBusy(false), 5000)
+      } else {
+        setError(result.error)
+        setBusy(false)
+      }
+    } catch {
+      setError('Error inesperado. Intenta de nuevo.')
       setBusy(false)
     }
-    // On success: onAuthStateChange → loadProfile → App.jsx useEffect closes modal
   }
 
   async function handleStudentSubmit(e) {
     e.preventDefault()
     setError('')
     setBusy(true)
-    const result = await loginStudent(name.trim(), code.trim())
-    if (!result.ok) {
-      setError(result.error)
+    try {
+      const result = await loginStudent(name.trim(), code.trim())
+      if (result.ok) {
+        setTimeout(() => setBusy(false), 5000)
+      } else {
+        setError(result.error)
+        setBusy(false)
+      }
+    } catch {
+      setError('Error inesperado. Intenta de nuevo.')
       setBusy(false)
     }
   }

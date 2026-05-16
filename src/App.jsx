@@ -142,8 +142,7 @@ function AppContent() {
       <AIChatFloating
         open={chatOpen}
         onToggle={() => setChatOpen(v => !v)}
-        apiKey={user ? 'proxy' : apiKey}
-        onAuthRequired={!user ? openLogin : undefined}
+        apiKey={user ? 'proxy' : 'direct'}
       />
 
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}

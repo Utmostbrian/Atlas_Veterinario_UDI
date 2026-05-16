@@ -86,10 +86,14 @@ export function AuthProvider({ children }) {
 
   // Admin login — does NOT touch global loading so the modal stays mounted
   const login = useCallback(async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return { ok: false, error: friendlyError(error.message) }
-    return { ok: true }
-    // onAuthStateChange fires → loadProfile → setUser + setLoading(false)
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) return { ok: false, error: friendlyError(error.message) }
+      return { ok: true }
+      // onAuthStateChange fires → loadProfile → setUser + setLoading(false)
+    } catch {
+      return { ok: false, error: 'Error de conexión. Verifica tu internet.' }
+    }
   }, [])
 
   // Student login via secure Edge Function (class code validated server-side)
