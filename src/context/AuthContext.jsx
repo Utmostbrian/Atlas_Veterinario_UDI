@@ -83,14 +83,16 @@ export function AuthProvider({ children }) {
 
   // Student login via secure Edge Function (class code validated server-side)
   const loginStudent = useCallback(async (name, classCode) => {
+    const anonKey  = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').replace(/^﻿/, '').trim()
+    const proxyBase = (import.meta.env.VITE_SUPABASE_URL ?? '').replace(/^﻿/, '').trim()
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/student-login`,
+        `${proxyBase}/functions/v1/student-login`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${anonKey}`,
           },
           body: JSON.stringify({ name: name.trim(), classCode: classCode.trim() }),
         }

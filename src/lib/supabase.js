@@ -1,20 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Strip BOM (U+FEFF) and whitespace — can appear when env vars are pasted with encoding issues
+function cleanEnv(val) {
+  return (val ?? '').replace(/^﻿/, '').trim()
+}
+
+const SUPABASE_URL      = cleanEnv(import.meta.env.VITE_SUPABASE_URL)
+const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error(
-    '[Supabase] Variables de entorno no configuradas.\n' +
-    'Crea un archivo .env con VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.\n' +
-    'Ver SUPABASE_SETUP.md para instrucciones.'
-  )
+  console.error('[Supabase] Variables de entorno no configuradas.')
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
+    autoRefreshToken:    true,
+    persistSession:      true,
+    detectSessionInUrl:  true,
   },
 })
