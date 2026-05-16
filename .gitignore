@@ -17,3 +17,5 @@ Reporte_Tecnico_DoD.docx
 
 # Supabase CLI cache
 supabase/.temp/
+
+.vercel
