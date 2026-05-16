@@ -374,61 +374,61 @@ ALTER TABLE public.drugs        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.diseases     ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: cada usuario ve y edita solo el suyo; admin ve todos
-CREATE POLICY "profiles_select_own"
+CREATE POLICY IF NOT EXISTS "profiles_select_own"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
-CREATE POLICY "profiles_select_admin"
+CREATE POLICY IF NOT EXISTS "profiles_select_admin"
   ON public.profiles FOR SELECT
   USING (public.get_user_role(auth.uid()) = 'admin');
 
-CREATE POLICY "profiles_insert_own"
+CREATE POLICY IF NOT EXISTS "profiles_insert_own"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "profiles_update_own"
+CREATE POLICY IF NOT EXISTS "profiles_update_own"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
 -- Audit logs: usuarios insertan solo los suyos; admin lee todos
-CREATE POLICY "audit_insert_own"
+CREATE POLICY IF NOT EXISTS "audit_insert_own"
   ON public.audit_logs FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "audit_select_own"
+CREATE POLICY IF NOT EXISTS "audit_select_own"
   ON public.audit_logs FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY "audit_select_admin"
+CREATE POLICY IF NOT EXISTS "audit_select_admin"
   ON public.audit_logs FOR SELECT
   USING (public.get_user_role(auth.uid()) = 'admin');
 
 -- Prescripciones: CRUD propio; admin lee todas
-CREATE POLICY "prescriptions_own"
+CREATE POLICY IF NOT EXISTS "prescriptions_own"
   ON public.prescriptions FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "prescriptions_select_admin"
+CREATE POLICY IF NOT EXISTS "prescriptions_select_admin"
   ON public.prescriptions FOR SELECT
   USING (public.get_user_role(auth.uid()) = 'admin');
 
 -- Fármacos: lectura pública autenticada; escritura solo admin
-CREATE POLICY "drugs_select_authenticated"
+CREATE POLICY IF NOT EXISTS "drugs_select_authenticated"
   ON public.drugs FOR SELECT
   TO authenticated USING (TRUE);
 
-CREATE POLICY "drugs_write_admin"
+CREATE POLICY IF NOT EXISTS "drugs_write_admin"
   ON public.drugs FOR ALL
   USING (public.get_user_role(auth.uid()) = 'admin')
   WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
 
 -- Enfermedades: igual que fármacos
-CREATE POLICY "diseases_select_authenticated"
+CREATE POLICY IF NOT EXISTS "diseases_select_authenticated"
   ON public.diseases FOR SELECT
   TO authenticated USING (TRUE);
 
-CREATE POLICY "diseases_write_admin"
+CREATE POLICY IF NOT EXISTS "diseases_write_admin"
   ON public.diseases FOR ALL
   USING (public.get_user_role(auth.uid()) = 'admin')
   WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
