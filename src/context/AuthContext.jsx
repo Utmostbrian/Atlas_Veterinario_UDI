@@ -15,9 +15,20 @@ function friendlyError(message) {
   return AUTH_ERROR_MESSAGES[message] ?? message
 }
 
+// BOM-clean env vars resolved once at module load
+const BOM = '﻿'
+const ANON_KEY_CLEAN   = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').replace(new RegExp('^' + BOM), '').trim()
+const PROXY_BASE_CLEAN = (import.meta.env.VITE_SUPABASE_URL      ?? '').replace(new RegExp('^' + BOM), '').trim()
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // Absolute backstop: never hang on loading longer than 8 s
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 8000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -83,16 +94,14 @@ export function AuthProvider({ children }) {
 
   // Student login via secure Edge Function (class code validated server-side)
   const loginStudent = useCallback(async (name, classCode) => {
-    const anonKey  = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').replace(/^﻿/, '').trim()
-    const proxyBase = (import.meta.env.VITE_SUPABASE_URL ?? '').replace(/^﻿/, '').trim()
     try {
       const response = await fetch(
-        `${proxyBase}/functions/v1/student-login`,
+        `${PROXY_BASE_CLEAN}/functions/v1/student-login`,
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${anonKey}`,
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${ANON_KEY_CLEAN}`,
           },
           body: JSON.stringify({ name: name.trim(), classCode: classCode.trim() }),
         }
@@ -120,9 +129,12 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Clear user state immediately so UI responds; signOut fires in background
   const logout = useCallback(async () => {
     localStorage.removeItem('vet_student_name')
-    await supabase.auth.signOut()
+    setUser(null)
+    setLoading(false)
+    try { await supabase.auth.signOut() } catch { /* ignore network errors */ }
   }, [])
 
   const updateProfile = useCallback(async (updates) => {

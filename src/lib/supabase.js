@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Strip BOM (U+FEFF) and whitespace — can appear when env vars are pasted with encoding issues
 function cleanEnv(val) {
   return (val ?? '').replace(/^﻿/, '').trim()
 }
