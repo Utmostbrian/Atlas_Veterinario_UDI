@@ -1,29 +1,17 @@
 /**
  * Edge Function: anthropic-proxy
- *
- * Actúa como proxy seguro entre el frontend y la API de Anthropic.
- * La API Key de Anthropic NUNCA sale del servidor.
- *
- * Implementa:
- * - Autenticación JWT obligatoria (DoD Tier 1)
- * - Rate limiting básico por usuario (DoD Tier 2)
- * - Registro de IP en auditoría (DoD 2.2)
- * - Soporte de streaming SSE
- *
- * Endpoint: POST /functions/v1/anthropic-proxy
- * Body: { messages, system, max_tokens, model, stream }
+ * Proxy seguro entre el frontend y la API de Anthropic.
+ * La API Key NUNCA sale del servidor.
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
 
-// Rate limiting simple en memoria (se reinicia con cada instancia cold-start)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_MAX = 10        // requests por minuto por usuario
-const RATE_LIMIT_WINDOW = 60_000 // 1 minuto en ms
+const RATE_LIMIT_MAX    = 10
+const RATE_LIMIT_WINDOW = 60_000
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -39,7 +27,7 @@ function json(data: unknown, status = 200) {
 }
 
 function checkRateLimit(userId: string): boolean {
-  const now = Date.now()
+  const now   = Date.now()
   const entry = rateLimitMap.get(userId)
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW })
@@ -50,8 +38,8 @@ function checkRateLimit(userId: string): boolean {
   return true
 }
 
-serve(async (req: Request) => {
-  // Preflight CORS
+Deno.serve(async (req: Request) => {
+  // Preflight CORS — always allow, no JWT needed
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -60,15 +48,12 @@ serve(async (req: Request) => {
     return json({ error: 'Método no permitido' }, 405)
   }
 
-  // ── Verificar API Key de Anthropic configurada ──
+  // Verificar API Key configurada
   if (!ANTHROPIC_KEY) {
-    return json({
-      error: 'ANTHROPIC_API_KEY no configurada en los secretos de Supabase.',
-      code: 'KEY_MISSING',
-    }, 500)
+    return json({ error: 'ANTHROPIC_API_KEY no configurada.', code: 'KEY_MISSING' }, 500)
   }
 
-  // ── Autenticación JWT obligatoria (DoD Tier 1) ──
+  // Autenticación JWT
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     return json({ error: 'Autenticación requerida.', code: 'UNAUTHORIZED' }, 401)
@@ -85,15 +70,12 @@ serve(async (req: Request) => {
     return json({ error: 'Token inválido o expirado.', code: 'INVALID_TOKEN' }, 401)
   }
 
-  // ── Rate limiting por usuario (DoD Tier 2) ──
+  // Rate limiting
   if (!checkRateLimit(user.id)) {
-    return json({
-      error: 'Límite de solicitudes alcanzado. Espera un minuto.',
-      code: 'RATE_LIMITED',
-    }, 429)
+    return json({ error: 'Límite de solicitudes alcanzado. Espera un minuto.', code: 'RATE_LIMITED' }, 429)
   }
 
-  // ── Validar body (DoD Tier 2 — input validation) ──
+  // Validar body
   let body: {
     messages: unknown[]
     system?: string
@@ -117,26 +99,30 @@ serve(async (req: Request) => {
     return json({ error: 'max_tokens debe estar entre 1 y 8192.', code: 'INVALID_TOKENS' }, 400)
   }
 
-  // ── Llamar a Anthropic ──
-  const anthropicBody = {
-    model:      body.model ?? 'claude-sonnet-4-6',
-    max_tokens,
-    system:     body.system,
-    messages:   body.messages,
-    stream:     body.stream ?? false,
+  // Llamar a Anthropic con manejo de errores para garantizar CORS headers siempre
+  let anthropicRes: Response
+  try {
+    anthropicRes = await fetch(ANTHROPIC_URL, {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model:      body.model ?? 'claude-sonnet-4-6',
+        max_tokens,
+        system:     body.system,
+        messages:   body.messages,
+        stream:     body.stream ?? false,
+      }),
+    })
+  } catch (e) {
+    console.error('[anthropic-proxy] Fetch error:', e)
+    return json({ error: 'Error al conectar con Anthropic.', code: 'UPSTREAM_ERROR' }, 502)
   }
 
-  const anthropicRes = await fetch(ANTHROPIC_URL, {
-    method:  'POST',
-    headers: {
-      'Content-Type':      'application/json',
-      'x-api-key':         ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify(anthropicBody),
-  })
-
-  // ── Streaming: pasar el stream directamente al cliente ──
+  // Streaming
   if (body.stream) {
     return new Response(anthropicRes.body, {
       status:  anthropicRes.status,
@@ -149,7 +135,7 @@ serve(async (req: Request) => {
     })
   }
 
-  // ── Respuesta normal ──
-  const data = await anthropicRes.json()
+  // Respuesta normal
+  const data = await anthropicRes.json().catch(() => ({ error: 'Respuesta inválida de Anthropic.' }))
   return json(data, anthropicRes.status)
 })
