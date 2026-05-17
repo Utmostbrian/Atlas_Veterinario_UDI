@@ -166,13 +166,9 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
               <h3>Sin resultados</h3>
               <p>No se encontraron fármacos para <strong>"{query}"</strong></p>
               <button
+                className="btnp"
                 onClick={() => { setQuery(''); setActiveCategory('ALL') }}
-                style={{
-                  marginTop: 12, padding: '8px 20px',
-                  background: 'var(--blue)', color: '#fff',
-                  border: 'none', borderRadius: 'var(--rs)',
-                  fontWeight: 600, cursor: 'pointer',
-                }}
+                style={{ marginTop: 12, width: 'auto', padding: '9px 24px' }}
               >
                 Ver todos los fármacos
               </button>

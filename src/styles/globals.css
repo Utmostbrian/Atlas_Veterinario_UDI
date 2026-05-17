@@ -462,12 +462,12 @@ header {
 }
 
 .aiph {
-  background: linear-gradient(135deg, var(--blue), #CC0000);
+  background: linear-gradient(135deg, #7a0000 0%, var(--blue) 100%);
   color: #fff; padding: 20px 24px; position: relative;
 }
 .aiph::after {
   content: ''; position: absolute; bottom: 0; left: 0; right: 0;
-  height: 3px; background: var(--red);
+  height: 3px; background: rgba(255,255,255,.25);
 }
 
 .aiclose {
@@ -494,7 +494,7 @@ header {
   background: rgba(255,255,255,.18); color: #fff;
   font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
 }
-.aitag.ia { background: rgba(204,0,0,.4); }
+.aitag.ia { background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.35); }
 
 .aibody { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
 
@@ -852,7 +852,7 @@ header {
 .dark .receta-form { background: #1e293b; border-color: #334155; }
 
 .receta-hdr {
-  background: linear-gradient(135deg, var(--blue), #CC0000);
+  background: linear-gradient(135deg, #7a0000 0%, var(--blue) 100%);
   color: #fff; padding: 20px 24px;
   display: flex; align-items: center; gap: 14px;
 }

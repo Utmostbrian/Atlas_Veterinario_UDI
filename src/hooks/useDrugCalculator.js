@@ -104,10 +104,28 @@ export function useDrugCalculator() {
     return effectiveDrug.dosageRange?.[species] ?? null
   }, [matchedDrugName, aiDrugProfile, species]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const weightError = useMemo(() => {
+    if (!String(weight).trim()) return null
+    const w = parseFloat(weight)
+    if (isNaN(w) || w <= 0) return 'El peso debe ser un número positivo.'
+    if (w > 5000)            return 'Peso fuera de rango clínico (máx. 5000 kg).'
+    return null
+  }, [weight])
+
+  const concError = useMemo(() => {
+    if (!String(conc).trim()) return null
+    const c = toEffectiveConc(conc, unit)
+    if (c === null) return 'La concentración debe ser un número positivo.'
+    if (c > 2000)   return 'Concentración muy alta. Verifica las unidades seleccionadas.'
+    return null
+  }, [conc, unit])
+
   const canCalculate = Boolean(
     effectiveDrug &&
     !routeError &&
     !speciesError &&
+    !weightError &&
+    !concError &&
     weight && parseFloat(weight) > 0 &&
     dose   && parseFloat(dose)   > 0 &&
     conc   && toEffectiveConc(conc, unit) !== null
@@ -161,6 +179,20 @@ export function useDrugCalculator() {
     const totalMass = w * d
     const volMl     = totalMass / effConc
 
+    // Sanity: resultado debe ser finito y positivo
+    if (!isFinite(totalMass) || !isFinite(volMl) || volMl < 0) return null
+
+    // Bug 2 fix: precisión adaptativa para microdosis
+    const fmtVol = volMl < 0.1 ? volMl.toFixed(4) : volMl.toFixed(2)
+
+    // Bug 3 fix: advertencias de volumen clínicamente absurdo
+    let volumeWarning = null
+    if (volMl > 100) {
+      volumeWarning = `Volumen muy alto (${volMl.toFixed(1)} mL). Verifica que la concentración sea correcta.`
+    } else if (volMl < 0.01) {
+      volumeWarning = `Volumen muy pequeño (${fmtVol} mL). Considera usar una jeringa de insulina o microdilución.`
+    }
+
     const entry = {
       drug:          effectiveDrug.name,
       species,
@@ -173,10 +205,10 @@ export function useDrugCalculator() {
       unit,
       route,
       totalMg:       totalMass.toFixed(2),
-      volMl:         volMl.toFixed(2),
+      volMl:         fmtVol,
       hadWarning:    !!doseWarning,
+      volumeWarning,
       timestamp:     new Date().toLocaleString('es-BO'),
-      // Marca el resultado como calculado con datos de IA
       aiCalculated:  !matchedDrugName && !!aiDrugProfile,
     }
 
@@ -207,6 +239,8 @@ export function useDrugCalculator() {
     doseWarning,
     routeError,
     speciesError,
+    weightError,
+    concError,
     canCalculate,
     calculate,
     pickConcentration,

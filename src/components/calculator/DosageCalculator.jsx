@@ -25,10 +25,14 @@ export default function DosageCalculator({ onLoginRequired }) {
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   function handleCalculate() {
-    const entry = calc.calculate()
-    if (!entry) return
-    setAiResult('')
-    logDoseCalculation(entry)
+    try {
+      const entry = calc.calculate()
+      if (!entry) return
+      setAiResult('')
+      logDoseCalculation(entry)
+    } catch {
+      setProfileError('Error inesperado en el cálculo. Verifica los datos ingresados.')
+    }
   }
 
   async function handleFetchAiProfile() {
@@ -255,14 +259,18 @@ export default function DosageCalculator({ onLoginRequired }) {
               <div className="fgrp">
                 <label className="flbl">Peso (kg)</label>
                 <input
-                  className="fc"
+                  className={`fc${calc.weightError ? ' fc--err' : ''}`}
                   type="number"
-                  min="0"
+                  min="0.001"
+                  max="5000"
                   step="0.1"
                   placeholder="Ej: 25"
                   value={calc.weight}
                   onChange={e => calc.setWeight(e.target.value)}
                 />
+                {calc.weightError && (
+                  <span className="fc-err-msg">{calc.weightError}</span>
+                )}
               </div>
             </div>
 
@@ -299,9 +307,9 @@ export default function DosageCalculator({ onLoginRequired }) {
                 <label className="flbl">Concentración</label>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input
-                    className="fc"
+                    className={`fc${calc.concError ? ' fc--err' : ''}`}
                     type="number"
-                    min="0"
+                    min="0.001"
                     step="0.1"
                     placeholder="Ej: 50"
                     value={calc.conc}
@@ -317,6 +325,10 @@ export default function DosageCalculator({ onLoginRequired }) {
                     {UNITS.map(u => <option key={u}>{u}</option>)}
                   </select>
                 </div>
+
+                {calc.concError && (
+                  <span className="fc-err-msg" style={{ marginTop: 3 }}>{calc.concError}</span>
+                )}
 
                 {/* Quick-pick concentraciones (BD y IA) */}
                 {calc.matchedDrug?.standardConcentrations?.length > 0 && (
@@ -416,6 +428,13 @@ export default function DosageCalculator({ onLoginRequired }) {
                 {calc.result.hadWarning && (
                   <div className="abox o" style={{ marginTop: 8, fontSize: '.82rem' }}>
                     Dosis fuera del rango de referencia clínica. Se recomienda validación con IA.
+                  </div>
+                )}
+
+                {calc.result.volumeWarning && (
+                  <div className="wbox" style={{ marginTop: 8, fontSize: '.82rem' }}>
+                    <span>⚠</span>
+                    <span>{calc.result.volumeWarning}</span>
                   </div>
                 )}
 
