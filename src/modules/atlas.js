@@ -36,12 +36,6 @@ function safeParseJSON(str) {
 }
 
 export async function searchDrugWithAI(name) {
-  // 1. Prioriza la variable de entorno (.env)
-  // 2. Si no hay, busca en el localStorage (manual)
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || localStorage.getItem('vet_atlas_api_key');
-
-  if (!apiKey) return null; // Solo falla si NO hay nada en ninguno de los dos lados
-  
   try {
     const text = await sendMessage({ history: [], userText: buildDrugPrompt(name) })
     const match = text.match(/\{[\s\S]*\}/)

@@ -225,17 +225,13 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
                 </button>
               </>
             ) : (
-              /* Error / sin API key — fallback a datos locales */
+              /* Fármaco no encontrado o error de IA — fallback a datos locales */
               <>
-                {aiData === null ? (
-                  <div className="abox b" style={{ marginBottom: 14, fontSize: '.84rem' }}>
-                    Error con la configuracion de API Key de Anthropic. No es posible ampliar tu consulta sobre este fármaco con IA por el error mencionado.
-                  </div>
-                ) : aiData?.mensaje ? (
+                {aiData?.mensaje && (
                   <div className="abox rr" style={{ marginBottom: 14 }}>
                     <p style={{ fontSize: '.84rem' }}>{aiData.mensaje}</p>
                   </div>
-                ) : null}
+                )}
 
                 <div className="aisec">
                   <h3>Descripción</h3>
