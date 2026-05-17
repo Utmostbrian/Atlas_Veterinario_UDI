@@ -115,14 +115,7 @@ export default function Prescription() {
     const el = previewRef.current
     if (!el) return
 
-    const win = window.open('', '_blank', 'width=860,height=900')
-    // Guard: popups pueden estar bloqueados
-    if (!win) {
-      alert('Tu navegador bloqueó la ventana emergente. Habilita los popups para esta página y vuelve a intentarlo.')
-      return
-    }
-
-    win.document.write(`<!DOCTYPE html>
+    const printHtml = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -147,7 +140,23 @@ export default function Prescription() {
     };
   </script>
 </body>
-</html>`)
+</html>`
+
+    const win = window.open('', '_blank', 'width=860,height=900')
+    if (!win) {
+      // A-03: popup blocked — open via blob URL so the prescription isn't lost
+      const blob = new Blob([printHtml], { type: 'text/html' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href   = url
+      a.target = '_blank'
+      a.rel    = 'noopener noreferrer'
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+      return
+    }
+
+    win.document.write(printHtml)
     win.document.close()
   }
 

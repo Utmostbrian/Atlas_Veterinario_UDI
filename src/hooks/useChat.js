@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { sendMessage } from '../services/anthropicService'
 import { logAiConsultation } from '../services/auditService'
 
@@ -11,8 +11,8 @@ export function useChat() {
   const abortRef    = useRef(null)
   const messagesRef = useRef([])
 
-  // F-04: keep ref in sync so send() never closes over stale messages
-  useEffect(() => { messagesRef.current = messages }, [messages])
+  // F-04 / M-03: useLayoutEffect keeps ref in sync before paint, avoiding stale closure in send()
+  useLayoutEffect(() => { messagesRef.current = messages }, [messages])
 
   const addMessage = useCallback((role, content, imageUrl = null) => {
     const msg = {

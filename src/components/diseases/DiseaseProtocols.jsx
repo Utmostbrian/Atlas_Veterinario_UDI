@@ -39,6 +39,7 @@ export default function DiseaseProtocols() {
               placeholder="Buscar enfermedad o especie..."
               value={query}
               onChange={e => setQuery(e.target.value)}
+              maxLength={80}
             />
           </div>
           {query && <button id="btnEnfSearch" onClick={() => setQuery('')}>Limpiar</button>}

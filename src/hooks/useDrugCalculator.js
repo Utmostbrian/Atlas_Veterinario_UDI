@@ -27,6 +27,14 @@ function effectiveConcLabel(value, unit) {
   return null
 }
 
+// M-01: adaptive precision — prevents 0.0025 displaying as "0.00"
+export function fmtNum(n) {
+  if (!isFinite(n) || n === 0) return '0.00'
+  if (n < 0.01) return n.toFixed(4)
+  if (n < 0.1)  return n.toFixed(4)
+  return n.toFixed(2)
+}
+
 export function useDrugCalculator() {
   const [drugInput,     setDrugInputState]    = useState('')
   const [species,       setSpeciesState]      = useState('Perro')
@@ -37,43 +45,48 @@ export function useDrugCalculator() {
   const [route,         setRouteState]        = useState('VO (oral)')
   const [result,        setResult]            = useState(null)
   const [history,       setHistory]           = useState([])
-  // Perfil clínico obtenido de la IA cuando el fármaco no está en DRUGS_DATABASE
   const [aiDrugProfile, setAiDrugProfileState] = useState(null)
 
-  // ─── Búsqueda en DB (string estable como dep de memos) ──────────────────
   const matchedDrugName = useMemo(() => {
     const key = drugInput.trim()
     if (!key) return null
     return Object.keys(DRUGS_DATABASE).find(k => k.toLowerCase() === key.toLowerCase()) ?? null
   }, [drugInput])
 
-  // ─── Fármaco efectivo: DB tiene prioridad sobre perfil IA ───────────────
-  // effectiveDrug es un nuevo objeto cada render — se usa para render, NO como dep de memos.
-  // Para memos se usan matchedDrugName (string) y aiDrugProfile (React state), ambos estables.
   const effectiveDrug = matchedDrugName
     ? { name: matchedDrugName, ...DRUGS_DATABASE[matchedDrugName] }
-    : aiDrugProfile  // null si no hay perfil IA
+    : aiDrugProfile
 
-  // drugNotFound: escribió ≥3 chars, no hay match en DB, y no hay perfil IA cargado
   const drugNotFound = drugInput.trim().length >= 3 && !matchedDrugName && !aiDrugProfile
 
-  // ─── Auto-ajuste al cambiar fármaco en DB ────────────────────────────────
+  // C-02: total-dose mode — drug defines a fixed dose, not per-kg
+  const isTotalDose = effectiveDrug?.doseMode === 'total'
+
   useEffect(() => {
     if (!matchedDrugName) return
     const db = DRUGS_DATABASE[matchedDrugName]
     setResult(null)
     if (!db.species.includes(species))     setSpeciesState(db.species[0])
     if (!db.allowedRoutes.includes(route)) setRouteState(db.allowedRoutes[0])
-    setUnit(db.doseUnit === 'UI/kg' ? 'UI/mL' : 'mg/mL')
+    // Handle UI unit for both UI/kg and total UI drugs
+    setUnit(db.doseUnit === 'UI/kg' || db.doseUnit === 'UI' ? 'UI/mL' : 'mg/mL')
   }, [matchedDrugName]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const availableSpecies = effectiveDrug ? effectiveDrug.species : ALL_SPECIES
   const availableRoutes  = effectiveDrug ? effectiveDrug.allowedRoutes : ALL_ROUTES
 
-  // ─── Validaciones ────────────────────────────────────────────────────────
-  // Deps: matchedDrugName (string estable) + aiDrugProfile (React state, estable entre renders).
-  // effectiveDrug se accede dentro de cada memo; como sus deps son los dos anteriores,
-  // el memo se recalcula exactamente cuando effectiveDrug cambiaría conceptualmente.
+  // C-01: hardMaxError blocks calculation entirely (e.g. Enrofloxacina >5 mg/kg en gato = ceguera)
+  // Separate from doseWarning which is advisory only.
+  const hardMaxError = useMemo(() => {
+    if (!effectiveDrug || !dose || !species) return null
+    const range = effectiveDrug.dosageRange?.[species]
+    if (!range?.hardMax) return null
+    const d = parseFloat(dose)
+    if (isNaN(d) || d <= 0) return null
+    if (d > range.max)
+      return `⛔ LÍMITE ABSOLUTO — ${effectiveDrug.name} en ${species}: máximo ${range.max} ${effectiveDrug.doseUnit}. Superar este límite causa daño irreversible. Cálculo bloqueado.`
+    return null
+  }, [matchedDrugName, aiDrugProfile, dose, species]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const doseWarning = useMemo(() => {
     if (!effectiveDrug || !dose || !species) return null
@@ -81,6 +94,8 @@ export function useDrugCalculator() {
     if (!range) return null
     const d = parseFloat(dose)
     if (isNaN(d) || d <= 0) return null
+    // hardMax violations shown via hardMaxError, not here
+    if (range.hardMax && d > range.max) return null
     if (d < range.min)
       return `Dosis inferior al rango clínico (mín: ${range.min} ${effectiveDrug.doseUnit})`
     if (d > range.max)
@@ -108,12 +123,14 @@ export function useDrugCalculator() {
   }, [matchedDrugName, aiDrugProfile, species]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const weightError = useMemo(() => {
+    // C-02: weight not required for total-dose drugs (Oxitocina, etc.)
+    if (isTotalDose) return null
     if (!String(weight).trim()) return null
     const w = parseFloat(weight)
     if (isNaN(w) || w <= 0) return 'El peso debe ser un número positivo.'
     if (w > 5000)            return 'Peso fuera de rango clínico (máx. 5000 kg).'
     return null
-  }, [weight])
+  }, [weight, isTotalDose])
 
   const concError = useMemo(() => {
     if (!String(conc).trim()) return null
@@ -127,68 +144,61 @@ export function useDrugCalculator() {
     effectiveDrug &&
     !routeError &&
     !speciesError &&
+    !hardMaxError &&  // C-01: block when hardMax exceeded
     !weightError &&
     !concError &&
-    weight && parseFloat(weight) > 0 &&
-    dose   && parseFloat(dose)   > 0 &&
-    conc   && toEffectiveConc(conc, unit) !== null
+    // C-02: weight required only for per-kg drugs
+    (isTotalDose || (weight && parseFloat(weight) > 0)) &&
+    dose && parseFloat(dose) > 0 &&
+    conc && toEffectiveConc(conc, unit) !== null
   )
-
-  // ─── Setters públicos ────────────────────────────────────────────────────
 
   function setDrugInput(value) {
     setDrugInputState(value)
-    setAiDrugProfileState(null) // resetear perfil IA al cambiar el fármaco
+    setAiDrugProfileState(null)
     if (!value.trim()) setResult(null)
   }
 
-  /**
-   * Carga un perfil IA y ajusta la UI automáticamente,
-   * igual que hace matchedDrugName con los fármacos de DB.
-   * El profile debe tener la misma estructura que una entrada de DRUGS_DATABASE.
-   */
   function setAiDrugProfile(profile) {
     setAiDrugProfileState(profile)
     setResult(null)
     if (!profile) return
     if (!profile.species.includes(species))      setSpeciesState(profile.species[0])
     if (!profile.allowedRoutes.includes(route))  setRouteState(profile.allowedRoutes[0])
-    setUnit(profile.doseUnit === 'UI/kg' ? 'UI/mL' : 'mg/mL')
+    setUnit(profile.doseUnit === 'UI/kg' || profile.doseUnit === 'UI' ? 'UI/mL' : 'mg/mL')
   }
 
   function setSpecies(value) { setSpeciesState(value); setResult(null) }
   function setRoute(value)   { setRouteState(value);   setResult(null) }
-
   function handleWeight(value) { setWeight(value); setResult(null) }
   function handleDose(value)   { setDose(value);   setResult(null) }
   function handleConc(value)   { setConc(value);   setResult(null) }
 
   function pickConcentration(value) {
     setConc(String(value))
-    setUnit(effectiveDrug?.doseUnit === 'UI/kg' ? 'UI/mL' : 'mg/mL')
+    const isUI = effectiveDrug?.doseUnit === 'UI/kg' || effectiveDrug?.doseUnit === 'UI'
+    setUnit(isUI ? 'UI/mL' : 'mg/mL')
     setResult(null)
   }
-
-  // ─── Cálculo ─────────────────────────────────────────────────────────────
 
   function calculate() {
     if (!canCalculate || !effectiveDrug) return null
 
-    const w        = parseFloat(weight)
-    const d        = parseFloat(dose)
-    const effConc  = toEffectiveConc(conc, unit)
+    const w       = parseFloat(weight) || 0
+    const d       = parseFloat(dose)
+    const effConc = toEffectiveConc(conc, unit)
     const concNote = effectiveConcLabel(conc, unit)
 
-    const totalMass = w * d
+    // C-02: total-dose drugs use dose directly, no per-kg multiplication
+    const totalMass = isTotalDose ? d : w * d
     const volMl     = totalMass / effConc
 
-    // Sanity: resultado debe ser finito y positivo
     if (!isFinite(totalMass) || !isFinite(volMl) || volMl < 0) return null
 
-    // Bug 2 fix: precisión adaptativa para microdosis
-    const fmtVol = volMl < 0.1 ? volMl.toFixed(4) : volMl.toFixed(2)
+    // M-01: adaptive precision for small values (microdoses)
+    const fmtVol  = fmtNum(volMl)
+    const fmtMass = fmtNum(totalMass)
 
-    // Bug 3 fix: advertencias de volumen clínicamente absurdo
     let volumeWarning = null
     if (volMl > 100) {
       volumeWarning = `Volumen muy alto (${volMl.toFixed(1)} mL). Verifica que la concentración sea correcta.`
@@ -199,15 +209,17 @@ export function useDrugCalculator() {
     const entry = {
       drug:          effectiveDrug.name,
       species,
-      weight:        w,
-      dosePerKg:     d,
+      weight:        isTotalDose ? null : w,
+      dosePerKg:     isTotalDose ? null : d,
+      doseTotal:     isTotalDose ? d : null,
+      doseMode:      effectiveDrug.doseMode ?? 'per_kg',
       doseUnit:      effectiveDrug.doseUnit,
       concentration: parseFloat(conc),
       effectiveConc: effConc,
       concNote,
       unit,
       route,
-      totalMg:       totalMass.toFixed(2),
+      totalMg:       fmtMass,
       volMl:         fmtVol,
       hadWarning:    !!doseWarning,
       volumeWarning,
@@ -230,9 +242,7 @@ export function useDrugCalculator() {
     route,      setRoute,
     result,     setResult,
     history,
-    // matchedDrug ahora es effectiveDrug — transparente para el componente
     matchedDrug:   effectiveDrug,
-    // Perfil IA separado — para que el componente distinga el origen
     aiDrugProfile,
     setAiDrugProfile,
     drugNotFound,
@@ -240,6 +250,7 @@ export function useDrugCalculator() {
     availableRoutes,
     currentRange,
     doseWarning,
+    hardMaxError,
     routeError,
     speciesError,
     weightError,
@@ -247,5 +258,6 @@ export function useDrugCalculator() {
     canCalculate,
     calculate,
     pickConcentration,
+    isTotalDose,
   }
 }

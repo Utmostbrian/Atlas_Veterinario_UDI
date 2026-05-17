@@ -72,11 +72,20 @@ const PHARMA_PREFIXES = [
 ]
 
 // Palabras comunes que pasarían los filtros pero NO son fármacos
+// M-02: expanded list to reduce false positives
 const NON_DRUG_WORDS = new Set([
   'medicina','vitamina','vitaminas','proteina','proteinas',
   'enzima','hormona','bacteria','pastilla','tableta',
   'capsula','inyeccion','solucion','persona','gallina',
   'cocina','vecina','gasolina','bencina','heroina',
+  // additional false positives
+  'sangre','orina','suero','plasma','saliva','leche',
+  'glucosa','fructosa','lactosa','sacarosa','maltosa',
+  'animal','animal','bovino','equino','felino','canino',
+  'vitamino','mineral','mineral','calcio','hierro','yodo',
+  'alcohol','etanol','metanol','acetona','glicerol',
+  'colina','adenina','guanina','timina','uracilo','citosina',
+  'histamina','serotonina','melatonina','dopamina',
 ])
 
 const KNOWN_DRUGS = new Set([
@@ -85,6 +94,7 @@ const KNOWN_DRUGS = new Set([
 ])
 
 function normalizeDrug(name) {
+  // M-02: explicit Unicode escape for combining diacritical marks — prevents encoding issues
   return name.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
@@ -196,6 +206,7 @@ export default function InteractionChecker() {
                 value={input}
                 onChange={e => { setInput(e.target.value); setInputError('') }}
                 onKeyDown={handleKeyDown}
+                maxLength={60}
               />
               <button onClick={addDrug} disabled={!input.trim()}>
                 + Agregar

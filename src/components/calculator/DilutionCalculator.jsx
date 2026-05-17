@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { FlaskIcon } from '../../Icons/Icons'
 
 function calcDilution({ c1, c2, v2 }) {
-  if (!c1 || !c2 || !v2 || c1 <= 0 || c2 <= 0 || v2 <= 0) return null
+  // A-04: return error object instead of null so the user sees feedback
+  if (!c1 || !c2 || !v2 || c1 <= 0 || c2 <= 0 || v2 <= 0)
+    return { error: 'Ingresa valores positivos mayores a cero en todos los campos.' }
   if (c2 > c1) return { error: 'La concentración final (C₂) no puede ser mayor que la inicial (C₁).' }
   const v1      = (c2 * v2) / c1
   const solvent = v2 - v1
@@ -10,7 +12,8 @@ function calcDilution({ c1, c2, v2 }) {
 }
 
 function calcDripRate({ vol, time, factor }) {
-  if (!vol || !time || !factor || time <= 0) return null
+  if (!vol || !time || !factor || vol <= 0 || time <= 0)
+    return { error: 'Ingresa valores positivos mayores a cero en volumen y tiempo.' }
   const mlPerHour = vol / time
   const drops     = (vol * factor) / (time * 60)
   return { mlPerHour: mlPerHour.toFixed(1), drops: drops.toFixed(0) }
@@ -131,19 +134,25 @@ export default function DilutionCalculator() {
 
             {dripResult && (
               <div className="cres show">
-                <div className="crtitle">Resultado</div>
-                <div className="crow">
-                  <span>Velocidad de infusión</span><span>{dripResult.mlPerHour} mL/h</span>
-                </div>
-                <div className="crow">
-                  <span>Gotas por minuto</span><span>{dripResult.drops} gts/min</span>
-                </div>
-                <div className="abox b" style={{ marginTop: 10 }}>
-                  <p style={{ fontSize: '.82rem' }}>
-                    <strong>Práctica:</strong> Ajustar el equipo a <strong>{dripResult.drops} gotas/min</strong> para
-                    infundir {vol} mL en {time} hora{time !== '1' ? 's' : ''}.
-                  </p>
-                </div>
+                {dripResult.error ? (
+                  <div className="wbox"><span>⚠</span><span>{dripResult.error}</span></div>
+                ) : (
+                  <>
+                    <div className="crtitle">Resultado</div>
+                    <div className="crow">
+                      <span>Velocidad de infusión</span><span>{dripResult.mlPerHour} mL/h</span>
+                    </div>
+                    <div className="crow">
+                      <span>Gotas por minuto</span><span>{dripResult.drops} gts/min</span>
+                    </div>
+                    <div className="abox b" style={{ marginTop: 10 }}>
+                      <p style={{ fontSize: '.82rem' }}>
+                        <strong>Práctica:</strong> Ajustar el equipo a <strong>{dripResult.drops} gotas/min</strong> para
+                        infundir {vol} mL en {time} hora{time !== '1' ? 's' : ''}.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

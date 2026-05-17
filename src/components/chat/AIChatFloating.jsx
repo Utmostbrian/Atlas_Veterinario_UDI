@@ -112,11 +112,12 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const [imageData,  setImageData]  = useState(null)
   const [minimized,  setMinimized]  = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
-  const bottomRef = useRef(null)
-  const inputRef  = useRef(null)
-  const fileRef   = useRef(null)
-  const videoRef  = useRef(null)
-  const streamRef = useRef(null)
+  const bottomRef  = useRef(null)
+  const inputRef   = useRef(null)
+  const fileRef    = useRef(null)
+  const videoRef   = useRef(null)
+  const streamRef  = useRef(null)
+  const sendingRef = useRef(false) // M-08: prevents double-send race before loading state propagates
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -131,10 +132,16 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const handleSend = useCallback(async () => {
     if (!text.trim() && !imageData) return
     if (!isAuthenticated) { onOpenLogin?.(); return }
+    if (sendingRef.current) return // M-08: guard against double-click before loading state propagates
+    sendingRef.current = true
     const payload = { text: text.trim(), imageData }
     setText('')
     setImageData(null)
-    await send(payload)
+    try {
+      await send(payload)
+    } finally {
+      sendingRef.current = false
+    }
   }, [text, imageData, send, isAuthenticated, onOpenLogin])
 
   function handleKeyDown(e) {
@@ -206,7 +213,8 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     canvas.getContext('2d').drawImage(video, 0, 0)
     // F-05: validate blob before creating File (some mobile browsers return null)
     canvas.toBlob(blob => {
-      if (!blob) { alert('No se pudo capturar la imagen. Intenta de nuevo.'); closeCamera(); return }
+      // B-03: stop stream before alert so camera indicator light turns off first
+      if (!blob) { closeCamera(); alert('No se pudo capturar la imagen. Intenta de nuevo.'); return }
       const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' })
       processImageFile(file)
       closeCamera()
@@ -251,7 +259,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
       {cameraOpen && (
         <div className={styles.cameraOverlay}>
-          <video ref={videoRef} autoPlay playsInline className={styles.cameraVideo} />
+          <video ref={videoRef} autoPlay playsInline muted className={styles.cameraVideo} />
           <div className={styles.cameraActions}>
             <button className={styles.cameraCapture} onClick={capturePhoto} title="Capturar foto" />
             <button className={styles.cameraCancel} onClick={closeCamera}>Cancelar</button>

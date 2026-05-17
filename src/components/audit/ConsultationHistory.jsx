@@ -44,7 +44,28 @@ export default function ConsultationHistory() {
   }, [page, filterType, search])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => { setStats(getStats()) }, [items])
+
+  // C-03: getStats is async — must await; also normalize snake_case → camelCase
+  useEffect(() => {
+    getStats().then(data => {
+      if (!data) return
+      setStats({
+        total:        data.total        ?? 0,
+        today:        data.today        ?? 0,
+        byType:       data.by_type      ?? data.byType      ?? {},
+        mostSearched: data.top_drugs?.[0]?.drug_name ?? data.mostSearched ?? null,
+      })
+    }).catch(() => setStats(null))
+  }, [items])
+
+  // B-01: clamp page to valid range when total changes (e.g. filter reduces results)
+  useEffect(() => {
+    setPage(p => {
+      if (total === 0) return 0
+      const maxPage = Math.ceil(total / LIMIT) - 1
+      return p > maxPage ? maxPage : p
+    })
+  }, [total])
 
   function handleClear() {
     if (!window.confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return
@@ -100,6 +121,7 @@ export default function ConsultationHistory() {
             placeholder="Buscar fármaco, consulta..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(0) }}
+            maxLength={100}
           />
         </div>
         <select

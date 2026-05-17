@@ -9,6 +9,7 @@ export default function Header({ activeTab, onTabChange, darkMode, onToggleDark,
   const [menuOpen,     setMenuOpen]     = useState(false)
   const [showKeyInput, setShowKeyInput] = useState(false)
   const [keyDraft,     setKeyDraft]     = useState(apiKey || '')
+  const [loginHover,   setLoginHover]   = useState(false) // M-07: replaces imperative DOM style mutation
 
   const isAdmin = user?.role === 'admin'
   const visibleTabs = user
@@ -74,7 +75,7 @@ export default function Header({ activeTab, onTabChange, darkMode, onToggleDark,
                 padding: '7px 15px',
                 borderRadius: 20,
                 border: '1px solid rgba(255,255,255,.35)',
-                background: 'rgba(255,255,255,.1)',
+                background: loginHover ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.1)',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: '.82rem',
@@ -83,8 +84,8 @@ export default function Header({ activeTab, onTabChange, darkMode, onToggleDark,
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.2)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.1)'}
+              onMouseEnter={() => setLoginHover(true)}
+              onMouseLeave={() => setLoginHover(false)}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 strokeLinecap="round" strokeLinejoin="round" width="15" height="15">

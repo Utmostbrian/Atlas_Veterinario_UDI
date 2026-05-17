@@ -45,6 +45,7 @@ export default function Glossary() {
           placeholder="Buscar término..."
           value={query}
           onChange={e => { setQuery(e.target.value); setLetter(null) }}
+          maxLength={80}
           style={{ paddingLeft: 40 }}
         />
       </div>

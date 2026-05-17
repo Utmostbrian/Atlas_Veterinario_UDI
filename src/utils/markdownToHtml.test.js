@@ -49,4 +49,28 @@ describe('markdownToHtml', () => {
     // Si la IA devuelve <b>texto</b> no debe renderizarse como HTML
     expect(markdownToHtml('<b>hola</b>')).toBe('&lt;b&gt;hola&lt;/b&gt;')
   })
+
+  it('convierte lista numerada en <ol><li>', () => {
+    const result = markdownToHtml('1. primer paso\n2. segundo paso\n3. tercer paso')
+    expect(result).toContain('<li>primer paso</li>')
+    expect(result).toContain('<li>segundo paso</li>')
+    expect(result).toContain('<li>tercer paso</li>')
+    expect(result).toContain('<ol>')
+  })
+
+  it('maneja lista mixta de viñetas y texto', () => {
+    const result = markdownToHtml('* elemento con asterisco\n- elemento con guión')
+    expect(result).toContain('<li>elemento con asterisco</li>')
+    expect(result).toContain('<li>elemento con guión</li>')
+  })
+
+  it('convierte saltos de línea dobles en separadores visuales', () => {
+    const result = markdownToHtml('Párrafo uno.\n\nPárrafo dos.')
+    expect(result).toBe('Párrafo uno.<br><br>Párrafo dos.')
+  })
+
+  it('convierte saltos de línea simples en <br>', () => {
+    const result = markdownToHtml('Línea uno.\nLínea dos.')
+    expect(result).toBe('Línea uno.<br>Línea dos.')
+  })
 })

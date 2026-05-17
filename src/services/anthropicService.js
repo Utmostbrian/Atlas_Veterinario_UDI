@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '../lib/supabase'
+import { cleanEnv } from '../lib/envUtils'
 
 const MODELS     = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
 const MAX_TOKENS = 1500
@@ -42,7 +43,7 @@ async function getSessionToken() {
 
 // ── URL del proxy (Edge Function) ────────────────────────────────────────────
 function getProxyUrl() {
-  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').replace(/^﻿/, '').trim()
+  const supabaseUrl = cleanEnv(import.meta.env.VITE_SUPABASE_URL)
   if (supabaseUrl) return `${supabaseUrl}/functions/v1/anthropic-proxy`
   return null
 }

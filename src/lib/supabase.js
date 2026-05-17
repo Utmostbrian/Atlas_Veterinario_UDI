@@ -1,8 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-
-function cleanEnv(val) {
-  return (val ?? '').replace(/^﻿/, '').trim()
-}
+import { cleanEnv } from './envUtils'
 
 const SUPABASE_URL      = cleanEnv(import.meta.env.VITE_SUPABASE_URL)
 const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY)

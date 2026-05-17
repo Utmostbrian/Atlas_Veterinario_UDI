@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { cleanEnv } from '../lib/envUtils'
 
 const AuthContext = createContext(null)
 
@@ -15,9 +16,8 @@ function friendlyError(message) {
   return AUTH_ERROR_MESSAGES[message] ?? message
 }
 
-const BOM = '﻿'
-const ANON_KEY_CLEAN   = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').replace(new RegExp('^' + BOM), '').trim()
-const PROXY_BASE_CLEAN = (import.meta.env.VITE_SUPABASE_URL      ?? '').replace(new RegExp('^' + BOM), '').trim()
+const ANON_KEY_CLEAN   = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY)
+const PROXY_BASE_CLEAN = cleanEnv(import.meta.env.VITE_SUPABASE_URL)
 
 function withTimeout(promise, ms, msg = 'Tiempo de espera agotado. Intenta de nuevo.') {
   const timer = new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
