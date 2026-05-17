@@ -64,8 +64,8 @@ export async function logEvent(eventType, payload) {
 
   // 2. Persistir en Supabase de forma asíncrona (patrón post-response, DoD 3.2)
   //    No await: nunca bloquea al usuario (equivalente a setImmediate del DoD)
-  persistToSupabase(eventId, eventType, payload).catch(() => {
-    // Fallo silencioso: el usuario ya tiene el resultado, el log queda en caché local
+  persistToSupabase(eventId, eventType, payload).catch((err) => {
+    console.error('[audit] persistToSupabase failed:', err?.message ?? err)
   })
 
   return localEntry
@@ -111,8 +111,8 @@ export async function getHistory({ limit = 50, offset = 0, eventType, search } =
 
     const total = data?.[0]?.total_count ?? 0
     return { total, items: (data ?? []).map(fromDb) }
-  } catch {
-    // Fallback a localStorage
+  } catch (err) {
+    console.warn('[audit] getHistory Supabase failed, using localStorage:', err?.message ?? err)
     let log = readLocalLog()
     if (eventType) log = log.filter(e => e.eventType === eventType)
     if (search) {
@@ -135,7 +135,10 @@ async function checkIsAdmin(userId) {
       .eq('id', userId)
       .single()
     return data?.role === 'admin'
-  } catch { return false }
+  } catch (err) {
+    console.warn('[audit] checkIsAdmin failed:', err?.message ?? err)
+    return false
+  }
 }
 
 // ── Estadísticas (KPIs para el dashboard) ───────────────────────────────────
@@ -144,8 +147,8 @@ export async function getStats({ days = 30 } = {}) {
     const { data, error } = await supabase.rpc('sp_get_dashboard_kpis', { p_days: days })
     if (error) throw error
     return data
-  } catch {
-    // Fallback a localStorage
+  } catch (err) {
+    console.warn('[audit] getStats Supabase failed, using localStorage:', err?.message ?? err)
     const log = readLocalLog()
     const today = new Date().toDateString()
     return {

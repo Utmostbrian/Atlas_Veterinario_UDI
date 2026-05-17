@@ -4,6 +4,7 @@ import { useChat } from '../../hooks/useChat'
 import styles from './AIChatFloating.module.css'
 import { SparklesIcon } from '../../Icons/Icons'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
+import { markdownToHtml } from '../../utils/markdownToHtml'
 
 const QUICK_PROMPTS = [
   '¿Cuáles son los antibióticos más seguros para gatos?',
@@ -371,17 +372,3 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   )
 }
 
-function markdownToHtml(md) {
-  if (!md) return ''
-  return md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, m => `<ul>${m.replace(/\n/g, '')}</ul>`)
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>')
-}

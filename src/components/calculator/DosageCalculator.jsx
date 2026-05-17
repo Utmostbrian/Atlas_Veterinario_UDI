@@ -4,6 +4,7 @@ import { validateDose, fetchDrugProfileWithAI } from '../../services/anthropicSe
 import { logDoseCalculation, logDoseValidation } from '../../services/auditService'
 import { CalculatorIcon, SparklesIcon } from '../../Icons/Icons'
 import { DRUG_NAMES } from '../../data/drugsDatabase'
+import { markdownToHtml } from '../../utils/markdownToHtml'
 
 export default function DosageCalculator({ onLoginRequired }) {
   const calc = useDrugCalculator()
@@ -609,17 +610,3 @@ export default function DosageCalculator({ onLoginRequired }) {
   )
 }
 
-function markdownToHtml(md) {
-  if (!md) return ''
-  return md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, (m) => `<ul>${m.replace(/\n/g, '')}</ul>`)
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>')
-}
