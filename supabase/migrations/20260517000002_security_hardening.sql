@@ -98,7 +98,10 @@ $$;
 -- A-01: sp_get_audit_history valida el rol server-side.
 -- El parámetro p_admin_view es ignorado (queda por compatibilidad)
 -- y reemplazado por una consulta al perfil del caller.
+-- DROP previo porque cambia el return type (agregamos actor_name).
 -- ------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.sp_get_audit_history(UUID, INT, INT, TEXT, TEXT, BOOLEAN);
+
 CREATE OR REPLACE FUNCTION public.sp_get_audit_history(
   p_user_id    UUID    DEFAULT NULL,
   p_limit      INT     DEFAULT 50,
@@ -180,8 +183,12 @@ END;
 $$;
 
 -- ------------------------------------------------------------
--- A-01: sp_get_prescriptions con el mismo patrón
+-- A-01: sp_get_prescriptions con el mismo patrón.
+-- Mismo fix: DROP previo aunque el return type no cambie esta vez
+-- (por consistencia y para tolerar futuras evoluciones).
 -- ------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.sp_get_prescriptions(UUID, BOOLEAN, INT, INT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.sp_get_prescriptions(
   p_user_id    UUID,
   p_admin_view BOOLEAN DEFAULT FALSE,  -- ignorado, derivado del rol del caller
@@ -258,8 +265,11 @@ END;
 $$;
 
 -- ------------------------------------------------------------
--- A-04: sp_save_prescription acepta actor_name
+-- A-04: sp_save_prescription acepta actor_name.
+-- DROP previo porque la firma cambia (nuevo parámetro p_actor_name).
 -- ------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.sp_save_prescription(UUID, TEXT, TEXT, TEXT, NUMERIC, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, TEXT, UUID);
+
 CREATE OR REPLACE FUNCTION public.sp_save_prescription(
   p_user_id        UUID,
   p_patient_name   TEXT,
