@@ -34,7 +34,7 @@ export function useChat() {
       const placeholderId = Date.now() + Math.random()
       setMessages((prev) => [
         ...prev,
-        { id: placeholderId, role: 'assistant', content: '', streaming: true },
+        { id: placeholderId, role: 'assistant', content: '', streaming: true, timestamp: new Date().toISOString() },
       ])
 
       const history = messages.map((m) => ({

@@ -120,7 +120,7 @@ export default function DosageCalculator({ onLoginRequired }) {
     <div className="wrap">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CalculatorIcon size={20} style={{ color: 'var(--blue)' }} /> Calculadora de Dosis
+          <CalculatorIcon size={24} style={{ color: 'var(--blue)' }} /> Calculadora de Dosis
         </span>
         <span className="scnt">
           Base de datos clínica · Fármacos no registrados: la IA carga el perfil clínico

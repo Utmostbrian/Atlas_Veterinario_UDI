@@ -520,10 +520,11 @@
 /* ─── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .chatWindow {
-    bottom: 0; right: 0;
-    width: 100vw; height: 85dvh;
-    border-radius: var(--r) var(--r) 0 0;
+    top: 0; bottom: 0; right: 0;
+    width: 100vw; height: 100dvh;
+    border-radius: 0;
+    z-index: 9000;
   }
   .fab { bottom: 20px; right: 20px; }
-  .backdrop { display: block; }
+  .backdrop { display: none; }
 }

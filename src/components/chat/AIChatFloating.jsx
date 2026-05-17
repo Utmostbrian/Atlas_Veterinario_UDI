@@ -31,7 +31,7 @@ function Message({ msg }) {
     <div className={`${styles.msgRow} ${isUser ? styles.userRow : styles.botRow}`}>
       {!isUser && (
         <div className={styles.avatar}>
-          <img src={chatIAIcon} alt="IA" style={{ width: 54, height: 54, objectFit: 'contain' }} />
+          <img src={chatIAIcon} alt="IA" style={{ width: 54, height: 54, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
         </div>
       )}
 
