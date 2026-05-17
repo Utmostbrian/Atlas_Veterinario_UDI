@@ -7,9 +7,13 @@
  *
  * Idempotencia: cada evento lleva un event_id único para evitar duplicados
  * en reintentos (equivalente al patrón del sp_InsertAuditLog del DoD).
+ *
+ * A-04: cada log lleva actor_name (el estudiante real detrás de la cuenta compartida)
+ * para que la auditoría sea trazable a una persona aunque el user_id sea el mismo.
  */
 
 import { supabase } from '../lib/supabase'
+import { uid } from '../lib/uid'
 
 const STORAGE_KEY = 'vet_atlas_audit_log'
 
@@ -27,7 +31,15 @@ function readLocalLog() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
 }
 function writeLocalLog(entries) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 500)))
+  // M-04: localStorage puede lanzar QuotaExceededError en Safari privado o
+  // cuando el bucket está lleno. La auditoría nunca debe romper la app.
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 500)))
+  } catch (err) {
+    console.warn('[audit] localStorage write failed (quota?):', err?.message ?? err)
+    // Intento mitigado: dejar solo los 100 más recientes
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 100))) } catch { /* dar por perdido */ }
+  }
 }
 
 // ── Normalizar filas de Supabase al formato del componente ──────────────────
@@ -44,12 +56,18 @@ function fromDb(row) {
     route:          row.route     ?? null,
     query:          row.query_text ?? null,
     summary:        row.summary   ?? null,
+    actorName:      row.actor_name ?? null,
   }
+}
+
+// ── Helper: nombre del actor (estudiante con cuenta compartida) ─────────────
+function getActorName() {
+  try { return localStorage.getItem('vet_student_name') || null } catch { return null }
 }
 
 // ── Core: registrar evento ───────────────────────────────────────────────────
 export async function logEvent(eventType, payload) {
-  const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  const eventId = `${Date.now()}-${uid().slice(0, 8)}`
 
   // 1. Guardar en localStorage inmediatamente (experiencia sin latencia)
   const localEntry = {
@@ -87,16 +105,16 @@ async function persistToSupabase(eventId, eventType, payload) {
     p_query_text:      payload.query     ?? null,
     p_summary:         payload.summary?.slice(0, 200) ?? null,
     p_metadata:        {},
+    p_actor_name:      getActorName(),
   })
 }
 
 // ── Consultar historial ──────────────────────────────────────────────────────
+// A-01: el SP valida el rol server-side; ya no enviamos p_admin_view bool desde el cliente.
 export async function getHistory({ limit = 50, offset = 0, eventType, search } = {}) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('No hay sesión activa')
-
-    const isAdmin = await checkIsAdmin(user.id)
 
     const { data, error } = await supabase.rpc('sp_get_audit_history', {
       p_user_id:    user.id,
@@ -104,7 +122,6 @@ export async function getHistory({ limit = 50, offset = 0, eventType, search } =
       p_offset:     offset,
       p_event_type: eventType ?? null,
       p_search:     search    ?? null,
-      p_admin_view: isAdmin,
     })
 
     if (error) throw error
@@ -124,20 +141,6 @@ export async function getHistory({ limit = 50, offset = 0, eventType, search } =
       )
     }
     return { total: log.length, items: log.slice(offset, offset + limit) }
-  }
-}
-
-async function checkIsAdmin(userId) {
-  try {
-    const { data } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
-    return data?.role === 'admin'
-  } catch (err) {
-    console.warn('[audit] checkIsAdmin failed:', err?.message ?? err)
-    return false
   }
 }
 
@@ -180,7 +183,7 @@ export async function exportToCsv() {
   const { items: log } = await getHistory({ limit: 10_000 })
   if (!log.length) return
 
-  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Dosis / Consulta']
+  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Actor', 'Dosis / Consulta']
   const rows = log.map(e => [
     e.id,
     new Date(e.timestamp).toLocaleString('es-BO'),
@@ -188,6 +191,7 @@ export async function exportToCsv() {
     e.drugName  ?? '',
     e.species   ?? '',
     e.weight    ? `${e.weight} kg` : '',
+    e.actorName ?? '',
     e.doseCalculated
       ? `${e.doseCalculated} mg (${e.volMl ?? ''} mL)`
       : (e.query?.slice(0, 80) ?? ''),

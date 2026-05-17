@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useChat } from '../../hooks/useChat'
 import styles from './AIChatFloating.module.css'
-import { SparklesIcon } from '../../Icons/Icons'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
 

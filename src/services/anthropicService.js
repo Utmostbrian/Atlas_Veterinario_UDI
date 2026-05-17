@@ -93,8 +93,8 @@ async function fetchViaProxy(body, signal) {
 
 // ── Fallback: modo dev con llamada directa ───────────────────────────────────
 async function fetchDirect(body, signal) {
-  const rawKey = import.meta.env.VITE_ANTHROPIC_API_KEY || localStorage.getItem('vet_atlas_api_key') || ''
-  const apiKey = rawKey.replace(/^﻿/, '').trim()
+  const rawKey = (import.meta.env.VITE_ANTHROPIC_API_KEY || localStorage.getItem('vet_atlas_api_key') || '').replace(/^﻿/, '').trim()
+  const apiKey = rawKey
   if (!apiKey) throw new Error('API Key no configurada. Configura VITE_ANTHROPIC_API_KEY para desarrollo.')
 
   let lastError

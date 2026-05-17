@@ -3,9 +3,16 @@
  *
  * Todas las operaciones van a Supabase via Stored Procedures (funciones PG).
  * El trigger de auditoría en la DB registra automáticamente cada receta guardada.
+ *
+ * A-01: el SP sp_get_prescriptions valida el rol server-side ahora.
+ * B-03: ya no hacemos round-trip a profiles para resolver el rol.
  */
 
 import { supabase } from '../lib/supabase'
+
+function getActorName() {
+  try { return localStorage.getItem('vet_student_name') || null } catch { return null }
+}
 
 // ── Guardar receta en Supabase ────────────────────────────────────────────────
 export async function savePrescription({ patient, drugs, diagnosis, vetName, vetLicense }) {
@@ -28,6 +35,7 @@ export async function savePrescription({ patient, drugs, diagnosis, vetName, vet
     p_drugs:          validDrugs,
     p_vet_name:       vetName         || null,
     p_vet_license:    vetLicense      || null,
+    p_actor_name:     getActorName(),
   })
 
   if (error) {
@@ -46,11 +54,9 @@ export async function getPrescriptions({ limit = 20, offset = 0, species, search
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No hay sesión activa.')
 
-  const isAdmin = await getUserRole(user.id) === 'admin'
-
+  // A-01: el SP determina el rol server-side; ya no enviamos isAdmin desde el cliente.
   const { data, error } = await supabase.rpc('sp_get_prescriptions', {
     p_user_id:    user.id,
-    p_admin_view: isAdmin,
     p_limit:      limit,
     p_offset:     offset,
     p_species:    species ?? null,
@@ -68,9 +74,4 @@ export async function getPrescriptionStats(days = 30) {
   const { data, error } = await supabase.rpc('sp_get_prescription_stats', { p_days: days })
   if (error) throw new Error(error.message)
   return data
-}
-
-async function getUserRole(userId) {
-  const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
-  return data?.role ?? 'student'
 }

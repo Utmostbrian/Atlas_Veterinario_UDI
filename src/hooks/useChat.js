@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
+import { useState, useRef, useCallback, useLayoutEffect } from 'react'
 import { sendMessage } from '../services/anthropicService'
 import { logAiConsultation } from '../services/auditService'
+import { uid } from '../lib/uid'
 
 const MAX_HISTORY = 20
 
@@ -16,7 +17,7 @@ export function useChat() {
 
   const addMessage = useCallback((role, content, imageUrl = null) => {
     const msg = {
-      id:        crypto.randomUUID(), // F-07: collision-free IDs
+      id:        uid(), // F-07: collision-free IDs
       role,
       content,
       imageUrl,
@@ -45,7 +46,7 @@ export function useChat() {
 
       addMessage('user', text, imageData?.previewUrl)
 
-      const placeholderId = crypto.randomUUID() // F-07
+      const placeholderId = uid() // F-07
       setMessages((prev) => [
         ...prev,
         { id: placeholderId, role: 'assistant', content: '', streaming: true, timestamp: new Date().toISOString() },

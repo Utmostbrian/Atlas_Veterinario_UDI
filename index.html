@@ -4,23 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!--
-      Content Security Policy — mitiga XSS (S-07).
-      - default-src 'self': solo recursos del mismo origen por defecto.
-      - script-src 'self' 'unsafe-inline': necesario para Vite en dev; eliminar unsafe-inline en producción con nonces.
-      - connect-src: permite llamadas a la API de Anthropic y Google Fonts.
-      - font-src / style-src: Google Fonts y cdnjs para Font Awesome.
+      Content Security Policy: la fuente de verdad vive en vercel.json (header HTTP),
+      lo cual permite parametrizar el host por entorno y es preferible al meta-tag.
+      En desarrollo local, Vite no aplica CSP estricta — la del header se activa solo en producción.
     -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self';
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
-      font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:;
-      img-src 'self' data: blob:;
-      connect-src 'self' https://srqvesvyvylbrtxbztdx.supabase.co;
-      frame-ancestors 'none';
-      base-uri 'self';
-      form-action 'self';
-    " />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>Atlas Farmacológico Veterinario — UDI</title>
     <meta name="description" content="Atlas Farmacológico Veterinario con IA · Facultad de Veterinaria UDI" />

@@ -22,10 +22,13 @@ export default function Prescription() {
   const [saving,    setSaving]    = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // 'saved' | 'error' | null
 
-  // Pre-llenar datos del veterinario desde el perfil de usuario
+  // Pre-llenar datos del veterinario desde el perfil de usuario.
+  // Sólo dependemos de user — vetName/vetReg quedan fuera intencionalmente para
+  // evitar re-disparar cuando el usuario edite los campos manualmente.
   useEffect(() => {
     if (user?.name && !vetName)          setVetName(user.name)
     if (user?.licenseNumber && !vetReg)  setVetReg(user.licenseNumber)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   // Limpia el status de guardado después de 4 segundos
@@ -115,6 +118,9 @@ export default function Prescription() {
     const el = previewRef.current
     if (!el) return
 
+    // M-08: document.write está deprecated y bloqueado bajo COEP/COOP estrictos.
+    // Usamos blob URL como fuente del popup; si el browser lo bloquea, abrimos
+    // como link (fallback A-03). Sin document.write en ningún caso.
     const printHtml = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -134,30 +140,28 @@ export default function Prescription() {
 <body>
   ${el.innerHTML}
   <script>
-    window.onload = function() {
+    window.addEventListener('load', function() {
       window.print();
       setTimeout(function() { window.close(); }, 1000);
-    };
+    });
   </script>
 </body>
 </html>`
 
-    const win = window.open('', '_blank', 'width=860,height=900')
-    if (!win) {
-      // A-03: popup blocked — open via blob URL so the prescription isn't lost
-      const blob = new Blob([printHtml], { type: 'text/html' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href   = url
-      a.target = '_blank'
-      a.rel    = 'noopener noreferrer'
-      a.click()
-      setTimeout(() => URL.revokeObjectURL(url), 30_000)
-      return
-    }
+    const blob = new Blob([printHtml], { type: 'text/html' })
+    const url  = URL.createObjectURL(blob)
 
-    win.document.write(printHtml)
-    win.document.close()
+    const win = window.open(url, '_blank', 'width=860,height=900,noopener,noreferrer')
+    if (!win) {
+      // Popup blocked → fallback como link (mantiene la receta accesible)
+      const a   = document.createElement('a')
+      a.href    = url
+      a.target  = '_blank'
+      a.rel     = 'noopener noreferrer'
+      a.click()
+    }
+    // Limpieza diferida: el navegador necesita el blob mientras imprime
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
   const today = new Date().toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' })

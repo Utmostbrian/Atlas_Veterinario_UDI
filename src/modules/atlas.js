@@ -31,7 +31,7 @@ Si el término no corresponde a un fármaco veterinario válido, responde exacta
 }
 
 function safeParseJSON(str) {
-  try { return JSON.parse(str) } catch {}
+  try { return JSON.parse(str) } catch { /* fall through a jsonrepair */ }
   return JSON.parse(jsonrepair(str))
 }
 

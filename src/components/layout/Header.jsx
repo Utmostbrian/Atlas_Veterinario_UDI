@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import ProfileMenu, { Avatar } from './ProfileMenu'
 import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
 
-export default function Header({ activeTab, onTabChange, darkMode, onToggleDark, apiKey, onApiKeyChange, onOpenLogin }) {
+export default function Header({ onTabChange, darkMode, onToggleDark, apiKey, onApiKeyChange, onOpenLogin }) {
   const { user, logout } = useAuth()
   const [menuOpen,     setMenuOpen]     = useState(false)
   const [showKeyInput, setShowKeyInput] = useState(false)

@@ -83,7 +83,10 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadProfile(authUser) {
-    // Bug 3 fix: deduplicar llamadas concurrentes (getSession + onAuthStateChange)
+    // A-05: lock atómico ANTES de cualquier await. Antes la condición de carrera
+    // entre getSession() y onAuthStateChange() permitía que ambos pasaran el if
+    // antes de que cualquiera marcara el flag. Ahora el segundo retorna inmediato
+    // sin tocar loading, y el primero garantiza el setLoading(false) en finally.
     if (profileLock.current) return
     profileLock.current = true
 
@@ -228,8 +231,11 @@ export function AuthProvider({ children }) {
     }
   }, [user?.id])
 
+  // B-03: helper para que servicios eviten round-trip a profiles
+  const isAdmin = user?.role === 'admin'
+
   return (
-    <AuthContext.Provider value={{ user, login, loginStudent, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, isAdmin, login, loginStudent, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   )

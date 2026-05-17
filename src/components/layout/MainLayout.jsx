@@ -16,7 +16,6 @@ export default function MainLayout({
   return (
     <>
       <Header
-        activeTab={activeTab}
         onTabChange={onTabChange}
         darkMode={darkMode}
         onToggleDark={onToggleDark}
