@@ -9,7 +9,10 @@ export { ALL_SPECIES, ALL_ROUTES, UNITS }
 
 /**
  * Convierte la concentración ingresada a mg/mL (o UI/mL) reales.
- *   1% = 10 mg/mL  |  1 g/100mL = 10 mg/mL  |  mg/mL y UI/mL: sin conversión
+ * Reglas: 1% = 10 mg/mL · 1 g/100mL = 10 mg/mL · mg/mL y UI/mL: sin conversión.
+ * @param {string} value Valor numérico como string (puede ser decimal)
+ * @param {'mg/mL'|'UI/mL'|'%'|'g/100mL'} unit Unidad seleccionada por el usuario
+ * @returns {number|null} Concentración efectiva en mg/mL, o null si el input es inválido
  */
 export function toEffectiveConc(value, unit) {
   const n = parseFloat(value)

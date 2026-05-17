@@ -7,4 +7,9 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: mode !== 'production',
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+  },
 }))

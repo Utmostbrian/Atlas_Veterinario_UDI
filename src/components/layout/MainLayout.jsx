@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import Header from './Header'
 import TabBar  from './TabBar'
 
@@ -11,6 +12,7 @@ export default function MainLayout({
   onOpenLogin,
   children,
 }) {
+  const navigate = useNavigate()
   return (
     <>
       <Header
@@ -45,18 +47,18 @@ export default function MainLayout({
           <div className="fcol">
             <h4>Secciones</h4>
             <ul>
-              <li><button onClick={() => onTabChange('atlas')} className="footer-link">Atlas Farmacológico</button></li>
-              <li><button onClick={() => onTabChange('calc')} className="footer-link">Calculadora de Dosis</button></li>
-              <li><button onClick={() => onTabChange('inter')} className="footer-link">Interacciones</button></li>
-              <li><button onClick={() => onTabChange('enf')} className="footer-link">Protocolos</button></li>
-              <li><button onClick={() => onTabChange('glos')} className="footer-link">Glosario</button></li>
+              <li><button onClick={() => navigate('/atlas')} className="footer-link">Atlas Farmacológico</button></li>
+              <li><button onClick={() => navigate('/calc')} className="footer-link">Calculadora de Dosis</button></li>
+              <li><button onClick={() => navigate('/inter')} className="footer-link">Interacciones</button></li>
+              <li><button onClick={() => navigate('/enf')} className="footer-link">Protocolos</button></li>
+              <li><button onClick={() => navigate('/glos')} className="footer-link">Glosario</button></li>
             </ul>
           </div>
           <div className="fcol">
             <h4>Información</h4>
             <ul>
-              <li><button onClick={() => onTabChange('receta')} className="footer-link">Generador de Recetas</button></li>
-              <li><button onClick={() => onTabChange('audit')} className="footer-link">Historial de Consultas</button></li>
+              <li><button onClick={() => navigate('/receta')} className="footer-link">Generador de Recetas</button></li>
+              <li><button onClick={() => navigate('/audit')} className="footer-link">Historial de Consultas</button></li>
             </ul>
             <h4 style={{ marginTop: 14 }}>Aviso Legal</h4>
             <p style={{ fontSize: '.73rem', lineHeight: 1.5 }}>

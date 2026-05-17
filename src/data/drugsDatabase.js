@@ -297,3 +297,16 @@ export const DRUGS_DATABASE = {
 
 /** Lista ordenada de todos los nombres de fármacos */
 export const DRUG_NAMES = Object.keys(DRUGS_DATABASE).sort()
+
+// En modo desarrollo: avisa si un fármaco de la calculadora no existe en el Atlas visual.
+// Esto detecta desincronías entre drugs.js y drugsDatabase.js.
+if (import.meta.env?.DEV) {
+  import('./drugs').then(({ DRUGS }) => {
+    const atlasNames = new Set(DRUGS.map(d => d.name.toLowerCase()))
+    for (const name of Object.keys(DRUGS_DATABASE)) {
+      if (!atlasNames.has(name.toLowerCase())) {
+        console.warn(`[drugsDatabase] "${name}" está en la calculadora pero no en el Atlas visual (drugs.js).`)
+      }
+    }
+  })
+}

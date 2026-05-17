@@ -168,6 +168,12 @@ function buildMessages(history, userText, imageData) {
 }
 
 // ── API pública ───────────────────────────────────────────────────────────────
+
+/**
+ * Envía un mensaje al asistente IA a través del proxy seguro de Supabase.
+ * @param {{ history: Array<{role:string,content:string}>, userText: string, imageData?: {base64:string,mediaType:string}, onChunk?: (chunk:string, full:string)=>void, signal?: AbortSignal }} params
+ * @returns {Promise<string>} Texto completo de la respuesta del asistente
+ */
 export async function sendMessage({ history, userText, imageData, onChunk, signal }) {
   const messages = buildMessages(history, userText, imageData)
   const body     = { max_tokens: MAX_TOKENS, system: SYSTEM_PROMPT, messages, stream: !!onChunk }
@@ -177,6 +183,11 @@ export async function sendMessage({ history, userText, imageData, onChunk, signa
   return data.content?.[0]?.text ?? ''
 }
 
+/**
+ * Valida una dosis calculada usando IA y devuelve evaluación clínica.
+ * @param {{ drug:string, species:string, weight:number, dose:number, unit:string, route:string }} params
+ * @returns {Promise<string>} Evaluación: [SEGURA] / [REVISAR] / [PELIGROSA] con justificación
+ */
 export async function validateDose({ drug, species, weight, dose, unit, route }) {
   const prompt = `Valida la siguiente dosis calculada:
 - Fármaco: ${drug}

@@ -1,9 +1,11 @@
 import { useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TABS } from '../../data/tabs'
 import { useAuth } from '../../context/AuthContext'
 
 export default function TabBar({ activeTab, onTabChange }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const ref = useRef(null)
 
   const visibleTabs = user
@@ -12,6 +14,7 @@ export default function TabBar({ activeTab, onTabChange }) {
 
   function handleClick(id) {
     onTabChange(id)
+    navigate(`/${id}`)
     const el = ref.current?.querySelector(`[data-tab="${id}"]`)
     el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
   }

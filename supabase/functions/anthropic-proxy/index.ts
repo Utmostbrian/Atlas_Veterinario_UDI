@@ -9,7 +9,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+// In-memory fallback (used only when DB rate-limit check fails)
+const rateLimitMap  = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT_MAX    = 10
 const RATE_LIMIT_WINDOW = 60_000
 
@@ -70,8 +71,15 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Token inválido o expirado.', code: 'INVALID_TOKEN' }, 401)
   }
 
-  // Rate limiting
-  if (!checkRateLimit(user.id)) {
+  // Rate limiting persistente via PostgreSQL (sobrevive reinicios del worker)
+  const windowStart = new Date(Math.floor(Date.now() / 60_000) * 60_000).toISOString()
+  const { data: allowed, error: rlError } = await supabase.rpc('check_and_increment_rate_limit', {
+    p_user_id:      user.id,
+    p_window_start: windowStart,
+    p_max_requests: RATE_LIMIT_MAX,
+  })
+  const isAllowed = rlError ? checkRateLimit(user.id) : allowed === true
+  if (!isAllowed) {
     return json({ error: 'Límite de solicitudes alcanzado. Espera un minuto.', code: 'RATE_LIMITED' }, 429)
   }
 

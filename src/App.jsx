@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import MainLayout from './components/layout/MainLayout'
 import AIChatFloating from './components/chat/AIChatFloating'
@@ -37,7 +38,10 @@ function AuthLoader() {
 
 function AppContent() {
   const { user, loading } = useAuth()
-  const [activeTab, setActiveTab] = useState('atlas')
+  const navigate   = useNavigate()
+  const location   = useLocation()
+  const activeTab  = location.pathname.slice(1) || 'atlas'
+  const setActiveTab = (tab) => navigate(`/${tab}`)
   const [chatOpen,  setChatOpen]  = useState(false)
   const [apiKey,    setApiKey]    = useLocalStorage('vet_atlas_api_key', '')
   const [darkMode,  setDarkMode]  = useLocalStorage('vet_dark_mode', false)
@@ -54,8 +58,8 @@ function AppContent() {
 
   // Redirige al estudiante si queda en un tab restringido
   useEffect(() => {
-    if (user?.role === 'student' && activeTab === 'audit') setActiveTab('atlas')
-  }, [user, activeTab])
+    if (user?.role === 'student' && activeTab === 'audit') navigate('/atlas')
+  }, [user, activeTab, navigate])
 
   // Mientras Supabase restaura la sesión, mostrar pantalla de carga
   if (loading) return <AuthLoader />
