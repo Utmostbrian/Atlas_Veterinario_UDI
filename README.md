@@ -112,4 +112,4 @@ Las dosis son **orientativas**. No reemplazan el juicio clínico profesional ni 
 
 ---
 
-*Facultad de Veterinaria — Universidad UDI, Bolivia*
+*Escuela de Informatica y Telecomunicaciones — Universidad UDI, Bolivia*
