@@ -138,11 +138,11 @@ function AppContent() {
         </button>
       )}
 
-      {/* Chat IA — siempre visible y abre libremente; login solo al enviar o adjuntar */}
+      {/* Chat IA — FAB visible para todos; gate screen si no hay sesión activa */}
       <AIChatFloating
         open={chatOpen}
         onToggle={() => setChatOpen(v => !v)}
-        apiKey={user ? 'proxy' : 'direct'}
+        onOpenLogin={openLogin}
       />
 
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}

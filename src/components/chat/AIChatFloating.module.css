@@ -454,6 +454,69 @@
   cursor: pointer;
 }
 
+/* ─── Auth Gate ──────────────────────────────────────────────────── */
+.authGate {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  gap: 13px;
+  background: var(--cream);
+}
+
+.authGateLock {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(10,18,32,.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue);
+  margin-bottom: 2px;
+}
+
+.authGate h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+
+.authGate p {
+  font-size: .8rem;
+  color: var(--soft);
+  line-height: 1.6;
+  max-width: 260px;
+  margin: 0;
+}
+
+.authGateBtn {
+  margin-top: 4px;
+  padding: 10px 30px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--rs);
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.authGateBtn:hover { opacity: .88; }
+
+.authGateHint {
+  font-size: .7rem;
+  color: var(--gray);
+  max-width: 240px;
+  line-height: 1.5;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .chatWindow {
