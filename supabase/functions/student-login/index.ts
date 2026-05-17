@@ -1,7 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// In-memory rate limiting (resets on worker restart, ~2 min on Deno/Supabase Edge)
-// Primary protection: 5 attempts per minute per IP
+// B-01: In-memory rate limiting — resets on Deno worker cold start (scale-to-zero or multi-instance).
+// In a classroom with many simultaneous logins, multiple Deno instances each have their own map,
+// effectively multiplying the real limit by the instance count.
+// For high-concurrency scenarios, replace this with a persistent check via Supabase (same pattern
+// as anthropic-proxy's check_and_increment_rate_limit function).
+// Current protection: 5 attempts per minute per IP, per worker instance.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT_MAX    = 5
 const RATE_LIMIT_WINDOW = 60_000

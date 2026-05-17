@@ -6,13 +6,16 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
-
-// In-memory fallback (used only when DB rate-limit check fails)
-const rateLimitMap  = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_MAX    = 10
+const ANTHROPIC_URL    = 'https://api.anthropic.com/v1/messages'
+const ANTHROPIC_KEY    = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
+const RATE_LIMIT_MAX   = 10
 const RATE_LIMIT_WINDOW = 60_000
+const MAX_HISTORY_TURNS = 20   // B-04: cap conversation history sent to Anthropic
+const MAX_BODY_BYTES    = 2_000_000 // B-03: 2 MB payload limit
+const ANTHROPIC_TIMEOUT = 25_000   // B-05: 25 s upstream timeout
+
+// In-memory fallback (used when DB rate-limit check fails, and for IP-based check)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -27,11 +30,11 @@ function json(data: unknown, status = 200) {
   })
 }
 
-function checkRateLimit(userId: string): boolean {
+function checkRateLimit(key: string): boolean {
   const now   = Date.now()
-  const entry = rateLimitMap.get(userId)
+  const entry = rateLimitMap.get(key)
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW })
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW })
     return true
   }
   if (entry.count >= RATE_LIMIT_MAX) return false
@@ -40,7 +43,6 @@ function checkRateLimit(userId: string): boolean {
 }
 
 Deno.serve(async (req: Request) => {
-  // Preflight CORS — always allow, no JWT needed
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -49,7 +51,18 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Método no permitido' }, 405)
   }
 
-  // Verificar API Key configurada
+  // B-03: Reject oversized payloads before any parsing
+  const contentLength = Number(req.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_BODY_BYTES) {
+    return json({ error: 'Payload demasiado grande.', code: 'PAYLOAD_TOO_LARGE' }, 413)
+  }
+
+  // B-06: IP-based rate limit (protects shared student account; checked before JWT)
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRateLimit(`ip:${clientIp}`)) {
+    return json({ error: 'Límite de IP alcanzado. Espera un minuto.', code: 'RATE_LIMITED' }, 429)
+  }
+
   if (!ANTHROPIC_KEY) {
     return json({ error: 'ANTHROPIC_API_KEY no configurada.', code: 'KEY_MISSING' }, 500)
   }
@@ -83,7 +96,6 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Límite de solicitudes alcanzado. Espera un minuto.', code: 'RATE_LIMITED' }, 429)
   }
 
-  // Validar body
   let body: {
     messages: unknown[]
     system?: string
@@ -107,11 +119,18 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'max_tokens debe estar entre 1 y 8192.', code: 'INVALID_TOKENS' }, 400)
   }
 
-  // Llamar a Anthropic con manejo de errores para garantizar CORS headers siempre
+  // B-04: Truncate history to prevent token overflow on long conversations
+  const messages = body.messages.slice(-MAX_HISTORY_TURNS)
+
+  // B-05: Explicit timeout for the Anthropic upstream call
+  const anthropicController = new AbortController()
+  const timeoutId = setTimeout(() => anthropicController.abort(), ANTHROPIC_TIMEOUT)
+
   let anthropicRes: Response
   try {
     anthropicRes = await fetch(ANTHROPIC_URL, {
       method:  'POST',
+      signal:  anthropicController.signal,
       headers: {
         'Content-Type':      'application/json',
         'x-api-key':         ANTHROPIC_KEY,
@@ -121,16 +140,23 @@ Deno.serve(async (req: Request) => {
         model:      body.model ?? 'claude-sonnet-4-6',
         max_tokens,
         system:     body.system,
-        messages:   body.messages,
+        messages,
         stream:     body.stream ?? false,
       }),
     })
   } catch (e) {
+    const isTimeout = e instanceof Error && e.name === 'AbortError'
     console.error('[anthropic-proxy] Fetch error:', e)
-    return json({ error: 'Error al conectar con Anthropic.', code: 'UPSTREAM_ERROR' }, 502)
+    return json(
+      isTimeout
+        ? { error: 'Tiempo de espera agotado con Anthropic.', code: 'TIMEOUT' }
+        : { error: 'Error al conectar con Anthropic.', code: 'UPSTREAM_ERROR' },
+      isTimeout ? 504 : 502
+    )
+  } finally {
+    clearTimeout(timeoutId)
   }
 
-  // Streaming
   if (body.stream) {
     return new Response(anthropicRes.body, {
       status:  anthropicRes.status,
@@ -143,7 +169,6 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  // Respuesta normal
   const data = await anthropicRes.json().catch(() => ({ error: 'Respuesta inválida de Anthropic.' }))
   return json(data, anthropicRes.status)
 })

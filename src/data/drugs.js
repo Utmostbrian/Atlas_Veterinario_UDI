@@ -282,6 +282,21 @@ export const DRUGS = [
     warnings: 'No usar en hembras no gestantes (hiperplasia endometrial quística en gatas).',
     interactions: 'Antagoniza estrógenos exógenos. Parte de protocolos Ovsynch / Select Synch.',
   },
+  {
+    id: 18,
+    name: 'Trilostano',
+    latin: 'Trilostanum',
+    category: 'HO',
+    routes: 'VO',
+    species: 'Perros',
+    description:
+      'Inhibidor de la síntesis de cortisol (bloquea 3β-HSD). Primera elección en hiperadrenocorticismo canino (Síndrome de Cushing dependiente de pituitaria o adrenal).',
+    dosages: [
+      ['Perro', '2–10 mg/kg c/alimentos', 'VO', 'c/24 h (iniciar con 2 mg/kg)'],
+    ],
+    warnings: 'Monitorear cortisol basal y estimulado (ACTH) a los 10–14 días. Riesgo de hipoadrenocorticismo por sobredosificación. Suspender si el animal presenta letargia, vómitos o diarrea intensa. No usar en insuficiencia hepática o renal grave.',
+    interactions: 'No combinar con ketoconazol ni mitotano. Potencia el efecto de otros inhibidores adrenales.',
+  },
 ]
 
 export const CATEGORIES = Object.entries(CATEGORY_MAP).map(([key, val]) => ({

@@ -27,6 +27,23 @@ function TypingIndicator() {
 
 function Message({ msg }) {
   const isUser = msg.role === 'user'
+
+  // F-10: show typing dots while waiting for the first chunk
+  if (!isUser && msg.streaming && !msg.content) {
+    return (
+      <div className={styles.typingWrap}>
+        <div className={styles.avatar}>
+          <img src={chatIAIcon} alt="IA" style={{ width: 54, height: 54, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+        </div>
+        <div className={styles.typingBubble}>
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`${styles.msgRow} ${isUser ? styles.userRow : styles.botRow}`}>
       {!isUser && (
@@ -127,6 +144,14 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     }
   }
 
+  // F-06: auto-resize textarea up to max-height
+  function handleTextChange(e) {
+    setText(e.target.value)
+    const ta = e.target
+    ta.style.height = 'auto'
+    ta.style.height = `${Math.min(ta.scrollHeight, 110)}px`
+  }
+
   function processImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return
     if (file.size > 5 * 1024 * 1024) { alert('La imagen no puede superar 5 MB.'); return }
@@ -179,16 +204,19 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     canvas.getContext('2d').drawImage(video, 0, 0)
+    // F-05: validate blob before creating File (some mobile browsers return null)
     canvas.toBlob(blob => {
+      if (!blob) { alert('No se pudo capturar la imagen. Intenta de nuevo.'); closeCamera(); return }
       const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' })
       processImageFile(file)
       closeCamera()
     }, 'image/jpeg', 0.92)
   }
 
+  // F-09: auto-send on quick prompt click instead of just filling the textarea
   function handleQuickPrompt(prompt) {
-    setText(prompt)
-    inputRef.current?.focus()
+    if (!isAuthenticated) { onOpenLogin?.(); return }
+    send({ text: prompt, imageData: null })
   }
 
   function handleToggle() {
@@ -336,7 +364,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                     className={styles.textInput}
                     placeholder={imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...'}
                     value={text}
-                    onChange={e => setText(e.target.value)}
+                    onChange={handleTextChange}
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
                     rows={1}
