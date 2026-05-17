@@ -103,7 +103,7 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
         <div>
           {/* Search bar */}
           <div className="sbar">
-            <div className="slbl2">Buscar fármaco</div>
+            <label htmlFor="si" className="slbl2">Buscar fármaco</label>
             <div className="srow">
               <div className="swrap">
                 <SearchIcon size={15} className="sic" style={{ left: 12, color: 'var(--gray)', pointerEvents: 'none' }} />
@@ -113,6 +113,7 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
                   placeholder="Nombre, especie, indicación..."
                   value={query}
                   onChange={e => setQuery(e.target.value)}
+                  maxLength={80}
                 />
               </div>
               {query && (
