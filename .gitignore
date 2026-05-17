@@ -2,6 +2,9 @@ node_modules/
 dist/
 .env
 .env.local
+.env.example
+.env.vercel
+.env.vercel.check
 *.local
 .DS_Store
 
