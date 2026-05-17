@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
@@ -15,24 +15,48 @@ function friendlyError(message) {
   return AUTH_ERROR_MESSAGES[message] ?? message
 }
 
-// BOM-clean env vars resolved once at module load
 const BOM = '﻿'
 const ANON_KEY_CLEAN   = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').replace(new RegExp('^' + BOM), '').trim()
 const PROXY_BASE_CLEAN = (import.meta.env.VITE_SUPABASE_URL      ?? '').replace(new RegExp('^' + BOM), '').trim()
 
-// Wraps a promise with a rejection after `ms` milliseconds
 function withTimeout(promise, ms, msg = 'Tiempo de espera agotado. Intenta de nuevo.') {
   const timer = new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
   return Promise.race([promise, timer])
 }
 
+// ── Caché de rol por sesión de pestaña ───────────────────────────────────────
+// Guarda {userId, role} en sessionStorage — sobrevive recargas de página dentro
+// de la misma pestaña pero se limpia al cerrar el navegador.
+const ROLE_CACHE_KEY = 'vet_role_cache'
+
+function getCachedRole(userId) {
+  try {
+    const raw = sessionStorage.getItem(ROLE_CACHE_KEY)
+    if (!raw) return null
+    const cached = JSON.parse(raw)
+    return cached?.userId === userId ? cached.role : null
+  } catch {
+    return null
+  }
+}
+
+function setCachedRole(userId, role) {
+  try { sessionStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({ userId, role })) } catch { /* ignore */ }
+}
+
+function clearRoleCache() {
+  try { sessionStorage.removeItem(ROLE_CACHE_KEY) } catch { /* ignore */ }
+}
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
+  // Evita que getSession() y onAuthStateChange llamen loadProfile simultáneamente
+  const profileLock = useRef(false)
 
-  // Absolute backstop: never hang on loading longer than 5 s
+  // Backstop absoluto: jamás colgar en loading más de 8 s
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 5000)
+    const timer = setTimeout(() => setLoading(false), 8000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -47,7 +71,11 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) await loadProfile(session.user)
-        else { setUser(null); setLoading(false) }
+        else {
+          clearRoleCache()
+          setUser(null)
+          setLoading(false)
+        }
       }
     )
 
@@ -55,6 +83,10 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadProfile(authUser) {
+    // Bug 3 fix: deduplicar llamadas concurrentes (getSession + onAuthStateChange)
+    if (profileLock.current) return
+    profileLock.current = true
+
     try {
       const query = supabase
         .from('profiles')
@@ -62,28 +94,49 @@ export function AuthProvider({ children }) {
         .eq('id', authUser.id)
         .single()
 
-      const { data: profile } = await withTimeout(query, 6000)
+      // Bug 4 fix: timeout 10 s (era 6 s — insuficiente para cold-start de Supabase)
+      const { data: profile } = await withTimeout(query, 10000)
 
+      const role = profile?.role ?? authUser.user_metadata?.role ?? 'student'
+
+      // Bug 5 fix: guardar el rol verificado en caché de sesión
+      setCachedRole(authUser.id, role)
+
+      // Bug 2 fix: vet_student_name solo aplica a estudiantes; limpiar si es admin
       const storedStudentName = localStorage.getItem('vet_student_name')
+      if (role !== 'student' && storedStudentName) {
+        localStorage.removeItem('vet_student_name')
+      }
+
       setUser({
         id:            authUser.id,
         email:         authUser.email,
-        name:          storedStudentName ?? profile?.name ?? authUser.email.split('@')[0],
-        role:          profile?.role ?? 'student',
+        name:          (role === 'student' ? storedStudentName : null)
+                        ?? profile?.name
+                        ?? authUser.email?.split('@')[0]
+                        ?? authUser.id,
+        role,
         licenseNumber: profile?.license_number ?? null,
         institution:   profile?.institution ?? 'UDI',
       })
     } catch {
+      // Bug 1 fix: no asumir 'student' si la query falla.
+      // Orden de confianza: caché de sesión > user_metadata del JWT > 'student'
+      const fallbackRole = getCachedRole(authUser.id)
+                        ?? authUser.user_metadata?.role
+                        ?? 'student'
+
       setUser({
         id:            authUser.id,
         email:         authUser.email,
-        name:          authUser.email.split('@')[0],
-        role:          'student',
+        name:          authUser.email?.split('@')[0] ?? authUser.id,
+        role:          fallbackRole,
         licenseNumber: null,
         institution:   'UDI',
       })
     } finally {
       setLoading(false)
+      profileLock.current = false
     }
   }
 
@@ -147,6 +200,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     localStorage.removeItem('vet_student_name')
+    clearRoleCache()
     setUser(null)
     setLoading(false)
     try { await supabase.auth.signOut() } catch { /* ignore */ }
@@ -164,7 +218,14 @@ export function AuthProvider({ children }) {
       .update(dbUpdates)
       .eq('id', user.id)
 
-    if (!error) setUser(prev => prev ? { ...prev, ...updates } : prev)
+    if (!error) {
+      setUser(prev => {
+        if (!prev) return prev
+        const next = { ...prev, ...updates }
+        setCachedRole(prev.id, next.role)
+        return next
+      })
+    }
   }, [user?.id])
 
   return (
