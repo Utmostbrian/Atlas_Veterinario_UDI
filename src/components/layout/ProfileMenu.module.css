@@ -27,6 +27,7 @@
 }
 
 .avatarAdmin   { background: linear-gradient(135deg, #CC0000, #ff2222); }
+.avatarDocente { background: linear-gradient(135deg, #7c3aed, #a855f7); }
 .avatarStudent { background: linear-gradient(135deg, #1e3a5f, #2563eb); }
 
 /* ── TRIGGER BUTTON ── */
@@ -188,6 +189,7 @@
 }
 
 .dropBadgeAdmin   { background: rgba(204, 0, 0, .65); color: #fff; }
+.dropBadgeDocente { background: rgba(124, 58, 237, .7); color: #fff; }
 .dropBadgeStudent { background: rgba(255, 255, 255, .18); color: rgba(255, 255, 255, .9); }
 
 .removePhoto {

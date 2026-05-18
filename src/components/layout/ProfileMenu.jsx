@@ -3,6 +3,24 @@ import { useAuth } from '../../context/AuthContext'
 import styles from './ProfileMenu.module.css'
 
 /* ── Avatar ────────────────────────────────────────────────────────────── */
+const ROLE_AVATAR_CLASS = {
+  admin:   'avatarAdmin',
+  docente: 'avatarDocente',
+  student: 'avatarStudent',
+}
+
+const ROLE_LABEL = {
+  admin:   'Administrador',
+  docente: 'Docente',
+  student: 'Estudiante',
+}
+
+const ROLE_BADGE_CLASS = {
+  admin:   'dropBadgeAdmin',
+  docente: 'dropBadgeDocente',
+  student: 'dropBadgeStudent',
+}
+
 function Avatar({ user, size = 32, className = '' }) {
   const initials = user?.name
     ?.split(' ')
@@ -24,9 +42,11 @@ function Avatar({ user, size = 32, className = '' }) {
     )
   }
 
+  const roleClassName = styles[ROLE_AVATAR_CLASS[user?.role] ?? 'avatarStudent']
+
   return (
     <div
-      className={`${styles.avatarInitials} ${user?.role === 'admin' ? styles.avatarAdmin : styles.avatarStudent} ${className}`}
+      className={`${styles.avatarInitials} ${roleClassName} ${className}`}
       style={{ width: size, height: size, fontSize: size * 0.36 }}
     >
       {initials}
@@ -152,8 +172,10 @@ function CropModal({ src, onConfirm, onCancel }) {
 
 /* ── ProfileMenu ───────────────────────────────────────────────────────── */
 export default function ProfileMenu() {
-  // N6: isAdmin viene del context, no se recalcula localmente
-  const { user, isAdmin, logout, updateProfile } = useAuth()
+  const { user, logout, updateProfile } = useAuth()
+
+  const roleLabel  = ROLE_LABEL[user?.role] ?? 'Estudiante'
+  const badgeClass = styles[ROLE_BADGE_CLASS[user?.role] ?? 'dropBadgeStudent']
 
   const [open,       setOpen]       = useState(false)
   const [nameDraft,  setNameDraft]  = useState('')
@@ -297,8 +319,8 @@ export default function ProfileMenu() {
 
               <div className={styles.dropInfo}>
                 <p className={styles.dropName}>{user?.name}</p>
-                <span className={`${styles.dropBadge} ${isAdmin ? styles.dropBadgeAdmin : styles.dropBadgeStudent}`}>
-                  {isAdmin ? 'Administrador' : 'Estudiante'}
+                <span className={`${styles.dropBadge} ${badgeClass}`}>
+                  {roleLabel}
                 </span>
                 {user?.photo && (
                   <button className={styles.removePhoto} onClick={handleRemovePhoto}>
@@ -324,31 +346,19 @@ export default function ProfileMenu() {
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="pm-name">
                   Nombre
-                  {!isAdmin && (
-                    <span className={styles.lockBadge}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                        width="10" height="10">
-                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                      Solo lectura
-                    </span>
-                  )}
                 </label>
                 <div className={styles.fieldRow}>
                   <input
                     id="pm-name"
                     type="text"
-                    className={`${styles.fieldInput} ${!isAdmin ? styles.fieldInputLocked : ''}`}
-                    value={isAdmin ? nameDraft : (user?.name || '')}
-                    onChange={e => isAdmin && setNameDraft(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && isAdmin && nameChanged && saveName()}
-                    readOnly={!isAdmin}
+                    className={styles.fieldInput}
+                    value={nameDraft}
+                    onChange={e => setNameDraft(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && nameChanged && saveName()}
                     placeholder="Tu nombre completo"
                     maxLength={60}
                   />
-                  {isAdmin && nameChanged && (
+                  {nameChanged && (
                     <button
                       className={`${styles.saveBtn} ${savedName ? styles.saveBtnOk : ''}`}
                       onClick={saveName}
@@ -383,11 +393,6 @@ export default function ProfileMenu() {
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     Nombre actualizado correctamente
-                  </p>
-                )}
-                {!isAdmin && (
-                  <p className={styles.fieldHint}>
-                    El nombre fue asignado al iniciar sesión. Contacta a tu docente para modificarlo.
                   </p>
                 )}
               </div>

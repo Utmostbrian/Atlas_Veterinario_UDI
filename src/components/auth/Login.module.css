@@ -108,46 +108,6 @@
   letter-spacing: .05em;
 }
 
-/* ── ROLE TOGGLE ── */
-.roleToggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.roleBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 13px 10px;
-  background: var(--gl);
-  border: none;
-  color: var(--soft);
-  font-size: .84rem;
-  font-weight: 600;
-  font-family: 'Source Sans 3', sans-serif;
-  cursor: pointer;
-  transition: .2s;
-  border-bottom: 3px solid transparent;
-}
-
-.roleBtn:first-child {
-  border-right: 1px solid var(--border);
-}
-
-.roleBtn:hover {
-  background: #fff;
-  color: var(--text);
-}
-
-.roleBtnActive {
-  background: #fff;
-  color: #CC0000;
-  border-bottom-color: #CC0000;
-}
-
 /* ── FORM ── */
 .form {
   padding: 24px 28px 20px;
@@ -296,21 +256,6 @@
   background: #1e293b;
   border-color: #334155;
   box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
-}
-
-:global(.dark) .roleToggle {
-  border-bottom-color: #334155;
-}
-
-:global(.dark) .roleBtn {
-  background: #0f172a;
-  color: #94a3b8;
-  border-right-color: #334155;
-}
-
-:global(.dark) .roleBtn:hover,
-:global(.dark) .roleBtnActive {
-  background: #1e293b;
 }
 
 :global(.dark) .input {

@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { cleanEnv } from '../lib/envUtils'
 
 const AuthContext = createContext(null)
 
@@ -15,9 +14,6 @@ const AUTH_ERROR_MESSAGES = {
 function friendlyError(message) {
   return AUTH_ERROR_MESSAGES[message] ?? message
 }
-
-const ANON_KEY_CLEAN   = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY)
-const PROXY_BASE_CLEAN = cleanEnv(import.meta.env.VITE_SUPABASE_URL)
 
 function withTimeout(promise, ms, msg = 'Tiempo de espera agotado. Intenta de nuevo.') {
   const timer = new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
@@ -98,17 +94,13 @@ export function AuthProvider({ children }) {
 
       setCachedRole(authUser.id, role)
 
-      // vet_student_name solo aplica a estudiantes; limpiar si es admin
-      const storedStudentName = localStorage.getItem('vet_student_name')
-      if (role !== 'student' && storedStudentName) {
-        localStorage.removeItem('vet_student_name')
-      }
+      // Limpieza one-shot: vet_student_name del flujo legacy de código de clase
+      try { localStorage.removeItem('vet_student_name') } catch { /* ignore */ }
 
       setUser({
         id:            authUser.id,
         email:         authUser.email,
-        name:          (role === 'student' ? storedStudentName : null)
-                        ?? profile?.name
+        name:          profile?.name
                         ?? authUser.email?.split('@')[0]
                         ?? authUser.id,
         role,
@@ -152,51 +144,6 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const loginStudent = useCallback(async (name, classCode) => {
-    const controller = new AbortController()
-    const timeoutId  = setTimeout(() => controller.abort(), 10000)
-    try {
-      const response = await fetch(
-        `${PROXY_BASE_CLEAN}/functions/v1/student-login`,
-        {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${ANON_KEY_CLEAN}`,
-          },
-          body:   JSON.stringify({ name: name.trim(), classCode: classCode.trim() }),
-          signal: controller.signal,
-        }
-      )
-      clearTimeout(timeoutId)
-
-      const data = await response.json()
-      if (!response.ok) return { ok: false, error: data.error ?? 'Error al iniciar sesión.' }
-
-      localStorage.setItem('vet_student_name', data.studentName)
-
-      const { error: sessionError } = await withTimeout(
-        supabase.auth.setSession({
-          access_token:  data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        }),
-        8000
-      )
-
-      if (sessionError) {
-        localStorage.removeItem('vet_student_name')
-        return { ok: false, error: 'Error al establecer sesión.' }
-      }
-      return { ok: true }
-    } catch (e) {
-      clearTimeout(timeoutId)
-      const msg = e?.name === 'AbortError'
-        ? 'La solicitud tardó demasiado. Verifica tu internet.'
-        : 'Error de conexión. Verifica tu internet.'
-      return { ok: false, error: msg }
-    }
-  }, [])
-
   const logout = useCallback(async () => {
     localStorage.removeItem('vet_student_name')
     clearRoleCache()
@@ -230,11 +177,18 @@ export function AuthProvider({ children }) {
     return { ok: !error, error: error?.message ?? null }
   }, [user?.id])
 
-  // N6: helper para que consumidores eviten recalcular el rol
-  const isAdmin = user?.role === 'admin'
+  // Helpers de rol: admin = superusuario, docente = elevado, student = básico
+  const isAdmin    = user?.role === 'admin'
+  const isDocente  = user?.role === 'docente'
+  const isStudent  = user?.role === 'student'
+  // Acceso a herramientas elevadas (auditoría, etc.)
+  const isElevated = isAdmin || isDocente
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, login, loginStudent, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{
+      user, isAdmin, isDocente, isStudent, isElevated,
+      login, logout, updateProfile, loading,
+    }}>
       {children}
     </AuthContext.Provider>
   )

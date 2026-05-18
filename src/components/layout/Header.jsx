@@ -4,9 +4,16 @@ import { useAuth } from '../../context/AuthContext'
 import ProfileMenu, { Avatar } from './ProfileMenu'
 import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
 
+const ROLE_LABEL_SHORT = {
+  admin:   'Admin',
+  docente: 'Docente',
+  student: 'Estudiante',
+}
+
 export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogin }) {
-  const { user, isAdmin, logout } = useAuth()
+  const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen]   = useState(false)
+  const roleBadge = ROLE_LABEL_SHORT[user?.role] ?? 'Estudiante'
 
   const visibleTabs = user
     ? TABS.filter(tab => tab.roles.includes(user.role))
@@ -75,7 +82,7 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
                     borderRadius: 3, fontWeight: 700, textTransform: 'uppercase',
                     color: 'rgba(255,255,255,.9)',
                   }}>
-                    {isAdmin ? 'Admin' : 'Estudiante'}
+                    {roleBadge}
                   </span>
                 </div>
               </div>

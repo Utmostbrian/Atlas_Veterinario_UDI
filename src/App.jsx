@@ -43,7 +43,7 @@ function AuthLoader() {
 }
 
 function AppContent() {
-  const { user, loading } = useAuth()
+  const { user, loading, isElevated } = useAuth()
   const navigate   = useNavigate()
   const location   = useLocation()
   const activeTab  = location.pathname.slice(1) || 'atlas'
@@ -68,10 +68,10 @@ function AppContent() {
     if (user && loginOpen) setLoginOpen(false)
   }, [user, loginOpen])
 
-  // Redirige al estudiante si queda en un tab restringido
+  // Redirige a quien no tenga acceso elevado si queda en un tab restringido
   useEffect(() => {
-    if (user?.role === 'student' && activeTab === 'audit') navigate('/atlas')
-  }, [user, activeTab, navigate])
+    if (user && !isElevated && activeTab === 'audit') navigate('/atlas')
+  }, [user, isElevated, activeTab, navigate])
 
   if (loading) return <AuthLoader />
 
@@ -103,7 +103,7 @@ function AppContent() {
               {activeTab === 'enf'    && <DiseaseProtocols />}
               {activeTab === 'glos'   && <Glossary />}
               {activeTab === 'receta' && <Prescription />}
-              {activeTab === 'audit'  && user?.role === 'admin' && <ConsultationHistory />}
+              {activeTab === 'audit'  && isElevated && <ConsultationHistory />}
             </LazyBoundary>
           )}
 
