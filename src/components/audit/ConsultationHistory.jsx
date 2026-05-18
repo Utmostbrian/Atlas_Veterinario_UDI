@@ -67,9 +67,13 @@ export default function ConsultationHistory() {
     })
   }, [total])
 
-  function handleClear() {
-    if (!window.confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return
-    clearHistory(); setItems([]); setTotal(0); setStats(null)
+  async function handleClear() {
+    // ConsultationHistory solo es visible para admin (tab gated en App.jsx),
+    // así que scope='all' borra el historial completo.
+    if (!window.confirm('¿Borrar TODO el historial del sistema? Esta acción no se puede deshacer.')) return
+    const res = await clearHistory({ scope: 'all' })
+    if (!res.ok) { alert(`No se pudo limpiar el historial: ${res.error}`); return }
+    setItems([]); setTotal(0); setStats(null)
   }
 
   function formatDate(iso) {

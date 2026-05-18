@@ -17,18 +17,29 @@ const ANTHROPIC_TIMEOUT = 25_000   // B-05: 25 s upstream timeout
 // In-memory fallback (used when DB rate-limit check fails, and for IP-based check)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
-// A-02: CORS allowlist — varios dominios separados por coma en ALLOWED_ORIGIN.
-// Si la var no está seteada, en dev permitimos * (con warning), en prod debe estar definida.
+// A-02 / N2: CORS allowlist — varios dominios separados por coma en ALLOWED_ORIGIN.
+// Fail-SECURE: si la var no está seteada, solo se permite localhost (dev). En
+// producción sin ALLOWED_ORIGIN, el origin se rechaza (no se envía header CORS),
+// lo que impide al navegador exponer la respuesta a sitios externos.
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGIN') ?? '')
   .split(',')
   .map((s: string) => s.trim())
   .filter(Boolean)
 
+function isDevOrigin(origin: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+}
+
 function pickOrigin(req: Request): string {
   const origin = req.headers.get('origin') ?? ''
-  if (ALLOWED_ORIGINS.length === 0) return '*'
+  // Wildcard explícito → mantiene el comportamiento abierto si así lo configuran
   if (ALLOWED_ORIGINS.includes('*')) return '*'
-  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  // Allowlist match
+  if (ALLOWED_ORIGINS.includes(origin)) return origin
+  // Sin ALLOWED_ORIGIN seteado: permitimos sólo dev local
+  if (ALLOWED_ORIGINS.length === 0 && isDevOrigin(origin)) return origin
+  // Rechazar: devolvemos un origin imposible para que el navegador bloquee
+  return 'null'
 }
 
 function buildCors(req: Request) {
@@ -59,7 +70,10 @@ function checkRateLimit(key: string): boolean {
   return true
 }
 
-Deno.serve(async (req: Request) => {
+// N13: wrapper top-level que garantiza headers CORS incluso en errores inesperados.
+// Sin esto, un throw fuera de los try/catch específicos da un 500 sin CORS,
+// que el navegador reporta como "network error" en lugar de error de API.
+async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: buildCors(req) })
   }
@@ -189,4 +203,16 @@ Deno.serve(async (req: Request) => {
 
   const data = await anthropicRes.json().catch(() => ({ error: 'Respuesta inválida de Anthropic.' }))
   return json(req, data, anthropicRes.status)
+}
+
+// N13: top-level wrapper — captura cualquier throw inesperado y siempre
+// devuelve un Response con headers CORS. Sin esto el navegador reporta
+// "network error" en lugar de mostrar el código del error.
+Deno.serve(async (req: Request) => {
+  try {
+    return await handle(req)
+  } catch (e) {
+    console.error('[anthropic-proxy] Unhandled error:', e)
+    return json(req, { error: 'Error interno inesperado.', code: 'INTERNAL_ERROR' }, 500)
+  }
 })

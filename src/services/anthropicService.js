@@ -72,14 +72,18 @@ async function fetchViaProxy(body, signal) {
       signal,
     })
 
-    if (response.status === 429) {
-      throw new Error('Límite de solicitudes alcanzado. Espera un minuto.')
-    }
+    // 401 es global (sesión muerta), no tiene sentido probar otro modelo
     if (response.status === 401) {
       throw new Error('Sesión expirada. Inicia sesión de nuevo.')
     }
-    if (response.status === 529 || response.status === 503) {
-      lastError = new Error(`Modelo ${model} no disponible (${response.status})`)
+    // N3: 429 / 529 / 503 son condiciones recuperables — probamos siguiente modelo.
+    // Solo si TODOS fallan se propaga el lastError al usuario.
+    if (response.status === 429 || response.status === 529 || response.status === 503) {
+      lastError = new Error(
+        response.status === 429
+          ? `Modelo ${model} con límite alcanzado`
+          : `Modelo ${model} no disponible (${response.status})`
+      )
       continue
     }
     if (!response.ok) {

@@ -9,7 +9,7 @@ const AUTH_ERROR_MESSAGES = {
   'Email not confirmed':                         'Verifica tu correo antes de iniciar sesión.',
   'Too many requests':                           'Demasiados intentos. Espera un momento e intenta de nuevo.',
   'User already registered':                     'Este correo ya está registrado.',
-  'Password should be at least 6 characters':   'La contraseña debe tener al menos 6 caracteres.',
+  'Password should be at least 6 characters':    'La contraseña debe tener al menos 6 caracteres.',
 }
 
 function friendlyError(message) {
@@ -51,7 +51,7 @@ function clearRoleCache() {
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
-  // Evita que getSession() y onAuthStateChange llamen loadProfile simultáneamente
+  // Evita que dos eventos de auth disparen loadProfile en paralelo.
   const profileLock = useRef(false)
 
   // Backstop absoluto: jamás colgar en loading más de 8 s
@@ -61,17 +61,14 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (session?.user) loadProfile(session.user)
-        else setLoading(false)
-      })
-      .catch(() => setLoading(false))
-
+    // N5: usamos sólo onAuthStateChange. Supabase dispara el evento
+    // 'INITIAL_SESSION' inmediatamente al suscribirse, lo que cubre el caso
+    // del getSession() inicial sin la condición de carrera anterior.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (session?.user) await loadProfile(session.user)
-        else {
+        if (session?.user) {
+          await loadProfile(session.user)
+        } else {
           clearRoleCache()
           setUser(null)
           setLoading(false)
@@ -83,10 +80,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadProfile(authUser) {
-    // A-05: lock atómico ANTES de cualquier await. Antes la condición de carrera
-    // entre getSession() y onAuthStateChange() permitía que ambos pasaran el if
-    // antes de que cualquiera marcara el flag. Ahora el segundo retorna inmediato
-    // sin tocar loading, y el primero garantiza el setLoading(false) en finally.
+    // A-05: lock atómico ANTES de cualquier await. JS single-threaded garantiza
+    // que entre el check y el set no se cuela otra invocación.
     if (profileLock.current) return
     profileLock.current = true
 
@@ -97,15 +92,13 @@ export function AuthProvider({ children }) {
         .eq('id', authUser.id)
         .single()
 
-      // Bug 4 fix: timeout 10 s (era 6 s — insuficiente para cold-start de Supabase)
       const { data: profile } = await withTimeout(query, 10000)
 
       const role = profile?.role ?? authUser.user_metadata?.role ?? 'student'
 
-      // Bug 5 fix: guardar el rol verificado en caché de sesión
       setCachedRole(authUser.id, role)
 
-      // Bug 2 fix: vet_student_name solo aplica a estudiantes; limpiar si es admin
+      // vet_student_name solo aplica a estudiantes; limpiar si es admin
       const storedStudentName = localStorage.getItem('vet_student_name')
       if (role !== 'student' && storedStudentName) {
         localStorage.removeItem('vet_student_name')
@@ -121,9 +114,11 @@ export function AuthProvider({ children }) {
         role,
         licenseNumber: profile?.license_number ?? null,
         institution:   profile?.institution ?? 'UDI',
+        // N1: persistir foto de perfil desde la DB
+        photo:         profile?.photo ?? null,
       })
     } catch {
-      // Bug 1 fix: no asumir 'student' si la query falla.
+      // No asumir 'student' si la query falla.
       // Orden de confianza: caché de sesión > user_metadata del JWT > 'student'
       const fallbackRole = getCachedRole(authUser.id)
                         ?? authUser.user_metadata?.role
@@ -136,6 +131,7 @@ export function AuthProvider({ children }) {
         role:          fallbackRole,
         licenseNumber: null,
         institution:   'UDI',
+        photo:         null,
       })
     } finally {
       setLoading(false)
@@ -212,9 +208,11 @@ export function AuthProvider({ children }) {
   const updateProfile = useCallback(async (updates) => {
     if (!user?.id) return
     const dbUpdates = {}
-    if (updates.name)          dbUpdates.name           = updates.name
-    if (updates.licenseNumber) dbUpdates.license_number = updates.licenseNumber
-    if (updates.institution)   dbUpdates.institution    = updates.institution
+    if (updates.name !== undefined)          dbUpdates.name           = updates.name
+    if (updates.licenseNumber !== undefined) dbUpdates.license_number = updates.licenseNumber
+    if (updates.institution !== undefined)   dbUpdates.institution    = updates.institution
+    // N1: persistir photo (puede ser null para borrar)
+    if (updates.photo !== undefined)         dbUpdates.photo          = updates.photo
 
     const { error } = await supabase
       .from('profiles')
@@ -229,9 +227,10 @@ export function AuthProvider({ children }) {
         return next
       })
     }
+    return { ok: !error, error: error?.message ?? null }
   }, [user?.id])
 
-  // B-03: helper para que servicios eviten round-trip a profiles
+  // N6: helper para que consumidores eviten recalcular el rol
   const isAdmin = user?.role === 'admin'
 
   return (

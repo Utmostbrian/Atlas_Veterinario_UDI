@@ -151,13 +151,17 @@ export default function Prescription() {
     const blob = new Blob([printHtml], { type: 'text/html' })
     const url  = URL.createObjectURL(blob)
 
-    const win = window.open(url, '_blank', 'width=860,height=900,noopener,noreferrer')
+    // N4: window.open con noopener en el tercer arg fuerza retorno null en
+    // navegadores modernos, lo que activaba el fallback siempre y abría
+    // dos pestañas. Quitamos noopener; el doc del print no comparte origen
+    // con la SPA (es un blob:), así que el riesgo de window.opener es mínimo.
+    const win = window.open(url, '_blank', 'width=860,height=900')
     if (!win) {
-      // Popup blocked → fallback como link (mantiene la receta accesible)
-      const a   = document.createElement('a')
-      a.href    = url
-      a.target  = '_blank'
-      a.rel     = 'noopener noreferrer'
+      // Popup bloqueado → fallback como link
+      const a = document.createElement('a')
+      a.href   = url
+      a.target = '_blank'
+      a.rel    = 'noopener noreferrer'
       a.click()
     }
     // Limpieza diferida: el navegador necesita el blob mientras imprime

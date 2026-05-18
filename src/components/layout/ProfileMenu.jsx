@@ -16,6 +16,8 @@ function Avatar({ user, size = 32, className = '' }) {
       <img
         src={user.photo}
         alt={user.name}
+        // N15: para fotos que en el futuro vengan de Storage, no leak del origen
+        referrerPolicy="no-referrer"
         className={`${styles.avatar} ${className}`}
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
       />
@@ -150,8 +152,8 @@ function CropModal({ src, onConfirm, onCancel }) {
 
 /* ── ProfileMenu ───────────────────────────────────────────────────────── */
 export default function ProfileMenu() {
-  const { user, logout, updateProfile } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  // N6: isAdmin viene del context, no se recalcula localmente
+  const { user, isAdmin, logout, updateProfile } = useAuth()
 
   const [open,       setOpen]       = useState(false)
   const [nameDraft,  setNameDraft]  = useState('')
@@ -199,27 +201,42 @@ export default function ProfileMenu() {
     reader.readAsDataURL(file)
   }, [])
 
-  const handleCropConfirm = useCallback((dataUrl) => {
+  const handleCropConfirm = useCallback(async (dataUrl) => {
     setCropSrc(null)
-    updateProfile({ photo: dataUrl })
+    // N1: límite duro alineado con el CHECK CONSTRAINT del backend (512 KB).
+    // Crop a 200px con JPEG 0.85 da ~15-30 KB típico; raro pasar de 100 KB.
+    if (dataUrl.length > 512 * 1024) {
+      alert('La foto es demasiado grande tras el recorte. Elige un tamaño menor.')
+      return
+    }
+    const res = await updateProfile({ photo: dataUrl })
+    if (res && res.ok === false) {
+      alert('No se pudo guardar la foto: ' + (res.error ?? 'error desconocido'))
+    }
   }, [updateProfile])
 
   const handleCropCancel = useCallback(() => setCropSrc(null), [])
 
-  const handleRemovePhoto = useCallback(() => {
-    updateProfile({ photo: null })
+  const handleRemovePhoto = useCallback(async () => {
+    const res = await updateProfile({ photo: null })
+    if (res && res.ok === false) {
+      alert('No se pudo eliminar la foto: ' + (res.error ?? 'error desconocido'))
+    }
   }, [updateProfile])
 
-  function saveName() {
+  async function saveName() {
     const trimmed = nameDraft.trim()
     if (trimmed.length < 2 || trimmed === user?.name) return
     setSavingName(true)
-    setTimeout(() => {
-      updateProfile({ name: trimmed })
-      setSavingName(false)
-      setSavedName(true)
-      setTimeout(() => setSavedName(false), 2500)
-    }, 320)
+    // El delay 320ms anterior era cosmético; ahora esperamos a la DB real.
+    const res = await updateProfile({ name: trimmed })
+    setSavingName(false)
+    if (res && res.ok === false) {
+      alert('No se pudo guardar el nombre: ' + (res.error ?? 'error desconocido'))
+      return
+    }
+    setSavedName(true)
+    setTimeout(() => setSavedName(false), 2500)
   }
 
   const nameChanged = nameDraft.trim() !== user?.name && nameDraft.trim().length >= 2

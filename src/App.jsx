@@ -43,9 +43,14 @@ function AppContent() {
   const activeTab  = location.pathname.slice(1) || 'atlas'
   const setActiveTab = (tab) => navigate(`/${tab}`)
   const [chatOpen,  setChatOpen]  = useState(false)
-  const [apiKey,    setApiKey]    = useLocalStorage('vet_atlas_api_key', '')
   const [darkMode,  setDarkMode]  = useLocalStorage('vet_dark_mode', false)
   const [loginOpen, setLoginOpen] = useState(false)
+
+  // N11: limpiamos restos de la API key del localStorage (feature retirada).
+  // El proxy con JWT cubre el caso de uso; admin ya no necesita guardar key.
+  useEffect(() => {
+    try { localStorage.removeItem('vet_atlas_api_key') } catch { /* ignore */ }
+  }, [])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', Boolean(darkMode))
@@ -78,8 +83,6 @@ function AppContent() {
         onTabChange={setActiveTab}
         darkMode={darkMode}
         onToggleDark={() => setDarkMode(v => !v)}
-        apiKey={apiKey}
-        onApiKeyChange={setApiKey}
         onOpenLogin={openLogin}
       >
         <div style={{ position: 'relative' }}>

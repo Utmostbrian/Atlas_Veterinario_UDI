@@ -7,8 +7,6 @@ export default function MainLayout({
   onTabChange,
   darkMode,
   onToggleDark,
-  apiKey,
-  onApiKeyChange,
   onOpenLogin,
   children,
 }) {
@@ -19,8 +17,6 @@ export default function MainLayout({
         onTabChange={onTabChange}
         darkMode={darkMode}
         onToggleDark={onToggleDark}
-        apiKey={apiKey}
-        onApiKeyChange={onApiKeyChange}
         onOpenLogin={onOpenLogin}
       />
       <TabBar activeTab={activeTab} onTabChange={onTabChange} />

@@ -209,15 +209,24 @@ export async function exportToCsv() {
 }
 
 // ── Limpiar historial ────────────────────────────────────────────────────────
-export async function clearHistory() {
+// N10: el SP sp_clear_audit_logs decide server-side si borrar todo (admin)
+// o solo los del caller (resto). El cliente solo declara la intención.
+export async function clearHistory({ scope = 'own' } = {}) {
   localStorage.removeItem(STORAGE_KEY)
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
+    if (!user) return { ok: true, deleted: 0 }
+
+    const { data, error } = await supabase.rpc('sp_clear_audit_logs', { p_scope: scope })
+    if (error) {
+      // Fallback al patrón anterior si el SP aún no está desplegado
       await supabase.from('audit_logs').delete().eq('user_id', user.id)
+      return { ok: true, deleted: null }
     }
-  } catch {
-    // Si falla Supabase, localStorage ya fue limpiado
+    return { ok: true, deleted: data }
+  } catch (err) {
+    console.warn('[audit] clearHistory failed:', err?.message ?? err)
+    return { ok: false, error: err?.message ?? 'Error al limpiar el historial.' }
   }
 }
 
