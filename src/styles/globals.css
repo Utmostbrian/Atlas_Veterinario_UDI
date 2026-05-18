@@ -1092,6 +1092,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
   .hmain { padding: 10px 16px; }
   .hnav  { display: none; }
   .hburger { display: block; }
+  .hlogo img { width: 66px; height: 67px; }
   .wrap  { padding: 16px; }
   .tabinner { padding: 0 12px; }
   .tbtn  { padding: 11px 12px; font-size: .76rem; }
