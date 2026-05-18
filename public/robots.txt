@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /audit
+Disallow: /receta
+
+Sitemap: https://atlas-veterinario-udi.vercel.app/sitemap.xml

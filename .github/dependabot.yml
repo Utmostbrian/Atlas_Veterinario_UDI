@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/La_Paz
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - npm
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router*"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@eslint/*"
+      supabase:
+        patterns:
+          - "@supabase/*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - github-actions

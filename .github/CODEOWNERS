@@ -1,0 +1,9 @@
+# Default owner para cualquier cambio en el repo
+*                                       @Utmostbrian
+
+# Capas críticas — siempre requerir review del owner
+/supabase/                              @Utmostbrian
+/.github/                               @Utmostbrian
+/vercel.json                            @Utmostbrian
+/src/context/AuthContext.jsx            @Utmostbrian
+/src/services/                          @Utmostbrian

@@ -1,0 +1,22 @@
+{
+  "name": "Atlas Farmacológico Veterinario",
+  "short_name": "Atlas Vet UDI",
+  "description": "Guía clínica farmacológica veterinaria con IA — Facultad de Veterinaria UDI",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F8F5F0",
+  "theme_color": "#CC0000",
+  "lang": "es",
+  "categories": ["education", "medical", "reference"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

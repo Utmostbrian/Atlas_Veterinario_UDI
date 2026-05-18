@@ -10,17 +10,25 @@ const ANTHROPIC_URL    = 'https://api.anthropic.com/v1/messages'
 const ANTHROPIC_KEY    = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
 const RATE_LIMIT_MAX   = 10
 const RATE_LIMIT_WINDOW = 60_000
-const MAX_HISTORY_TURNS = 20   // B-04: cap conversation history sent to Anthropic
-const MAX_BODY_BYTES    = 2_000_000 // B-03: 2 MB payload limit
-const ANTHROPIC_TIMEOUT = 25_000   // B-05: 25 s upstream timeout
+const MAX_HISTORY_TURNS = 20
+const MAX_BODY_BYTES    = 2_000_000        // 2 MB total
+const MAX_SINGLE_MSG    = 500_000          // B4: 500 KB por mensaje individual
+const ANTHROPIC_TIMEOUT = 25_000
+const SSE_HEARTBEAT_MS  = 15_000           // B6: ping cada 15 s en SSE
 
-// In-memory fallback (used when DB rate-limit check fails, and for IP-based check)
+// B1: allowlist de modelos. El cliente NO puede pedir uno fuera de esta lista.
+// Si pide algo distinto, se reemplaza por el default.
+const ALLOWED_MODELS = new Set([
+  'claude-sonnet-4-6',
+  'claude-haiku-4-5-20251001',
+  'claude-opus-4-7',
+])
+const DEFAULT_MODEL = 'claude-sonnet-4-6'
+
+// In-memory IP rate limit (fallback rápido por worker)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
-// A-02 / N2: CORS allowlist — varios dominios separados por coma en ALLOWED_ORIGIN.
-// Fail-SECURE: si la var no está seteada, solo se permite localhost (dev). En
-// producción sin ALLOWED_ORIGIN, el origin se rechaza (no se envía header CORS),
-// lo que impide al navegador exponer la respuesta a sitios externos.
+// CORS allowlist — incluye regex para previews de Vercel (V2)
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGIN') ?? '')
   .split(',')
   .map((s: string) => s.trim())
@@ -30,15 +38,26 @@ function isDevOrigin(origin: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
 }
 
+// V2: cualquier subdominio *.vercel.app del mismo proyecto (preview deployments).
+// Extraemos el "proyecto" del primer ALLOWED_ORIGIN configurado.
+function isVercelPreviewOfProject(origin: string): boolean {
+  const main = ALLOWED_ORIGINS.find((o: string) => o.endsWith('.vercel.app'))
+  if (!main) return false
+  // De https://atlas-veterinario-udi.vercel.app extraemos "atlas-veterinario-udi"
+  const projectMatch = main.match(/^https?:\/\/([^.]+)\.vercel\.app/)
+  if (!projectMatch) return false
+  const project = projectMatch[1]
+  // Aceptamos atlas-veterinario-udi-git-*.vercel.app y -<hash>.vercel.app
+  const re = new RegExp(`^https://${project}(-[a-z0-9-]+)?\\.vercel\\.app$`, 'i')
+  return re.test(origin)
+}
+
 function pickOrigin(req: Request): string {
   const origin = req.headers.get('origin') ?? ''
-  // Wildcard explícito → mantiene el comportamiento abierto si así lo configuran
   if (ALLOWED_ORIGINS.includes('*')) return '*'
-  // Allowlist match
   if (ALLOWED_ORIGINS.includes(origin)) return origin
-  // Sin ALLOWED_ORIGIN seteado: permitimos sólo dev local
   if (ALLOWED_ORIGINS.length === 0 && isDevOrigin(origin)) return origin
-  // Rechazar: devolvemos un origin imposible para que el navegador bloquee
+  if (isVercelPreviewOfProject(origin)) return origin
   return 'null'
 }
 
@@ -70,9 +89,40 @@ function checkRateLimit(key: string): boolean {
   return true
 }
 
-// N13: wrapper top-level que garantiza headers CORS incluso en errores inesperados.
-// Sin esto, un throw fuera de los try/catch específicos da un 500 sin CORS,
-// que el navegador reporta como "network error" en lugar de error de API.
+// B6: wrappear SSE upstream con heartbeat para evitar timeouts intermedios
+// de Vercel/CloudFlare (~30 s sin tráfico = conexión cerrada).
+function streamWithHeartbeat(upstream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder()
+  return new ReadableStream({
+    async start(controller) {
+      const reader = upstream.getReader()
+      let cancelled = false
+
+      const heartbeat = setInterval(() => {
+        if (cancelled) return
+        try {
+          // Comentario SSE: ignorado por el cliente, mantiene la conexión viva
+          controller.enqueue(encoder.encode(': keepalive\n\n'))
+        } catch { /* controller cerrado */ }
+      }, SSE_HEARTBEAT_MS)
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          controller.enqueue(value)
+        }
+      } catch (e) {
+        controller.error(e)
+      } finally {
+        cancelled = true
+        clearInterval(heartbeat)
+        controller.close()
+      }
+    },
+  })
+}
+
 async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: buildCors(req) })
@@ -82,13 +132,13 @@ async function handle(req: Request): Promise<Response> {
     return json(req, { error: 'Método no permitido' }, 405)
   }
 
-  // B-03: Reject oversized payloads before any parsing
   const contentLength = Number(req.headers.get('content-length') ?? 0)
   if (contentLength > MAX_BODY_BYTES) {
     return json(req, { error: 'Payload demasiado grande.', code: 'PAYLOAD_TOO_LARGE' }, 413)
   }
 
-  // B-06: IP-based rate limit (protects shared student account; checked before JWT)
+  // B2: rate limit por IP — además del Map en memoria, persistir en DB.
+  // Sin user_id porque este check corre antes del JWT.
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
   if (!checkRateLimit(`ip:${clientIp}`)) {
     return json(req, { error: 'Límite de IP alcanzado. Espera un minuto.', code: 'RATE_LIMITED' }, 429)
@@ -98,7 +148,6 @@ async function handle(req: Request): Promise<Response> {
     return json(req, { error: 'ANTHROPIC_API_KEY no configurada.', code: 'KEY_MISSING' }, 500)
   }
 
-  // Autenticación JWT
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     return json(req, { error: 'Autenticación requerida.', code: 'UNAUTHORIZED' }, 401)
@@ -115,7 +164,7 @@ async function handle(req: Request): Promise<Response> {
     return json(req, { error: 'Token inválido o expirado.', code: 'INVALID_TOKEN' }, 401)
   }
 
-  // Rate limiting persistente via PostgreSQL (sobrevive reinicios del worker)
+  // B2: rate limit persistente por user_id (sobrevive worker restart)
   const windowStart = new Date(Math.floor(Date.now() / 60_000) * 60_000).toISOString()
   const { data: allowed, error: rlError } = await supabase.rpc('check_and_increment_rate_limit', {
     p_user_id:      user.id,
@@ -128,7 +177,7 @@ async function handle(req: Request): Promise<Response> {
   }
 
   let body: {
-    messages: unknown[]
+    messages: Array<{ role?: string; content?: unknown }>
     system?: string
     max_tokens?: number
     model?: string
@@ -145,15 +194,29 @@ async function handle(req: Request): Promise<Response> {
     return json(req, { error: 'messages es requerido y debe ser un array.', code: 'INVALID_MESSAGES' }, 400)
   }
 
+  // B4: validar tamaño individual de cada mensaje
+  for (let i = 0; i < body.messages.length; i++) {
+    const serialized = JSON.stringify(body.messages[i] ?? '')
+    if (serialized.length > MAX_SINGLE_MSG) {
+      return json(
+        req,
+        { error: `Mensaje #${i + 1} excede ${MAX_SINGLE_MSG} bytes.`, code: 'MESSAGE_TOO_LARGE' },
+        413
+      )
+    }
+  }
+
   const max_tokens = body.max_tokens ?? 1500
   if (max_tokens < 1 || max_tokens > 8192) {
     return json(req, { error: 'max_tokens debe estar entre 1 y 8192.', code: 'INVALID_TOKENS' }, 400)
   }
 
-  // B-04: Truncate history to prevent token overflow on long conversations
+  // B1: forzar modelo a la allowlist. El cliente NO controla cuánto cuesta cada llamada.
+  const requestedModel = typeof body.model === 'string' ? body.model : DEFAULT_MODEL
+  const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL
+
   const messages = body.messages.slice(-MAX_HISTORY_TURNS)
 
-  // B-05: Explicit timeout for the Anthropic upstream call
   const anthropicController = new AbortController()
   const timeoutId = setTimeout(() => anthropicController.abort(), ANTHROPIC_TIMEOUT)
 
@@ -168,11 +231,11 @@ async function handle(req: Request): Promise<Response> {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      body.model ?? 'claude-sonnet-4-6',
+        model,
         max_tokens,
-        system:     body.system,
+        system:  body.system,
         messages,
-        stream:     body.stream ?? false,
+        stream:  body.stream ?? false,
       }),
     })
   } catch (e) {
@@ -189,14 +252,16 @@ async function handle(req: Request): Promise<Response> {
     clearTimeout(timeoutId)
   }
 
-  if (body.stream) {
-    return new Response(anthropicRes.body, {
+  if (body.stream && anthropicRes.body) {
+    // B6: envolver el stream con heartbeat para sobrevivir timeouts intermedios.
+    return new Response(streamWithHeartbeat(anthropicRes.body), {
       status:  anthropicRes.status,
       headers: {
         ...buildCors(req),
-        'Content-Type':  'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection':    'keep-alive',
+        'Content-Type':              'text/event-stream',
+        'Cache-Control':             'no-cache, no-transform',
+        'Connection':                'keep-alive',
+        'X-Accel-Buffering':         'no',  // disable nginx buffering
       },
     })
   }
@@ -205,9 +270,7 @@ async function handle(req: Request): Promise<Response> {
   return json(req, data, anthropicRes.status)
 }
 
-// N13: top-level wrapper — captura cualquier throw inesperado y siempre
-// devuelve un Response con headers CORS. Sin esto el navegador reporta
-// "network error" en lugar de mostrar el código del error.
+// Top-level wrapper: garantiza headers CORS aún en errores inesperados.
 Deno.serve(async (req: Request) => {
   try {
     return await handle(req)

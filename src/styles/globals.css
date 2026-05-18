@@ -954,6 +954,18 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
   background: var(--gl); color: var(--red-dark);
   padding: 1px 5px; border-radius: 4px; font-size: .8em;
 }
+.ai-response .md-table,
+.md-table {
+  width: 100%; border-collapse: collapse; margin: 10px 0 14px;
+  font-size: .82rem; color: var(--text);
+}
+.md-table th, .md-table td {
+  border: 1px solid var(--border);
+  padding: 6px 10px; text-align: left; vertical-align: top;
+}
+.md-table th { background: var(--gl); font-weight: 700; color: var(--dark); }
+.md-table tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+.dark .md-table tr:nth-child(even) td { background: rgba(255,255,255,.03); }
 
 /* ── HISTORIAL / AUDIT ── */
 .hist-hdr {

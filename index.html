@@ -6,17 +6,54 @@
     <!--
       Content Security Policy: la fuente de verdad vive en vercel.json (header HTTP),
       lo cual permite parametrizar el host por entorno y es preferible al meta-tag.
-      En desarrollo local, Vite no aplica CSP estricta — la del header se activa solo en producción.
     -->
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Atlas Farmacológico Veterinario — UDI</title>
     <meta name="description" content="Atlas Farmacológico Veterinario con IA · Facultad de Veterinaria UDI" />
+    <meta name="theme-color" content="#CC0000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Atlas Vet UDI" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- Open Graph / link previews en redes sociales y WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Atlas Farmacológico Veterinario — UDI" />
+    <meta property="og:description" content="Guía clínica farmacológica veterinaria con IA — Facultad de Veterinaria UDI" />
+    <meta property="og:image" content="https://atlas-veterinario-udi.vercel.app/favicon.png" />
+    <meta property="og:url" content="https://atlas-veterinario-udi.vercel.app/" />
+    <meta property="og:locale" content="es" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Atlas Farmacológico Veterinario — UDI" />
+    <meta name="twitter:description" content="Guía clínica farmacológica veterinaria con IA — Facultad de Veterinaria UDI" />
+    <meta name="twitter:image" content="https://atlas-veterinario-udi.vercel.app/favicon.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+
+    <!-- F3: cargar Google Fonts y Font Awesome sin bloquear render.
+         El truco media="print" + onload="this.media='all'" hace que el browser
+         baje el CSS de forma async pero lo aplique cuando llega. -->
+    <link rel="preload"
+          href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=EB+Garamond:ital@0;1&display=swap"
+          as="style"
+          onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript>
+      <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=EB+Garamond:ital@0;1&display=swap" />
+    </noscript>
+
+    <link rel="preload"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+          as="style"
+          crossorigin="anonymous"
+          onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript>
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+            crossorigin="anonymous" />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>
