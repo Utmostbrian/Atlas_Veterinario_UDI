@@ -6,8 +6,9 @@ dist/
 *.local
 .DS_Store
 
-# Claude Code
+# Claude Code (archivos locales del CLI: settings + skills instaladas)
 .claude/settings.local.json
+.claude/skills/
 
 # Archivos temporales
 implementation_plan.md.resolved
