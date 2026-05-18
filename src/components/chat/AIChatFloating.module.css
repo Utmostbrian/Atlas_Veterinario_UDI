@@ -649,41 +649,47 @@
   color: var(--gray);
   white-space: nowrap;
 }
+/* Default: SIEMPRE visible. Funciona en cualquier dispositivo, navegador
+   o capacidad reportada. Solo en desktop con mouse real lo escondemos
+   hasta hover (regla más abajo). Esta es la opción robusta porque si
+   la media query inferior falla, el botón queda visible (degradación
+   graciosa) en vez de invisible. */
 .historyDelBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px; height: 22px;
-  border-radius: 5px;
-  color: var(--gray);
-  background: none;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  color: var(--soft);
+  background: rgba(204, 0, 0, 0.06);
   cursor: pointer;
-  opacity: 0;
+  opacity: 1;
   transition: opacity .12s, background .12s, color .12s;
 }
-.historyItem:hover .historyDelBtn,
-.historyItem:focus-within .historyDelBtn { opacity: 1; }
-.historyDelBtn:hover {
-  background: rgba(204,0,0,.12);
+.historyDelBtn:hover,
+.historyDelBtn:active {
+  background: rgba(204, 0, 0, 0.16);
   color: var(--blue);
 }
 .historyDelBtn[data-deleting="true"] { opacity: 1; color: var(--blue); }
 
-/* Touch devices: el botón borrar siempre visible (no existe hover real).
-   Cubre celulares y tablets sin importar el ancho de pantalla. */
-@media (hover: none) and (pointer: coarse) {
+/* Desktop con mouse real: ocultar hasta hover sobre el item.
+   El usuario quiere el botón siempre visible en móvil — esta regla
+   SOLO se activa cuando hay hover capability + pointer fino (mouse). */
+@media (hover: hover) and (pointer: fine) {
   .historyDelBtn {
-    opacity: 1;
-    width: 30px;
-    height: 30px;
-    color: var(--soft);
-    background: rgba(204, 0, 0, 0.06);
+    opacity: 0;
+    background: none;
+    width: 22px;
+    height: 22px;
+    color: var(--gray);
   }
-  .historyDelBtn:active {
-    background: rgba(204, 0, 0, 0.18);
+  .historyItem:hover .historyDelBtn,
+  .historyItem:focus-within .historyDelBtn { opacity: 1; }
+  .historyDelBtn:hover {
+    background: rgba(204, 0, 0, 0.12);
     color: var(--blue);
   }
-  .historyItem { padding: 11px 10px; }   /* tap target más cómodo */
 }
 
 .historyEmpty {
