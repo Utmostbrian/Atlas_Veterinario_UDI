@@ -312,7 +312,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             </div>
           </div>
           <div className={styles.headerActions}>
-            {isAuthenticated && (
+            {isAuthenticated && !minimized && (
               <button
                 className={styles.iconBtn}
                 onClick={() => setHistoryOpen((v) => !v)}
