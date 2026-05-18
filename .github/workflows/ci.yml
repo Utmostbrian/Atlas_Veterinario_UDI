@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,7 +38,7 @@ jobs:
     # Si alguien commitea un sk-ant-... o una contraseña conocida, CI falla.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Scan for leaked secrets
@@ -55,7 +55,7 @@ jobs:
     # B-04: valida que las migraciones SQL existan y no tengan BOM/UTF artefactos
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate migrations
         run: |
           set -e
