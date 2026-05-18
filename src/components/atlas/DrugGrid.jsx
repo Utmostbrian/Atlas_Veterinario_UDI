@@ -42,34 +42,6 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
         {/* ── Sidebar ── */}
         <aside className="sb">
           <div className="sbc">
-            <div className="sbh">Categorías</div>
-            <ul className="catlist">
-              <li>
-                <button
-                  className={activeCategory === 'ALL' ? 'on' : ''}
-                  onClick={() => setActiveCategory('ALL')}
-                >
-                  Todos los fármacos
-                  <span className="ccnt">{DRUGS.length}</span>
-                </button>
-              </li>
-              {CATEGORIES.map(cat => (
-                <li key={cat.key}>
-                  <button
-                    className={activeCategory === cat.key ? 'on' : ''}
-                    onClick={() => setActiveCategory(cat.key)}
-                  >
-                    {cat.label}
-                    <span className="ccnt">
-                      {DRUGS.filter(d => d.category === cat.key).length}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="sbc">
             <div className="sbh red">⚠ Aviso Clínico</div>
             <div className="sbb">
               Las dosis son <strong>orientativas</strong>. Ajustar siempre según especie,

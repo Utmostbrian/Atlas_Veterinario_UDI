@@ -735,6 +735,15 @@
     border-radius: 0;
     z-index: 9000;
   }
+  /* Minimizar en móvil: soltar el anclaje superior y la altura full-screen
+     para que el contenedor se colapse a solo el header anclado abajo.
+     Sin este override, top:0 + bottom:0 fuerzan 100dvh aunque height sea
+     auto, y el botón parece no hacer nada. */
+  .chatMinimized {
+    top: auto;
+    height: auto;
+    border-radius: 0;
+  }
   .fab { bottom: 20px; right: 20px; }
   .backdrop { display: none; }
   .historyPanel { width: 100%; max-width: 100%; }

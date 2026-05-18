@@ -313,34 +313,20 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
           </div>
           <div className={styles.headerActions}>
             {isAuthenticated && (
-              <>
-                <button
-                  className={styles.iconBtn}
-                  onClick={() => setHistoryOpen((v) => !v)}
-                  title="Historial de conversaciones"
-                  aria-label="Historial de conversaciones"
-                  aria-pressed={historyOpen}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                </button>
-                <button
-                  className={styles.iconBtn}
-                  onClick={handleNewConversation}
-                  title="Nueva conversación"
-                  aria-label="Iniciar nueva conversación"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                  </svg>
-                </button>
-              </>
+              <button
+                className={styles.iconBtn}
+                onClick={() => setHistoryOpen((v) => !v)}
+                title="Historial de conversaciones"
+                aria-label="Historial de conversaciones"
+                aria-pressed={historyOpen}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
             )}
             <button className={styles.iconBtn} onClick={() => setMinimized(v => !v)} title="Minimizar">
               <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>

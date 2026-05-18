@@ -53,6 +53,12 @@ function AppContent() {
   const systemDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
   const [darkMode,  setDarkMode]  = useLocalStorage('vet_dark_mode', systemDark)
   const [loginOpen, setLoginOpen] = useState(false)
+  // Hint de "Inicia sesión" se oculta al primer scroll/click/tap del usuario
+  // y no vuelve a aparecer en la sesión de la pestaña (sessionStorage).
+  const [loginHintDismissed, setLoginHintDismissed] = useState(() => {
+    try { return sessionStorage.getItem('vet_login_hint_dismissed') === '1' }
+    catch { return false }
+  })
 
   // Limpieza one-shot de la API key obsoleta del localStorage
   useEffect(() => {
@@ -72,6 +78,27 @@ function AppContent() {
   useEffect(() => {
     if (user && !isElevated && activeTab === 'audit') navigate('/atlas')
   }, [user, isElevated, activeTab, navigate])
+
+  // Auto-dismiss del hint de login al primer scroll, click o tecla.
+  // Una vez descartado, no vuelve a aparecer durante la sesión.
+  useEffect(() => {
+    if (loginHintDismissed) return
+    function dismiss() {
+      setLoginHintDismissed(true)
+      try { sessionStorage.setItem('vet_login_hint_dismissed', '1') } catch { /* ignore */ }
+    }
+    const opts = { once: true, passive: true }
+    window.addEventListener('scroll',      dismiss, opts)
+    window.addEventListener('pointerdown', dismiss, opts)
+    window.addEventListener('keydown',     dismiss, opts)
+    window.addEventListener('touchstart',  dismiss, opts)
+    return () => {
+      window.removeEventListener('scroll',      dismiss)
+      window.removeEventListener('pointerdown', dismiss)
+      window.removeEventListener('keydown',     dismiss)
+      window.removeEventListener('touchstart',  dismiss)
+    }
+  }, [loginHintDismissed])
 
   if (loading) return <AuthLoader />
 
@@ -118,7 +145,7 @@ function AppContent() {
         </div>
       </MainLayout>
 
-      {gated && (
+      {gated && !loginHintDismissed && (
         <button
           onClick={openLogin}
           aria-label="Inicia sesión para usar esta herramienta"
