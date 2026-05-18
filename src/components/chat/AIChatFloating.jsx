@@ -4,6 +4,7 @@ import { useChat } from '../../hooks/useChat'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
+import HistoryPanel from './HistoryPanel'
 
 const QUICK_PROMPTS = [
   '¿Cuáles son los antibióticos más seguros para gatos?',
@@ -106,11 +107,19 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const { user } = useAuth()
   const isAuthenticated = !!user
 
-  const { messages, loading, send, stop, clear } = useChat()
-  const [text,       setText]       = useState('')
-  const [imageData,  setImageData]  = useState(null)
-  const [minimized,  setMinimized]  = useState(false)
-  const [cameraOpen, setCameraOpen] = useState(false)
+  const {
+    messages, loading, send, stop,
+    conversationId, loadConversation, newConversation,
+  } = useChat()
+  const [text,         setText]         = useState('')
+  const [imageData,    setImageData]    = useState(null)
+  const [minimized,    setMinimized]    = useState(false)
+  const [cameraOpen,   setCameraOpen]   = useState(false)
+  const [historyOpen,  setHistoryOpen]  = useState(false)
+  // Bump para forzar re-fetch del listado cuando se crea/borra conversación
+  const [historyRefresh, setHistoryRefresh] = useState(0)
+  // Refresca el listado cuando cambia la conversación activa (nueva creada)
+  useEffect(() => { setHistoryRefresh((v) => v + 1) }, [conversationId])
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const fileRef    = useRef(null)
@@ -228,7 +237,16 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
   function handleToggle() {
     if (streamRef.current) closeCamera()
+    setHistoryOpen(false)
     onToggle()
+  }
+
+  function handleSelectConversation(id) {
+    loadConversation(id)
+  }
+
+  function handleNewConversation() {
+    newConversation()
   }
 
   if (!open) {
@@ -267,6 +285,18 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
       )}
 
       <div className={`${styles.chatWindow} ${minimized ? styles.chatMinimized : ''}`}>
+        {/* Panel de historial (deslizable desde la izquierda) */}
+        {isAuthenticated && (
+          <HistoryPanel
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            onNewConversation={handleNewConversation}
+            onSelectConversation={handleSelectConversation}
+            activeId={conversationId}
+            refreshKey={historyRefresh}
+          />
+        )}
+
         {/* Header */}
         <div className={styles.chatHeader}>
           <div className={styles.headerLeft}>
@@ -282,10 +312,35 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             </div>
           </div>
           <div className={styles.headerActions}>
-            {isAuthenticated && messages.length > 0 && (
-              <button className={styles.iconBtn} onClick={clear} title="Limpiar conversación">
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-              </button>
+            {isAuthenticated && (
+              <>
+                <button
+                  className={styles.iconBtn}
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  title="Historial de conversaciones"
+                  aria-label="Historial de conversaciones"
+                  aria-pressed={historyOpen}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </svg>
+                </button>
+                <button
+                  className={styles.iconBtn}
+                  onClick={handleNewConversation}
+                  title="Nueva conversación"
+                  aria-label="Iniciar nueva conversación"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
+                </button>
+              </>
             )}
             <button className={styles.iconBtn} onClick={() => setMinimized(v => !v)} title="Minimizar">
               <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
