@@ -669,6 +669,23 @@
 }
 .historyDelBtn[data-deleting="true"] { opacity: 1; color: var(--blue); }
 
+/* Touch devices: el botón borrar siempre visible (no existe hover real).
+   Cubre celulares y tablets sin importar el ancho de pantalla. */
+@media (hover: none) and (pointer: coarse) {
+  .historyDelBtn {
+    opacity: 1;
+    width: 30px;
+    height: 30px;
+    color: var(--soft);
+    background: rgba(204, 0, 0, 0.06);
+  }
+  .historyDelBtn:active {
+    background: rgba(204, 0, 0, 0.18);
+    color: var(--blue);
+  }
+  .historyItem { padding: 11px 10px; }   /* tap target más cómodo */
+}
+
 .historyEmpty {
   padding: 30px 16px;
   text-align: center;
