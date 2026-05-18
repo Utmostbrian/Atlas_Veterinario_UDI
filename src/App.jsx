@@ -14,7 +14,7 @@ const DilutionCalculator = lazy(() => import('./components/calculator/DilutionCa
 const InteractionChecker = lazy(() => import('./components/interactions/InteractionChecker'))
 const DiseaseProtocols   = lazy(() => import('./components/diseases/DiseaseProtocols'))
 const Glossary           = lazy(() => import('./components/glossary/Glossary'))
-const ConsultationHistory= lazy(() => import('./components/audit/ConsultationHistory'))
+const AdminDashboard     = lazy(() => import('./components/admin/AdminDashboard'))
 const Prescription       = lazy(() => import('./components/prescription/Prescription'))
 
 // Tabs que no requieren sesión para interactuar
@@ -130,7 +130,7 @@ function AppContent() {
               {activeTab === 'enf'    && <DiseaseProtocols />}
               {activeTab === 'glos'   && <Glossary />}
               {activeTab === 'receta' && <Prescription />}
-              {activeTab === 'audit'  && isElevated && <ConsultationHistory />}
+              {activeTab === 'audit'  && isElevated && <AdminDashboard />}
             </LazyBoundary>
           )}
 

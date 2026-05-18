@@ -1,0 +1,329 @@
+/* ─── Header ─────────────────────────────────────────────────────────── */
+.dashHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dashTitle {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+
+.dashSub {
+  font-size: .85rem;
+  color: var(--soft);
+  margin: 0;
+}
+
+.dashControls {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+
+.periodSelect {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text);
+  font-size: .82rem;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+}
+
+/* ─── Tabs ───────────────────────────────────────────────────────────── */
+.tabs {
+  display: inline-flex;
+  background: var(--gl);
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+.tab {
+  background: none;
+  border: none;
+  padding: 6px 14px;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--soft);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab:hover  { color: var(--text); }
+.tabActive  { background: var(--white); color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* ─── KPI cards ──────────────────────────────────────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.kpiCard {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.kpiCard:hover {
+  border-color: rgba(0,0,0,.18);
+  box-shadow: 0 4px 16px rgba(0,0,0,.06);
+}
+
+.kpiIcon {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpiBody { min-width: 0; }
+
+.kpiValue {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpiLabel {
+  font-size: .76rem;
+  color: var(--soft);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin-top: 2px;
+}
+
+.kpiSub {
+  font-size: .72rem;
+  color: var(--gray);
+  margin-top: 2px;
+}
+
+/* ─── Section titles ─────────────────────────────────────────────────── */
+.sectionTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 8px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border);
+}
+
+/* ─── Charts grid ────────────────────────────────────────────────────── */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.chartCard {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chartHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.chartHead h3 {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+.chartHead span {
+  font-size: .72rem;
+  color: var(--gray);
+}
+
+.chartBody {
+  flex: 1;
+  min-height: 140px;
+}
+
+.chartEmpty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray);
+  font-size: .82rem;
+  text-align: center;
+  padding: 0 12px;
+}
+
+/* ─── Heatmap (24 horas) ────────────────────────────────────────────── */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  align-items: end;
+  height: 100%;
+  padding: 8px 0;
+}
+.heatmapCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.heatmapBlock {
+  width: 100%;
+  height: 56px;
+  border-radius: 4px;
+  transition: background .2s;
+}
+.heatmapLabel {
+  font-size: 9px;
+  color: var(--gray);
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+/* ─── Security card (failed logins) ─────────────────────────────────── */
+.securityCard {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.securityHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.securityHead h3 {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+.securityHead span {
+  font-size: .72rem;
+  color: var(--gray);
+}
+
+.securityMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0 4px;
+}
+.securityNumber {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #CC0000;
+  line-height: 1;
+}
+.securityCaption {
+  font-size: .8rem;
+  color: var(--soft);
+}
+
+.securityWarn {
+  background: rgba(217, 119, 6, .08);
+  border: 1px solid rgba(217, 119, 6, .25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: .8rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+.securityWarn strong { color: #78350f; display: block; margin-bottom: 4px; }
+.securityWarn p      { margin: 0 0 4px; }
+.securityWarn code   { background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+.securityWarn small  { color: #6b3a0a; font-size: .72rem; }
+
+.securityList {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.securityList li {
+  display: flex;
+  justify-content: space-between;
+  font-size: .78rem;
+  padding: 6px 8px;
+  background: var(--gl);
+  border-radius: 6px;
+}
+.securityList strong { color: var(--text); font-weight: 600; }
+.securityList span   { color: var(--gray); }
+
+/* ─── Error banner ──────────────────────────────────────────────────── */
+.errorBanner {
+  background: rgba(204, 0, 0, .08);
+  border: 1px solid rgba(204, 0, 0, .25);
+  color: #991b1b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: .85rem;
+  margin-bottom: 16px;
+}
+
+/* ─── Dark mode ─────────────────────────────────────────────────────── */
+:global(.dark) .kpiCard,
+:global(.dark) .chartCard,
+:global(.dark) .securityCard,
+:global(.dark) .periodSelect {
+  background: #1e293b;
+  border-color: #334155;
+}
+:global(.dark) .kpiValue,
+:global(.dark) .chartHead h3,
+:global(.dark) .securityHead h3,
+:global(.dark) .sectionTitle,
+:global(.dark) .dashTitle { color: #f1f5f9; }
+:global(.dark) .kpiLabel,
+:global(.dark) .securityCaption { color: #94a3b8; }
+:global(.dark) .tab            { color: #94a3b8; }
+:global(.dark) .tabs           { background: #0f172a; border-color: #334155; }
+:global(.dark) .tabActive      { background: #1e293b; color: #93c5fd; }
+:global(.dark) .securityList li { background: #0f172a; }
+:global(.dark) .securityList strong { color: #e2e8f0; }
+:global(.dark) .heatmapLabel    { color: #94a3b8; }
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .dashTitle { font-size: 1.2rem; }
+  .kpiValue  { font-size: 1.25rem; }
+  .heatmap   { grid-template-columns: repeat(12, 1fr); }
+  .heatmap   .heatmapCell:nth-child(odd) .heatmapLabel { visibility: hidden; }
+}

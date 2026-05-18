@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getHistory, getStats, exportToCsv, clearHistory } from '../../services/auditService'
-import { SearchIcon, FileTextIcon, CalculatorIcon, CheckSquareIcon, SparklesIcon, FileEditIcon, ZapIcon, SyringeIcon } from '../../Icons/Icons'
+import { getHistory, exportToCsv, clearHistory } from '../../services/auditService'
+import { SearchIcon, FileTextIcon, CalculatorIcon, CheckSquareIcon, SparklesIcon, FileEditIcon, ZapIcon } from '../../Icons/Icons'
 import ConfirmDialog from '../ui/ConfirmDialog'
 
 const EVENT_META = {
@@ -12,23 +12,8 @@ const EVENT_META = {
   INTERACTION_CHECK: { label: 'Interacciones',    color: '#d97706', Icon: ZapIcon         },
 }
 
-function StatCard({ Icon, label, value, color }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-ico" style={{ background: `${color}1a`, color }}>
-        <Icon size={18} />
-      </div>
-      <div>
-        <div className="stat-val">{value}</div>
-        <div className="stat-lbl">{label}</div>
-      </div>
-    </div>
-  )
-}
-
 export default function ConsultationHistory() {
   const [items,       setItems]       = useState([])
-  const [stats,       setStats]       = useState(null)
   const [filterType,  setFilterType]  = useState('')
   const [search,      setSearch]      = useState('')
   const [page,        setPage]        = useState(0)
@@ -47,19 +32,6 @@ export default function ConsultationHistory() {
   }, [page, filterType, search])
 
   useEffect(() => { load() }, [load])
-
-  // C-03: getStats is async — must await; also normalize snake_case → camelCase
-  useEffect(() => {
-    getStats().then(data => {
-      if (!data) return
-      setStats({
-        total:        data.total        ?? 0,
-        today:        data.today        ?? 0,
-        byType:       data.by_type      ?? data.byType      ?? {},
-        mostSearched: data.top_drugs?.[0]?.drug_name ?? data.mostSearched ?? null,
-      })
-    }).catch(() => setStats(null))
-  }, [items])
 
   // B-01: clamp page to valid range when total changes (e.g. filter reduces results)
   useEffect(() => {
@@ -85,7 +57,7 @@ export default function ConsultationHistory() {
         alert(`No se pudo limpiar el historial: ${res.error}`)
         return
       }
-      setItems([]); setTotal(0); setStats(null)
+      setItems([]); setTotal(0)
       setConfirmOpen(false)
     } finally {
       setClearing(false)
@@ -97,17 +69,16 @@ export default function ConsultationHistory() {
   }
 
   return (
-    <div className="wrap">
+    <div>
       {/* ── Header ── */}
       <div className="hist-hdr">
         <div>
           <h2>
             <FileTextIcon size={22} style={{ color: 'var(--blue)' }} />
-            Historial de Consultas
+            Log de Eventos
           </h2>
           <p>
-            Módulo de Auditoría — registro de todas las acciones del sistema.
-            <span className="sp-badge">Listo para Procedimientos Almacenados</span>
+            Registro detallado de todas las acciones del sistema. Filtra por tipo o por texto.
           </p>
         </div>
         <div className="hist-acts">
@@ -119,19 +90,6 @@ export default function ConsultationHistory() {
           </button>
         </div>
       </div>
-
-      {/* ── Stats ── */}
-      {stats && (
-        <div className="stat-row">
-          <StatCard Icon={FileTextIcon}  label="Total registros" value={stats.total}                        color="#003087" />
-          <StatCard Icon={FileTextIcon}  label="Hoy"             value={stats.today}                        color="#16a34a" />
-          <StatCard Icon={SearchIcon}    label="Búsquedas"       value={stats.byType?.DRUG_SEARCH || 0}     color="#d97706" />
-          <StatCard Icon={SparklesIcon}  label="Consultas IA"    value={stats.byType?.AI_CONSULTATION || 0} color="#CC0000" />
-          {stats.mostSearched && (
-            <StatCard Icon={SyringeIcon} label="Más buscado"     value={stats.mostSearched}                 color="#7c3aed" />
-          )}
-        </div>
-      )}
 
       {/* ── Filters ── */}
       <div className="hist-filters">
@@ -223,19 +181,6 @@ export default function ConsultationHistory() {
         onConfirm={confirmClear}
         onCancel={() => { if (!clearing) setConfirmOpen(false) }}
       />
-
-      {/* ── SP Info box ── */}
-      <div className="sp-box">
-        <h4>Arquitectura para Procedimientos Almacenados</h4>
-        <p>
-          Este módulo está preparado para conectarse a un backend. Cada evento llama a{' '}
-          <code>auditService.logEvent()</code> que invoca <code>POST /api/audit/log</code>,
-          donde el servidor ejecuta <code>EXEC sp_InsertAuditLog</code>.
-        </p>
-        <div className="sp-code">
-          {`-- SQL Server ejemplo\nEXEC sp_InsertAuditLog\n  @EventType   = 'DOSE_CALCULATED',\n  @DrugName    = 'Amoxicilina',\n  @Species     = 'Perro',\n  @Weight      = 25.0,\n  @TotalDose   = 275.00,\n  @UserId      = NULL,\n  @Timestamp   = GETDATE()`}
-        </div>
-      </div>
     </div>
   )
 }

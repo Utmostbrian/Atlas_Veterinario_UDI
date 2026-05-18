@@ -163,7 +163,21 @@ export async function getStats({ days = 30 } = {}) {
       top_drugs:  getTopDrugsLocal(log),
       by_hour:    [],
       by_species: {},
+      by_role:    {},
+      by_day:     [],
     }
+  }
+}
+
+// ── Intentos de login fallidos (módulo de seguridad) ────────────────────────
+export async function getFailedLogins({ days = 7, limit = 100 } = {}) {
+  try {
+    const { data, error } = await supabase.rpc('sp_get_failed_logins', { p_days: days, p_limit: limit })
+    if (error) throw error
+    return data ?? { available: false, total: 0, recent: [] }
+  } catch (err) {
+    console.warn('[audit] getFailedLogins failed:', err?.message ?? err)
+    return { available: false, reason: err?.message ?? 'unavailable', total: 0, recent: [] }
   }
 }
 
