@@ -1,0 +1,232 @@
+/* ─── Backdrop ─────────────────────────────────────────────────────── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(10, 18, 32, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: backdropIn .18s ease-out;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Card (desktop centered) ──────────────────────────────────────── */
+.card {
+  position: relative;
+  background: var(--cream, #F8F5F0);
+  border: 1px solid var(--border, #D1D5DB);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 26px 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  font-family: 'Source Sans 3', sans-serif;
+  animation: cardIn .22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Handle decorativo — solo se ve en mobile (action-sheet) */
+.handle {
+  display: none;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border, #D1D5DB);
+  margin: 0 auto 14px;
+}
+
+/* ─── Icono superior ───────────────────────────────────────────────── */
+.iconWrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+.iconDestructive {
+  background: rgba(204, 0, 0, 0.10);
+  color: var(--blue, #CC0000);
+}
+.iconInfo {
+  background: rgba(0, 48, 135, 0.10);
+  color: #003087;
+}
+
+/* ─── Tipografía ───────────────────────────────────────────────────── */
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dark, #111827);
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.message {
+  font-size: 0.92rem;
+  color: var(--soft, #4B5563);
+  line-height: 1.55;
+  margin-bottom: 22px;
+  max-width: 340px;
+}
+
+/* ─── Botones ──────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.btnPrimary,
+.btnSecondary {
+  flex: 1;
+  min-width: 110px;
+  padding: 11px 20px;
+  border-radius: 9px;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s, transform .12s, border-color .15s, opacity .15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--soft, #4B5563);
+  border: 1px solid var(--border, #D1D5DB);
+}
+.btnSecondary:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--dark, #111827);
+}
+
+.btnPrimary {
+  background: #003087;
+  color: #fff;
+  border: 1px solid transparent;
+}
+.btnPrimary:hover:not(:disabled) {
+  background: #002566;
+}
+
+.btnDestructive {
+  background: var(--blue, #CC0000);
+}
+.btnDestructive:hover:not(:disabled) {
+  background: var(--blue-mid, #AA0000);
+}
+
+.btnPrimary:active:not(:disabled),
+.btnSecondary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btnPrimary:disabled,
+.btnSecondary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btnPrimary:focus-visible,
+.btnSecondary:focus-visible {
+  outline: 2px solid rgba(204, 0, 0, 0.45);
+  outline-offset: 2px;
+}
+
+.btnLoading { display: inline-flex; align-items: center; gap: 8px; }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Dark mode ────────────────────────────────────────────────────── */
+:global(.dark) .card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+:global(.dark) .title  { color: #f1f5f9; }
+:global(.dark) .message { color: #94a3b8; }
+:global(.dark) .btnSecondary {
+  color: #cbd5e1;
+  border-color: #334155;
+}
+:global(.dark) .btnSecondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+}
+:global(.dark) .handle { background: #475569; }
+:global(.dark) .iconDestructive { background: rgba(204, 0, 0, 0.22); }
+:global(.dark) .iconInfo        { background: rgba(96, 165, 250, 0.18); color: #93c5fd; }
+
+/* ─── Mobile: action sheet desde abajo ─────────────────────────────── */
+@media (max-width: 480px) {
+  .backdrop {
+    align-items: flex-end;
+    padding: 0;
+    animation: backdropInMobile .2s ease-out;
+  }
+  .card {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 22px 22px 0 0;
+    border-bottom: none;
+    padding: 16px 22px 28px;
+    animation: cardInMobile .26s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .handle { display: block; }
+  .iconWrap { width: 48px; height: 48px; margin-bottom: 10px; }
+  .title    { font-size: 1.15rem; }
+  .actions  { flex-direction: column-reverse; gap: 8px; }
+  .btnPrimary, .btnSecondary {
+    width: 100%;
+    padding: 13px 20px;
+    font-size: 0.92rem;
+  }
+}
+
+@keyframes backdropInMobile {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes cardInMobile {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop, .card { animation: none; }
+}

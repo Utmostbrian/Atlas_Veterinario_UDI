@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getHistory, getStats, exportToCsv, clearHistory } from '../../services/auditService'
 import { SearchIcon, FileTextIcon, CalculatorIcon, CheckSquareIcon, SparklesIcon, FileEditIcon, ZapIcon, SyringeIcon } from '../../Icons/Icons'
+import ConfirmDialog from '../ui/ConfirmDialog'
 
 const EVENT_META = {
   DRUG_SEARCH:       { label: 'Búsqueda',        color: '#003087', Icon: SearchIcon      },
@@ -33,6 +34,8 @@ export default function ConsultationHistory() {
   const [page,        setPage]        = useState(0)
   const [total,       setTotal]       = useState(0)
   const [loading,     setLoading]     = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [clearing,    setClearing]    = useState(false)
   const LIMIT = 15
 
   const load = useCallback(async () => {
@@ -67,13 +70,26 @@ export default function ConsultationHistory() {
     })
   }, [total])
 
-  async function handleClear() {
+  function handleClear() {
+    setConfirmOpen(true)
+  }
+
+  async function confirmClear() {
     // ConsultationHistory solo es visible para admin (tab gated en App.jsx),
     // así que scope='all' borra el historial completo.
-    if (!window.confirm('¿Borrar TODO el historial del sistema? Esta acción no se puede deshacer.')) return
-    const res = await clearHistory({ scope: 'all' })
-    if (!res.ok) { alert(`No se pudo limpiar el historial: ${res.error}`); return }
-    setItems([]); setTotal(0); setStats(null)
+    setClearing(true)
+    try {
+      const res = await clearHistory({ scope: 'all' })
+      if (!res.ok) {
+        setConfirmOpen(false)
+        alert(`No se pudo limpiar el historial: ${res.error}`)
+        return
+      }
+      setItems([]); setTotal(0); setStats(null)
+      setConfirmOpen(false)
+    } finally {
+      setClearing(false)
+    }
   }
 
   function formatDate(iso) {
@@ -195,6 +211,18 @@ export default function ConsultationHistory() {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Borrar todo el historial"
+        message="Se eliminarán TODOS los registros de auditoría del sistema (búsquedas, cálculos, recetas, consultas IA) de todos los usuarios. Esta acción no se puede deshacer."
+        confirmLabel="Borrar historial"
+        cancelLabel="Cancelar"
+        destructive
+        loading={clearing}
+        onConfirm={confirmClear}
+        onCancel={() => { if (!clearing) setConfirmOpen(false) }}
+      />
 
       {/* ── SP Info box ── */}
       <div className="sp-box">

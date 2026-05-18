@@ -4,6 +4,7 @@ import {
   listConversations,
   deleteConversation as deleteConv,
 } from '../../services/chatHistoryService'
+import ConfirmDialog from '../ui/ConfirmDialog'
 
 function timeAgo(iso) {
   if (!iso) return ''
@@ -30,6 +31,8 @@ export default function HistoryPanel({
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  // Modal de confirmación: { id, title } o null
+  const [confirmTarget, setConfirmTarget] = useState(null)
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -48,15 +51,24 @@ export default function HistoryPanel({
     if (open) fetchItems()
   }, [open, refreshKey, fetchItems])
 
-  async function handleDelete(e, id) {
+  // Click en el icono trash → abre el modal de confirmación custom
+  function requestDelete(e, item) {
     e.stopPropagation()
-    if (!window.confirm('¿Eliminar esta conversación? Esta acción no se puede deshacer.')) return
+    setConfirmTarget({ id: item.id, title: item.title })
+  }
+
+  // Confirmación del modal → ejecuta el borrado real
+  async function confirmDelete() {
+    if (!confirmTarget) return
+    const { id } = confirmTarget
     setDeletingId(id)
     try {
       await deleteConv(id)
       setItems((prev) => prev.filter((c) => c.id !== id))
       if (activeId === id) onNewConversation?.()
+      setConfirmTarget(null)
     } catch (err) {
+      setConfirmTarget(null)
       alert('No se pudo eliminar: ' + err.message)
     } finally {
       setDeletingId(null)
@@ -151,8 +163,8 @@ export default function HistoryPanel({
                   role="button"
                   tabIndex={0}
                   className={styles.historyDelBtn}
-                  onClick={(e) => handleDelete(e, c.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDelete(e, c.id) }}
+                  onClick={(e) => requestDelete(e, c)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') requestDelete(e, c) }}
                   aria-label="Eliminar conversación"
                   data-deleting={deletingId === c.id ? 'true' : 'false'}
                 >
@@ -167,6 +179,22 @@ export default function HistoryPanel({
           )
         })}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Eliminar conversación"
+        message={
+          confirmTarget
+            ? `Se eliminará "${confirmTarget.title}" y todos sus mensajes. Esta acción no se puede deshacer.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        destructive
+        loading={!!deletingId}
+        onConfirm={confirmDelete}
+        onCancel={() => { if (!deletingId) setConfirmTarget(null) }}
+      />
     </aside>
   )
 }
