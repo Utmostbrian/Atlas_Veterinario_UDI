@@ -153,7 +153,7 @@ npm run lint         # ESLint flat config
 
 | Rol | Acceso | Login |
 |-----|--------|-------|
-| **Estudiante** | Atlas, calculadoras, glosario, recetas, chat IA | Nombre + código de clase (cuenta compartida `estudiante@udi.edu.bo`) |
+| **Estudiante** | Atlas, calculadoras, glosario, recetas, chat IA | Nombre + código de clase |
 | **Admin** | Todo lo anterior + historial de auditoría con datos de todos los usuarios | Email institucional + password |
 
 El trigger `handle_new_user` siempre asigna rol `student` — promoción a admin solo vía SQL directo (anti-escalación).
@@ -175,4 +175,4 @@ Las dosis son **orientativas**. No reemplazan el juicio clínico profesional ni 
 
 ---
 
-*Facultad de Veterinaria — Universidad UDI, Bolivia · 2026*
+*Escuela de Informatica y Telecomunicaciones — Universidad UDI, Bolivia · 2026*
