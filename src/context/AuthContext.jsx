@@ -138,12 +138,21 @@ export function AuthProvider({ children }) {
         10000
       )
       if (error) {
-        // Registrar fallo en login_failures (best-effort, no bloquea UI)
-        supabase.rpc('log_login_failure', {
-          p_email:      email,
-          p_reason:     error.message?.slice(0, 200) ?? 'unknown',
-          p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-        }).catch(err => console.warn('[auth] log_login_failure falló:', err?.message ?? err))
+        // Registrar fallo en login_failures (best-effort, no bloquea UI).
+        // PostgrestBuilder es thenable pero NO expone .catch(); usamos un IIFE
+        // async para disparar la petición y atrapar fallos sin propagarlos.
+        ;(async () => {
+          try {
+            const { error: rpcErr } = await supabase.rpc('log_login_failure', {
+              p_email:      email,
+              p_reason:     error.message?.slice(0, 200) ?? 'unknown',
+              p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+            })
+            if (rpcErr) console.warn('[auth] log_login_failure RPC error:', rpcErr.message)
+          } catch (e) {
+            console.warn('[auth] log_login_failure threw:', e?.message ?? e)
+          }
+        })()
         return { ok: false, error: friendlyError(error.message) }
       }
       return { ok: true }
