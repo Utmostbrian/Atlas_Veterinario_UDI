@@ -11,7 +11,7 @@
 import { supabase } from '../lib/supabase'
 import { cleanEnv } from '../lib/envUtils'
 
-const MODELS     = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
+const MODELS = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
 const MAX_TOKENS = 1500
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.
@@ -51,7 +51,7 @@ function getProxyUrl() {
 // ── Llamada al proxy con fallback a modelos múltiples ────────────────────────
 async function fetchViaProxy(body, signal) {
   const proxyUrl = getProxyUrl()
-  const token    = await getSessionToken()
+  const token = await getSessionToken()
 
   if (!proxyUrl || !token) {
     // Modo desarrollo: llamada directa (solo si hay VITE_ANTHROPIC_API_KEY)
@@ -63,12 +63,12 @@ async function fetchViaProxy(body, signal) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
 
     const response = await fetch(proxyUrl, {
-      method:  'POST',
+      method: 'POST',
       headers: {
-        'Content-Type':  'application/json',
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body:    JSON.stringify({ ...body, model }),
+      body: JSON.stringify({ ...body, model }),
       signal,
     })
 
@@ -105,14 +105,14 @@ async function fetchDirect(body, signal) {
   for (const model of MODELS) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method:  'POST',
+      method: 'POST',
       headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         apiKey,
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
       },
-      body:    JSON.stringify({ ...body, model }),
+      body: JSON.stringify({ ...body, model }),
       signal,
     })
     if (response.status === 529 || response.status === 503 || response.status === 429) {
@@ -130,10 +130,10 @@ async function fetchDirect(body, signal) {
 
 // ── Streaming SSE ─────────────────────────────────────────────────────────────
 async function handleStreaming(response, onChunk) {
-  const reader  = response.body.getReader()
+  const reader = response.body.getReader()
   const decoder = new TextDecoder()
-  let fullText  = ''
-  let buffer    = ''
+  let fullText = ''
+  let buffer = ''
 
   while (true) {
     const { done, value } = await reader.read()
@@ -181,7 +181,7 @@ function buildMessages(history, userText, imageData) {
  */
 export async function sendMessage({ history, userText, imageData, onChunk, signal }) {
   const messages = buildMessages(history, userText, imageData)
-  const body     = { max_tokens: MAX_TOKENS, system: SYSTEM_PROMPT, messages, stream: !!onChunk }
+  const body = { max_tokens: MAX_TOKENS, system: SYSTEM_PROMPT, messages, stream: !!onChunk }
   const response = await fetchViaProxy(body, signal)
   if (onChunk) return handleStreaming(response, onChunk)
   const data = await response.json()
@@ -210,13 +210,13 @@ Evalúa:
 Responde con: [SEGURA] / [REVISAR] / [PELIGROSA] y justificación. No uses emojis.`
 
   const response = await fetchViaProxy({ max_tokens: 600, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
-  const data     = await response.json()
+  const data = await response.json()
   return data.content?.[0]?.text ?? ''
 }
 
 export async function checkInteractions(drugs) {
   const drugList = drugs.join(', ')
-  const prompt   = `Analiza las interacciones farmacológicas entre: ${drugList}.
+  const prompt = `Analiza las interacciones farmacológicas entre: ${drugList}.
 
 Para cada par o combinación:
 - Describe el tipo de interacción (sinergismo, antagonismo, toxicidad aditiva)
@@ -227,7 +227,7 @@ Para cada par o combinación:
 Indica cuáles combinaciones son seguras para uso veterinario conjunto.`
 
   const response = await fetchViaProxy({ max_tokens: 1000, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
-  const data     = await response.json()
+  const data = await response.json()
   return data.content?.[0]?.text ?? ''
 }
 
@@ -259,10 +259,10 @@ Si ES un fármaco veterinario real, devuelve:
 
   const response = await fetchViaProxy({
     max_tokens: 900,
-    system:     'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido.',
-    messages:   [{ role: 'user', content: prompt }],
+    system: 'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido.',
+    messages: [{ role: 'user', content: prompt }],
   })
-  const data    = await response.json()
+  const data = await response.json()
   const rawText = data.content?.[0]?.text ?? ''
 
   let jsonStr = rawText
@@ -276,7 +276,7 @@ Si ES un fármaco veterinario real, devuelve:
 
   if (!parsed.esFarmacoReal) return null
 
-  const VALID_ROUTES  = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario']
+  const VALID_ROUTES = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario']
   const VALID_SPECIES = ['Perro', 'Gato', 'Bovino', 'Equino', 'Ovino', 'Porcino', 'Ave']
 
   const allowedRoutes = (parsed.allowedRoutes ?? []).filter(r => VALID_ROUTES.includes(r))
@@ -292,14 +292,51 @@ Si ES un fármaco veterinario real, devuelve:
   }
 
   return {
-    name:                   parsed.name || drug,
-    doseUnit:               parsed.doseUnit || 'mg/kg',
+    name: parsed.name || drug,
+    doseUnit: parsed.doseUnit || 'mg/kg',
     dosageRange,
     species,
     allowedRoutes,
     standardConcentrations: (parsed.standardConcentrations ?? []).filter(n => typeof n === 'number'),
-    note:                   parsed.note ?? null,
+    note: parsed.note ?? null,
   }
+}
+
+/**
+ * Búsqueda con motor dual (RAG Plumb's + Tool Calling Merck).
+ * Solo disponible cuando el usuario tiene sesión activa (proxy requiere JWT).
+ *
+ * @param {{ query: string, mode?: 'drug'|'disease', messages: Array, maxTokens?: number }} params
+ * @returns {Promise<{ _sources: string[], _text: string, content: Array }|null>}
+ *   null si no hay proxy/token (el caller debe hacer fallback al modo normal).
+ */
+export async function searchDualEngine({ query, mode = 'drug', messages, maxTokens = 2000 }) {
+  const proxyUrl = getProxyUrl()
+  const token    = await getSessionToken()
+  if (!proxyUrl || !token) return null
+
+  const response = await fetch(proxyUrl, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      dual_engine:  true,
+      search_query: query,
+      search_mode:  mode,
+      messages,
+      max_tokens:   maxTokens,
+    }),
+  })
+
+  if (response.status === 401) throw new Error('Sesión expirada. Inicia sesión de nuevo.')
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err?.error || `Error HTTP ${response.status}`)
+  }
+
+  return response.json()
 }
 
 export async function compareDrugs(drug1, drug2) {
@@ -320,6 +357,6 @@ Incluye tabla comparativa con:
 Conclusión: ¿Cuándo elegir uno u otro?`
 
   const response = await fetchViaProxy({ max_tokens: 1200, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
-  const data     = await response.json()
+  const data = await response.json()
   return data.content?.[0]?.text ?? ''
 }

@@ -142,6 +142,47 @@ export function findCatalogSuggestion(term, catalogNames) {
   return bestName
 }
 
+/**
+ * Verifica match exacto (insensible a mayúsculas/acentos) contra una lista.
+ */
+export function isExactInDictionary(term, names) {
+  const q = normalizeTerm(term)
+  return names.some(name => normalizeTerm(name) === q)
+}
+
+/**
+ * Verifica si el término encaja con algún patrón de sufijo dado.
+ * Los patrones son regex con $ al final.
+ */
+export function matchesAnyPattern(term, patterns) {
+  const q = term.trim()
+  return patterns.some(p => p.test(q))
+}
+
+/**
+ * Decide si un término es plausible para ser consultado por IA.
+ *
+ * Reglas: pasa si CUALQUIERA de estas es verdadera:
+ *   1) Match exacto en diccionario extendido (es un nombre conocido)
+ *   2) Encaja con un patrón farmacéutico/médico típico (sufijo DCI/clínico)
+ *
+ * Si ninguna se cumple → falsa: la consulta IA se bloquea.
+ *
+ * @param {string} term
+ * @param {string[]} dictionary    Lista extendida (EXTENDED_DRUG_NAMES o EXTENDED_DISEASE_NAMES)
+ * @param {RegExp[]} patterns      Lista de sufijos típicos
+ * @returns {{ allowed: boolean, reason: 'exact'|'pattern'|null }}
+ */
+export function isAISearchAllowed(term, dictionary, patterns) {
+  if (isExactInDictionary(term, dictionary)) {
+    return { allowed: true, reason: 'exact' }
+  }
+  if (matchesAnyPattern(term, patterns)) {
+    return { allowed: true, reason: 'pattern' }
+  }
+  return { allowed: false, reason: null }
+}
+
 // ── Rate limit cliente ──────────────────────────────────────────────────────
 const RATE_LIMIT_MAX    = 5
 const RATE_LIMIT_WINDOW = 60_000

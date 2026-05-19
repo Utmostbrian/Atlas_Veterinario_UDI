@@ -1,4 +1,4 @@
-import { sendMessage } from '../services/anthropicService'
+import { sendMessage, searchDualEngine } from '../services/anthropicService'
 import { DRUGS } from '../data/drugs'
 import { jsonrepair } from 'jsonrepair'
 
@@ -45,8 +45,28 @@ function safeParseJSON(str) {
 }
 
 export async function searchDrugWithAI(name) {
+  const messages = [{ role: 'user', content: buildDrugPrompt(name) }]
+
   try {
-    const text = await sendMessage({ history: [], userText: buildDrugPrompt(name) })
+    // Motor dual: RAG (Plumb's) + Tool Calling (Merck) — el proxy decide qué fuentes usar
+    const dualResult = await searchDualEngine({ query: name, mode: 'drug', messages, maxTokens: 2000 })
+
+    if (dualResult) {
+      const rawText = dualResult._text || dualResult.content?.[0]?.text || ''
+      const match   = rawText.match(/\{[\s\S]*\}/)
+      if (!match) return { encontrado: false, mensaje: 'La IA no devolvió una respuesta estructurada.' }
+      const parsed  = safeParseJSON(match[0])
+      // Añadir las fuentes usadas al resultado (para los badges de UI)
+      return { ...parsed, _sources: dualResult._sources ?? [] }
+    }
+  } catch (e) {
+    // Si el dual engine falla (sin sesión, proxy caído), fallback al modo simple
+    console.warn('[atlas] Dual engine failed, falling back:', e.message)
+  }
+
+  // Fallback: búsqueda simple sin RAG ni tool calling
+  try {
+    const text  = await sendMessage({ history: [], userText: buildDrugPrompt(name) })
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) return { encontrado: false, mensaje: 'La IA no devolvió una respuesta estructurada.' }
     return safeParseJSON(match[0])
@@ -58,13 +78,13 @@ export async function searchDrugWithAI(name) {
 export async function validateDrugWithAI(name) {
   const prompt = `¿Es "${name}" un fármaco, medicamento o principio activo real (veterinario o humano)? Responde ÚNICAMENTE con JSON sin texto extra:\n{"esFarmaco": true}\no\n{"esFarmaco": false}`
   try {
-    const text = await sendMessage({ history: [], userText: prompt })
+    const text  = await sendMessage({ history: [], userText: prompt })
     const match = text.match(/\{[\s\S]*?\}/)
     if (!match) return { esFarmaco: false }
     const parsed = safeParseJSON(match[0])
     return { esFarmaco: !!parsed.esFarmaco }
   } catch {
-    return { esFarmaco: true } // si falla la IA, no bloqueamos al usuario
+    return { esFarmaco: true }
   }
 }
 

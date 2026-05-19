@@ -7,12 +7,12 @@ import { searchDrugWithAI, relatedDrugs } from '../../modules/atlas'
 const STRIPE_CLASS = { AB: 'ab', AP: 'ap', AI: 'ai', AN: 'an', AF: 'af', HO: 'ho' }
 
 export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired }) {
-  const [expanded,  setExpanded]  = useState(false)
-  const [aiData,    setAiData]    = useState(null)
+  const [expanded, setExpanded] = useState(false)
+  const [aiData, setAiData] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const panelRef = useRef(null)
 
-  const cat    = CATEGORY_MAP[drug.category] || {}
+  const cat = CATEGORY_MAP[drug.category] || {}
   const stripe = STRIPE_CLASS[drug.category] || 'ab'
 
   async function handleExpand() {
@@ -85,6 +85,16 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
               <span className="aitag">{drug.routes}</span>
               <span className="aitag">{drug.species}</span>
               {aiData?.encontrado && <span className="aitag ia">✦ IA</span>}
+              {aiData?._sources?.includes('vademecum') && (
+                <span className="aitag" style={{ background: 'var(--green,#16a34a)', color: '#fff' }}>
+                  ✓ Vademécum Plumb&apos;s
+                </span>
+              )}
+              {aiData?._sources?.includes('merck') && (
+                <span className="aitag" style={{ background: 'var(--blue,#1e40af)', color: '#fff' }}>
+                  ✓ Merck Vet Manual
+                </span>
+              )}
             </div>
           </div>
 

@@ -7,11 +7,14 @@ import AIDiseaseResult from './AIDiseaseResult'
 import {
   validateAISearchInput, consumeClientRateLimit,
   getCachedAIResult, setCachedAIResult, findCatalogSuggestion,
+  isAISearchAllowed,
 } from '../../modules/aiSearch'
+import { EXTENDED_DISEASE_NAMES, DISEASE_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
 import { logAiConsultation } from '../../services/auditService'
 
-const SEVERITY_COLOR = { 'Muy Alta': '#CC0000', Alta: '#d97706', Media: '#003087' }
-const DISEASE_NAMES  = DISEASES.map(d => d.name)
+const SEVERITY_COLOR  = { 'Muy Alta': '#CC0000', Alta: '#d97706', Media: '#003087' }
+const CATALOG_NAMES   = DISEASES.map(d => d.name)
+const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DISEASE_NAMES])]
 
 export default function DiseaseProtocols({ onLoginRequired }) {
   const { user } = useAuth()
@@ -97,10 +100,21 @@ export default function DiseaseProtocols({ onLoginRequired }) {
 
   const trimmedQuery = query.trim()
   const canSearchAI  = trimmedQuery.length >= 3
-  const catalogSuggestion = useMemo(() => {
+
+  // Capa 1: coincidencia aproximada (Levenshtein) contra catálogo + diccionario extendido
+  const fuzzySuggestion = useMemo(() => {
     if (filtered.length > 0 || !canSearchAI) return null
-    return findCatalogSuggestion(trimmedQuery, DISEASE_NAMES)
+    const name = findCatalogSuggestion(trimmedQuery, FUZZY_DICTIONARY)
+    if (!name) return null
+    const inCatalog = CATALOG_NAMES.some(n => n.toLowerCase() === name.toLowerCase())
+    return { name, inCatalog }
   }, [trimmedQuery, canSearchAI, filtered.length])
+
+  // Capa 2: gate de IA — solo se muestra el botón si el término es reconocible
+  const aiGate = useMemo(() => {
+    if (fuzzySuggestion || !canSearchAI || filtered.length > 0) return null
+    return isAISearchAllowed(trimmedQuery, EXTENDED_DISEASE_NAMES, DISEASE_SUFFIX_PATTERNS)
+  }, [trimmedQuery, canSearchAI, filtered.length, fuzzySuggestion])
 
   return (
     <div className="wrap">
@@ -138,52 +152,78 @@ export default function DiseaseProtocols({ onLoginRequired }) {
           <h3>Sin resultados en el catálogo</h3>
           <p>No se encontró la enfermedad <strong>"{query}"</strong> en la base local.</p>
 
-          {catalogSuggestion ? (
+          {fuzzySuggestion ? (
+            /* Typo detectado — no se consumen tokens */
             <>
               <p style={{ marginTop: 10, fontSize: '.92rem' }}>
-                ¿Quisiste decir <strong>{catalogSuggestion}</strong>?
+                ¿Quisiste decir <strong>{fuzzySuggestion.name}</strong>?
               </p>
               <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button
                   className="btnp"
-                  onClick={() => handleQueryChange(catalogSuggestion)}
+                  onClick={() => handleQueryChange(fuzzySuggestion.name)}
                   style={{ width: 'auto', padding: '10px 22px', background: 'var(--blue)', color: '#fff' }}
                 >
-                  Sí, buscar {catalogSuggestion}
+                  Sí, buscar {fuzzySuggestion.name}
                 </button>
                 <button
                   className="btnp"
-                  onClick={handleAISearch}
-                  disabled={aiLoading}
-                  style={{
-                    width: 'auto', padding: '10px 22px',
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    background: 'var(--gray-light)',
-                  }}
+                  onClick={() => handleQueryChange('')}
+                  style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
                 >
-                  <SparklesIcon size={15} />
-                  {aiLoading ? 'Consultando...' : `No, buscar "${trimmedQuery}" con IA`}
+                  No, limpiar búsqueda
                 </button>
               </div>
             </>
-          ) : canSearchAI ? (
-            <button
-              className="btnp"
-              onClick={handleAISearch}
-              disabled={aiLoading}
-              style={{
-                marginTop: 14, width: 'auto', padding: '10px 22px',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'var(--blue)', color: '#fff',
-              }}
-            >
-              <SparklesIcon size={15} />
-              {aiLoading ? 'Consultando IA...' : `Buscar "${trimmedQuery}" con IA`}
-            </button>
-          ) : (
+
+          ) : !canSearchAI ? (
             <p style={{ marginTop: 10, fontSize: '.82rem', color: 'var(--soft)' }}>
               Escribe al menos 3 caracteres para buscar con IA.
             </p>
+
+          ) : aiGate?.allowed ? (
+            /* El término pasa el gate — mostrar botón de búsqueda IA */
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                className="btnp"
+                onClick={handleAISearch}
+                disabled={aiLoading}
+                style={{
+                  width: 'auto', padding: '10px 22px',
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: 'var(--blue)', color: '#fff',
+                }}
+              >
+                <SparklesIcon size={15} />
+                {aiLoading ? 'Consultando IA...' : `Buscar "${trimmedQuery}" con IA`}
+              </button>
+              <button
+                className="btnp"
+                onClick={() => handleQueryChange('')}
+                style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
+              >
+                Ver todas las enfermedades
+              </button>
+            </div>
+
+          ) : (
+            /* No reconocido — bloqueo duro sin consumir tokens */
+            <div style={{ marginTop: 12 }}>
+              <div className="abox rr" style={{ display: 'inline-block', textAlign: 'left', maxWidth: 480 }}>
+                <p style={{ fontSize: '.86rem', margin: 0 }}>
+                  <strong>"{trimmedQuery}"</strong> no parece una enfermedad reconocida. Verifica la ortografía o usa el nombre clínico correcto (ej. <em>Parvovirosis</em>, <em>Leptospirosis</em>, <em>Moquillo</em>).
+                </p>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <button
+                  className="btnp"
+                  onClick={() => handleQueryChange('')}
+                  style={{ width: 'auto', padding: '9px 22px', background: 'var(--gray-light)' }}
+                >
+                  Ver todas las enfermedades
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -253,6 +293,16 @@ function DiseaseCard({ disease }) {
             <div className="aitags">
               <span className="aitag">{disease.severity}</span>
               {aiData?.status === 'ok' && <span className="aitag ia">✦ IA</span>}
+              {aiData?._sources?.includes('vademecum') && (
+                <span className="aitag" style={{ background: 'var(--green,#16a34a)', color: '#fff' }}>
+                  ✓ Vademécum Plumb&apos;s
+                </span>
+              )}
+              {aiData?._sources?.includes('merck') && (
+                <span className="aitag" style={{ background: 'var(--blue,#1e40af)', color: '#fff' }}>
+                  ✓ Merck Vet Manual
+                </span>
+              )}
             </div>
           </div>
 

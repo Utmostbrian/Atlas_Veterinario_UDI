@@ -9,10 +9,13 @@ import { searchDrugWithAI } from '../../modules/atlas'
 import {
   validateAISearchInput, consumeClientRateLimit,
   getCachedAIResult, setCachedAIResult, findCatalogSuggestion,
+  isAISearchAllowed, isExactInDictionary,
 } from '../../modules/aiSearch'
+import { EXTENDED_DRUG_NAMES, DRUG_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
 import { logAiConsultation } from '../../services/auditService'
 
-const DRUG_NAMES = DRUGS.flatMap(d => [d.name, d.latin]).filter(Boolean)
+const CATALOG_NAMES   = DRUGS.flatMap(d => [d.name, d.latin]).filter(Boolean)
+const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DRUG_NAMES])]
 
 export default function DrugGrid({ onChatOpen, onLoginRequired }) {
   const { user } = useAuth()
@@ -121,12 +124,22 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
 
   const trimmedQuery = query.trim()
   const canSearchAI  = trimmedQuery.length >= 3
-  // Antes de gastar tokens IA, intentamos hallar un parecido en el catálogo.
-  // Solo aplica cuando el grid está vacío (typo que no matchea start-of-name).
-  const catalogSuggestion = useMemo(() => {
+
+  // Capa 1: fuzzy match contra catálogo + diccionario extendido (typo detection).
+  const fuzzySuggestion = useMemo(() => {
     if (filtered.length > 0 || !canSearchAI) return null
-    return findCatalogSuggestion(trimmedQuery, DRUG_NAMES)
+    const name = findCatalogSuggestion(trimmedQuery, FUZZY_DICTIONARY)
+    if (!name) return null
+    const inCatalog = CATALOG_NAMES.some(n => n.toLowerCase() === name.toLowerCase())
+    return { name, inCatalog }
   }, [trimmedQuery, canSearchAI, filtered.length])
+
+  // Capa 2: si no hay sugerencia, validar que el término encaje con un nombre
+  // conocido del diccionario o con un patrón farmacéutico típico. Si no, bloquear.
+  const aiGate = useMemo(() => {
+    if (fuzzySuggestion || !canSearchAI || filtered.length > 0) return null
+    return isAISearchAllowed(trimmedQuery, EXTENDED_DRUG_NAMES, DRUG_SUFFIX_PATTERNS)
+  }, [trimmedQuery, canSearchAI, filtered.length, fuzzySuggestion])
 
   return (
     <div className="wrap">
@@ -232,36 +245,37 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
               <h3>Sin resultados en el catálogo</h3>
               <p>No se encontraron fármacos para <strong>"{query}"</strong> en la base local.</p>
 
-              {catalogSuggestion ? (
-                /* Hay un parecido en el catálogo: sugerencia local SIN consumir tokens IA */
+              {fuzzySuggestion ? (
+                /* Typo detectado contra catálogo o diccionario extendido — sin tokens */
                 <>
                   <p style={{ marginTop: 10, fontSize: '.92rem' }}>
-                    ¿Quisiste decir <strong>{catalogSuggestion}</strong>?
+                    ¿Quisiste decir <strong>{fuzzySuggestion.name}</strong>?
                   </p>
                   <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button
                       className="btnp"
-                      onClick={() => handleQueryChange(catalogSuggestion)}
+                      onClick={() => handleQueryChange(fuzzySuggestion.name)}
                       style={{ width: 'auto', padding: '10px 22px', background: 'var(--blue)', color: '#fff' }}
                     >
-                      Sí, buscar {catalogSuggestion}
+                      Sí, buscar {fuzzySuggestion.name}
                     </button>
                     <button
                       className="btnp"
-                      onClick={handleAISearch}
-                      disabled={aiLoading}
-                      style={{
-                        width: 'auto', padding: '10px 22px',
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        background: 'var(--gray-light)',
-                      }}
+                      onClick={() => handleQueryChange('')}
+                      style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
                     >
-                      <SparklesIcon size={15} />
-                      {aiLoading ? 'Consultando...' : `No, buscar "${trimmedQuery}" con IA`}
+                      No, limpiar búsqueda
                     </button>
                   </div>
                 </>
-              ) : canSearchAI ? (
+
+              ) : !canSearchAI ? (
+                <p style={{ marginTop: 10, fontSize: '.82rem', color: 'var(--soft)' }}>
+                  Escribe al menos 3 caracteres para buscar con IA.
+                </p>
+
+              ) : aiGate?.allowed ? (
+                /* Pasa el gate: es un nombre conocido o encaja con patrón farmacéutico */
                 <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
                   <button
                     className="btnp"
@@ -284,10 +298,25 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
                     Ver todos los fármacos
                   </button>
                 </div>
+
               ) : (
-                <p style={{ marginTop: 10, fontSize: '.82rem', color: 'var(--soft)' }}>
-                  Escribe al menos 3 caracteres para buscar con IA.
-                </p>
+                /* No matchea diccionario ni patrón: bloqueo duro, sin tokens */
+                <div style={{ marginTop: 12 }}>
+                  <div className="abox rr" style={{ display: 'inline-block', textAlign: 'left', maxWidth: 480 }}>
+                    <p style={{ fontSize: '.86rem', margin: 0 }}>
+                      <strong>"{trimmedQuery}"</strong> no parece un fármaco reconocido. Verifica la ortografía o usa el nombre genérico / DCI (ej. <em>Amoxicilina</em>, <em>Meloxicam</em>, <em>Ivermectina</em>).
+                    </p>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      className="btnp"
+                      onClick={() => { handleQueryChange(''); setActiveCategory('ALL') }}
+                      style={{ width: 'auto', padding: '9px 22px', background: 'var(--gray-light)' }}
+                    >
+                      Ver todos los fármacos
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}

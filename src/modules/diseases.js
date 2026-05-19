@@ -1,4 +1,4 @@
-import { sendMessage } from '../services/anthropicService'
+import { sendMessage, searchDualEngine } from '../services/anthropicService'
 import { DISEASES } from '../data/diseases'
 import { jsonrepair } from 'jsonrepair'
 
@@ -42,9 +42,29 @@ function safeParseJSON(str) {
 }
 
 export async function searchDiseaseWithAI(name) {
+  const messages = [{ role: 'user', content: buildDiseasePrompt(name) }]
+
   try {
-    const text = await sendMessage({ history: [], userText: buildDiseasePrompt(name) })
-    const match = text.match(/\{[\s\S]*\}/)
+    // Motor dual: RAG (Plumb's) + Tool Calling (Merck) — el proxy decide qué fuentes usar
+    const dualResult = await searchDualEngine({ query: name, mode: 'disease', messages, maxTokens: 2000 })
+
+    if (dualResult) {
+      const rawText = dualResult._text || dualResult.content?.[0]?.text || ''
+      const match   = rawText.match(/\{[\s\S]*\}/)
+      if (!match) return { status: 'bad-format', rawText }
+      const parsed  = safeParseJSON(match[0])
+      const norm    = normalizeDiseaseResponse(parsed)
+      // Añadir fuentes al resultado
+      return { ...norm, _sources: dualResult._sources ?? [] }
+    }
+  } catch (e) {
+    console.warn('[diseases] Dual engine failed, falling back:', e.message)
+  }
+
+  // Fallback: búsqueda simple
+  try {
+    const text   = await sendMessage({ history: [], userText: buildDiseasePrompt(name) })
+    const match  = text.match(/\{[\s\S]*\}/)
     if (!match) return { status: 'bad-format', rawText: text }
     const parsed = safeParseJSON(match[0])
     return normalizeDiseaseResponse(parsed)

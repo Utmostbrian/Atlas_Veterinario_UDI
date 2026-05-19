@@ -10,7 +10,7 @@ export default function AIDrugResult({ query, aiData, loading, error, onClose, o
     }
   }, [])
 
-  const shown        = aiData?.nombre || query
+  const shown = aiData?.nombre || query
   const wasCorrected = aiData?.encontrado && aiData?.nombreCorregido &&
     aiData.nombreCorregido.trim().toLowerCase() !== query.trim().toLowerCase()
 
@@ -23,6 +23,16 @@ export default function AIDrugResult({ query, aiData, loading, error, onClose, o
         <div className="aitags">
           <span className="aitag ia">✦ IA</span>
           {aiData?.categoria && <span className="aitag">{aiData.categoria}</span>}
+          {aiData?._sources?.includes('vademecum') && (
+            <span className="aitag" style={{ background: 'var(--green,#16a34a)', color: '#fff' }}>
+              ✓ Vademécum Plumb&apos;s
+            </span>
+          )}
+          {aiData?._sources?.includes('merck') && (
+            <span className="aitag" style={{ background: 'var(--blue,#1e40af)', color: '#fff' }}>
+              ✓ Merck Vet Manual
+            </span>
+          )}
         </div>
       </div>
 
