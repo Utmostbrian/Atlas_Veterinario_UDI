@@ -15,7 +15,7 @@ function getActorName() {
 }
 
 // ── Guardar receta en Supabase ────────────────────────────────────────────────
-export async function savePrescription({ patient, drugs, diagnosis, vetName, vetLicense }) {
+export async function savePrescription({ patient, drugs, diagnosis, vetName, vetLicense, animalId = null }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Debes iniciar sesión para guardar recetas.')
 
@@ -36,6 +36,7 @@ export async function savePrescription({ patient, drugs, diagnosis, vetName, vet
     p_vet_name:       vetName         || null,
     p_vet_license:    vetLicense      || null,
     p_actor_name:     getActorName(),
+    p_animal_id:      animalId,
   })
 
   if (error) {

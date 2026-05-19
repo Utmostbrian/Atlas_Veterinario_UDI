@@ -578,6 +578,31 @@ header {
 .fc--err { border-color: #ef4444 !important; }
 .fc--err:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15) !important; }
 .fc-err-msg { font-size: .75rem; color: #ef4444; margin-top: 3px; font-weight: 500; }
+.fc-warn-msg { font-size: .75rem; color: var(--color-warning); margin-top: 3px; font-weight: 600; }
+.fc-hint-msg { font-size: .72rem; color: var(--soft); margin-top: 3px; font-weight: 500; }
+.dark .fc-hint-msg { color: #94a3b8; }
+
+/* Autocomplete (catálogo de animales) — flota sobre el .fgrp,
+   no desplaza el layout circundante. */
+.fc-autocomplete-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+  max-height: 240px; overflow-y: auto;
+  margin-top: 2px; padding: 4px;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--rs);
+  box-shadow: 0 6px 24px rgba(0,0,0,.10);
+  list-style: none;
+}
+.dark .fc-autocomplete-list { background: #0f172a; border-color: #334155; }
+.fc-autocomplete-item {
+  padding: 7px 10px; border-radius: 6px;
+  font-size: .85rem; color: var(--text);
+  cursor: pointer; transition: background .12s;
+}
+.fc-autocomplete-item.is-active,
+.fc-autocomplete-item:hover { background: rgba(204,0,0,.08); }
+.dark .fc-autocomplete-item { color: #e2e8f0; }
+.dark .fc-autocomplete-item.is-active,
+.dark .fc-autocomplete-item:hover { background: rgba(204,0,0,.18); }
 
 .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 
