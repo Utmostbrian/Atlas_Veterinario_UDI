@@ -78,20 +78,24 @@ export async function createUser({ email, password, name, role }) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15000)
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-create-user`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey':        ANON_KEY,
-      },
-      body: JSON.stringify({ email, password, name, role }),
-      signal: controller.signal,
-    })
-    clearTimeout(timer)
+    let res, data
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/admin-create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey':        ANON_KEY,
+        },
+        body: JSON.stringify({ email, password, name, role }),
+        signal: controller.signal,
+      })
+      data = await res.json().catch(() => ({}))
+    } finally {
+      clearTimeout(timer)
+    }
 
-    const data = await res.json().catch(() => ({}))
-
+    if (res.status === 401) return { ok: false, error: 'Tu sesión expiró. Vuelve a iniciar sesión.' }
     if (!res.ok) {
       const code = data?.error ?? 'unknown_error'
       return { ok: false, error: ADMIN_ERROR_MESSAGES[code] ?? code }
@@ -122,20 +126,24 @@ export async function deleteUser(userId) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15000)
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-delete-user`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey':        ANON_KEY,
-      },
-      body: JSON.stringify({ userId }),
-      signal: controller.signal,
-    })
-    clearTimeout(timer)
+    let res, data
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/admin-delete-user`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey':        ANON_KEY,
+        },
+        body: JSON.stringify({ userId }),
+        signal: controller.signal,
+      })
+      data = await res.json().catch(() => ({}))
+    } finally {
+      clearTimeout(timer)
+    }
 
-    const data = await res.json().catch(() => ({}))
-
+    if (res.status === 401) return { ok: false, error: 'Tu sesión expiró. Vuelve a iniciar sesión.' }
     if (!res.ok) {
       const code = data?.error ?? 'unknown_error'
       return { ok: false, error: DELETE_ERROR_MESSAGES[code] ?? code }

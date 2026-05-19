@@ -90,10 +90,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'invalid_json' }, 400)
   }
 
-  const email    = body.email?.trim().toLowerCase()
-  const password = body.password
-  const name     = body.name?.trim()
-  const role     = body.role
+  const email    = typeof body.email    === 'string' ? body.email.trim().toLowerCase() : ''
+  const password = typeof body.password === 'string' ? body.password : ''
+  const name     = typeof body.name     === 'string' ? body.name.trim() : ''
+  const role     = (typeof body.role    === 'string' ? body.role : null) as Role | null
 
   if (!email || !isValidEmail(email)) return json({ error: 'invalid_email' }, 400)
   if (!password || password.length < 8) return json({ error: 'password_too_short' }, 400)

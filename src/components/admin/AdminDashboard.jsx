@@ -89,7 +89,11 @@ function ChartCard({ title, subtitle, children, height = 300, empty, raw = false
 }
 
 function HourHeatmap({ data }) {
-  const map = new Map((data ?? []).map(d => [Number(d.hour_of_day), Number(d.events_count)]))
+  const map = new Map(
+    (data ?? [])
+      .filter(d => { const h = Number(d.hour_of_day); return Number.isFinite(h) && h >= 0 && h < 24 })
+      .map(d => [Number(d.hour_of_day), Math.max(0, Number(d.events_count))])
+  )
   const counts = Array.from({ length: 24 }, (_, h) => map.get(h) ?? 0)
   const max = Math.max(1, ...counts)
   const peakHour = counts.indexOf(max)
@@ -164,7 +168,7 @@ export default function AdminDashboard() {
         setKpis(s)
         setFailedLog(f)
       })
-      .catch(err => { if (!cancelled) setError(err?.message ?? 'Error cargando KPIs') })
+      .catch(err => { if (!cancelled) { setKpis(null); setFailedLog(null); setError(err?.message ?? 'Error cargando KPIs') } })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [period])

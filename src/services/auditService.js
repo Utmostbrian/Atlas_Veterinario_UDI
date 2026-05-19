@@ -121,7 +121,7 @@ export async function getHistory({ limit = 50, offset = 0, eventType, search } =
       p_limit:      limit,
       p_offset:     offset,
       p_event_type: eventType ?? null,
-      p_search:     search    ?? null,
+      p_search:     search ? String(search).slice(0, 100) : null,
     })
 
     if (error) throw error

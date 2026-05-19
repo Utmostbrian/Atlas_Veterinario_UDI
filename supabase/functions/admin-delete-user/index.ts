@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'invalid_json' }, 400)
   }
 
-  const userId = body.userId?.trim()
+  const userId = typeof body.userId === 'string' ? body.userId.trim() : null
   if (!userId) return json({ error: 'missing_user_id' }, 400)
 
   // 5) Prevenir auto-borrado

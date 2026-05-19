@@ -68,7 +68,8 @@ function CreateUserModal({ open, onClose, onCreated }) {
     })
     setBusy(false)
     if (!res.ok) { setError(res.error); return }
-    setSuccess(`Usuario ${res.user.email} creado como ${ROLE_LABEL[res.user.role]}.`)
+    if (!res.user?.email) { setError('Respuesta del servidor incompleta.'); return }
+    setSuccess(`Usuario ${res.user.email} creado como ${ROLE_LABEL[res.user.role] ?? res.user.role}.`)
     onCreated?.(res.user)
     setTimeout(() => onClose?.(), 1100)
   }
@@ -193,6 +194,7 @@ export default function UsersPanel() {
   const [savingRole,   setSavingRole]   = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null) // {userId, name}
   const [deletingBusy, setDeletingBusy] = useState(false)
+  const [deleteError,  setDeleteError]  = useState(null)
 
   const canManageRoles = me?.role === 'admin'
 
@@ -233,31 +235,37 @@ export default function UsersPanel() {
 
   async function confirmDelete() {
     if (!deleteTarget) return
+    const { userId } = deleteTarget  // capturar antes del await — evita closure stale
     setDeletingBusy(true)
-    const res = await deleteUser(deleteTarget.userId)
+    setDeleteError(null)
+    const res = await deleteUser(userId)
     setDeletingBusy(false)
     if (!res.ok) {
-      alert(`No se pudo eliminar el usuario: ${res.error}`)
       setDeleteTarget(null)
+      setDeleteError(res.error)
       return
     }
-    setUsers(prev => prev.filter(u => u.id !== deleteTarget.userId))
+    setUsers(prev => prev.filter(u => u.id !== userId))
     setDeleteTarget(null)
   }
 
   async function confirmRoleChange() {
     if (!roleEditing) return
+    const { userId, newRole } = roleEditing  // capturar antes del await — evita closure stale
     setSavingRole(true)
-    const res = await updateUserRole(roleEditing.userId, roleEditing.newRole)
+    const res = await updateUserRole(userId, newRole)
     setSavingRole(false)
     if (!res.ok) {
       alert(`No se pudo cambiar el rol: ${res.error}`)
       setRoleEditing(null)
       return
     }
-    setUsers(prev => prev.map(u => u.id === roleEditing.userId ? { ...u, role: roleEditing.newRole } : u))
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
     setRoleEditing(null)
   }
+
+  const handleCloseCreateModal = useCallback(() => setCreating(false), [])
+  const handleUserCreated      = useCallback(() => refresh(), [refresh])
 
   function formatDate(iso) {
     if (!iso) return '—'
@@ -311,7 +319,13 @@ export default function UsersPanel() {
       </div>
 
       {/* ── Lista ── */}
-      {error && <div className={styles.errorBox}>{error}</div>}
+      {error      && <div className={styles.errorBox}>{error}</div>}
+      {deleteError && (
+        <div className={styles.errorBox} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>No se pudo eliminar el usuario: {deleteError}</span>
+          <button onClick={() => setDeleteError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'inherit', padding: '0 4px' }}>×</button>
+        </div>
+      )}
 
       {loading ? (
         <div className="ld" style={{ padding: 40 }}><div className="sp" /><p>Cargando usuarios...</p></div>
@@ -393,15 +407,15 @@ export default function UsersPanel() {
 
       <CreateUserModal
         open={creating}
-        onClose={() => setCreating(false)}
-        onCreated={() => refresh()}
+        onClose={handleCloseCreateModal}
+        onCreated={handleUserCreated}
       />
 
       <ConfirmDialog
         open={!!roleEditing}
         title="Cambiar rol del usuario"
         message={roleEditing
-          ? `¿Cambiar el rol de "${users.find(u => u.id === roleEditing.userId)?.name}" de ${ROLE_LABEL[roleEditing.currentRole]} a ${ROLE_LABEL[roleEditing.newRole]}?`
+          ? `¿Cambiar el rol de "${users.find(u => u.id === roleEditing.userId)?.name ?? 'este usuario'}" de ${ROLE_LABEL[roleEditing.currentRole] ?? roleEditing.currentRole} a ${ROLE_LABEL[roleEditing.newRole] ?? roleEditing.newRole}?`
           : ''}
         confirmLabel={savingRole ? 'Aplicando...' : 'Cambiar rol'}
         cancelLabel="Cancelar"
@@ -421,7 +435,7 @@ export default function UsersPanel() {
         loading={deletingBusy}
         destructive
         onConfirm={confirmDelete}
-        onCancel={() => !deletingBusy && setDeleteTarget(null)}
+        onCancel={() => !deletingBusy && (setDeleteTarget(null), setDeleteError(null))}
       />
     </div>
   )

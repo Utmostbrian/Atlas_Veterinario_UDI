@@ -143,7 +143,7 @@ export function AuthProvider({ children }) {
           p_email:      email,
           p_reason:     error.message?.slice(0, 200) ?? 'unknown',
           p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-        }).then(() => {}).catch(() => {})
+        }).catch(err => console.warn('[auth] log_login_failure falló:', err?.message ?? err))
         return { ok: false, error: friendlyError(error.message) }
       }
       return { ok: true }
