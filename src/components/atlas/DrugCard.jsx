@@ -85,16 +85,6 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
               <span className="aitag">{drug.routes}</span>
               <span className="aitag">{drug.species}</span>
               {aiData?.encontrado && <span className="aitag ia">✦ IA</span>}
-              {aiData?._sources?.includes('vademecum') && (
-                <span className="aitag" style={{ background: 'var(--green,#16a34a)', color: '#fff' }}>
-                  ✓ Vademécum Plumb&apos;s
-                </span>
-              )}
-              {aiData?._sources?.includes('merck') && (
-                <span className="aitag" style={{ background: 'var(--blue,#1e40af)', color: '#fff' }}>
-                  ✓ Merck Vet Manual
-                </span>
-              )}
             </div>
           </div>
 
@@ -221,6 +211,23 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
                     </div>
                   </div>
                 )}
+
+                {aiData?._sources?.length > 0 && (
+                  <div style={{ fontSize: '.78rem', color: 'var(--muted,#6b7280)', borderTop: '1px solid var(--border,#e5e7eb)', paddingTop: 10, marginTop: 4 }}>
+                    <strong style={{ display: 'block', marginBottom: 4 }}>Fuentes consultadas:</strong>
+                    {aiData._sources.includes('vademecum') && (
+                      <div>📖 Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
+                    )}
+                    {aiData._sources.includes('merck') && (
+                      <div>🌐 Merck Veterinary Manual (merckvetmanual.com)</div>
+                    )}
+                  </div>
+                )}
+
+                <div className="wbox">
+                  <span>!</span>
+                  <span>Información generada por IA. Usar siempre bajo supervisión veterinaria profesional.</span>
+                </div>
 
                 <button
                   onClick={handleAskAI}
