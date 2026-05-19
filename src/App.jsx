@@ -127,7 +127,7 @@ function AppContent() {
               {activeTab === 'calc'   && <DosageCalculator onLoginRequired={!user ? openLogin : undefined} />}
               {activeTab === 'dil'    && <DilutionCalculator />}
               {activeTab === 'inter'  && <InteractionChecker />}
-              {activeTab === 'enf'    && <DiseaseProtocols />}
+              {activeTab === 'enf'    && <DiseaseProtocols onLoginRequired={!user ? openLogin : undefined} />}
               {activeTab === 'glos'   && <Glossary />}
               {activeTab === 'receta' && <Prescription />}
               {activeTab === 'audit'  && isElevated && <AdminDashboard />}

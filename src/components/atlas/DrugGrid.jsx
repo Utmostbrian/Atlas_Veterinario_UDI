@@ -1,13 +1,30 @@
 import { useState, useMemo } from 'react'
 import { DRUGS, CATEGORIES } from '../../data/drugs'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useAuth } from '../../context/AuthContext'
 import DrugCard from './DrugCard'
-import { SearchIcon } from '../../Icons/Icons'
+import AIDrugResult from './AIDrugResult'
+import { SearchIcon, SparklesIcon } from '../../Icons/Icons'
+import { searchDrugWithAI } from '../../modules/atlas'
+import {
+  validateAISearchInput, consumeClientRateLimit,
+  getCachedAIResult, setCachedAIResult, findCatalogSuggestion,
+} from '../../modules/aiSearch'
+import { logAiConsultation } from '../../services/auditService'
+
+const DRUG_NAMES = DRUGS.flatMap(d => [d.name, d.latin]).filter(Boolean)
 
 export default function DrugGrid({ onChatOpen, onLoginRequired }) {
+  const { user } = useAuth()
   const [query,          setQuery]          = useState('')
   const [activeCategory, setActiveCategory] = useState('ALL')
   const [recentSearches, setRecentSearches] = useLocalStorage('vet_recent_searches', [])
+
+  // Estado de búsqueda IA (empty-state)
+  const [aiTerm,    setAiTerm]    = useState(null)   // término que se está consultando
+  const [aiData,    setAiData]    = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError,   setAiError]   = useState(null)
 
   function addRecent(name) {
     setRecentSearches(prev => {
@@ -35,6 +52,82 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
     })
   }, [query, activeCategory])
 
+  function closeAI() {
+    setAiTerm(null)
+    setAiData(null)
+    setAiError(null)
+    setAiLoading(false)
+  }
+
+  // Limpiar resultado IA cuando el usuario cambia el query
+  function handleQueryChange(newValue) {
+    setQuery(newValue)
+    if (aiTerm) closeAI()
+  }
+
+  async function handleAISearch() {
+    const term = query.trim()
+    setAiError(null)
+
+    // 1. Validar input (longitud, charset, anti-injection, anti-spam)
+    const validation = validateAISearchInput(term)
+    if (!validation.ok) {
+      setAiTerm(term)
+      setAiError(validation.reason)
+      return
+    }
+
+    // 2. Auth: la IA requiere sesión activa (el proxy devuelve 401 si no hay JWT)
+    if (!user) {
+      if (onLoginRequired) onLoginRequired()
+      return
+    }
+
+    // 3. Caché (24h por término)
+    const cached = getCachedAIResult('drug', term)
+    if (cached) {
+      setAiTerm(term)
+      setAiData(cached)
+      addRecent(cached.nombre || term)
+      return
+    }
+
+    // 4. Rate limit cliente: 5 búsquedas IA por minuto
+    const rl = consumeClientRateLimit('drug')
+    if (!rl.ok) {
+      setAiTerm(term)
+      setAiError(`Demasiadas consultas. Espera ${rl.retryInSec}s antes de buscar de nuevo.`)
+      return
+    }
+
+    // 5. Llamada a la IA
+    setAiTerm(term)
+    setAiLoading(true)
+    setAiData(null)
+    try {
+      const result = await searchDrugWithAI(term)
+      setAiData(result)
+      if (result?.encontrado) {
+        setCachedAIResult('drug', term, result)
+        addRecent(result.nombre || term)
+        logAiConsultation(term, `Búsqueda IA fármaco: ${result.nombre || term}`)
+      }
+    } catch (e) {
+      setAiError(e.message || 'Error al consultar con la IA.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const trimmedQuery = query.trim()
+  const canSearchAI  = trimmedQuery.length >= 3
+  // Antes de gastar tokens IA, intentamos hallar un parecido en el catálogo.
+  // Solo aplica cuando el grid está vacío (typo que no matchea start-of-name).
+  const catalogSuggestion = useMemo(() => {
+    if (filtered.length > 0 || !canSearchAI) return null
+    return findCatalogSuggestion(trimmedQuery, DRUG_NAMES)
+  }, [trimmedQuery, canSearchAI, filtered.length])
+
   return (
     <div className="wrap">
       <div className="twocol">
@@ -56,7 +149,7 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
                 {recentSearches.map(s => (
                   <button
                     key={s}
-                    onClick={() => setQuery(s)}
+                    onClick={() => handleQueryChange(s)}
                     style={{
                       background: 'none', border: 'none', textAlign: 'left',
                       padding: '4px 0', fontSize: '.8rem',
@@ -84,12 +177,12 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
                   type="text"
                   placeholder="Nombre, especie, indicación..."
                   value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  maxLength={80}
+                  onChange={e => handleQueryChange(e.target.value)}
+                  maxLength={60}
                 />
               </div>
               {query && (
-                <button id="sb" onClick={() => setQuery('')}>Limpiar</button>
+                <button id="sb" onClick={() => handleQueryChange('')}>Limpiar</button>
               )}
             </div>
 
@@ -136,16 +229,79 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
             </div>
           ) : (
             <div className="empty">
-              <h3>Sin resultados</h3>
-              <p>No se encontraron fármacos para <strong>"{query}"</strong></p>
-              <button
-                className="btnp"
-                onClick={() => { setQuery(''); setActiveCategory('ALL') }}
-                style={{ marginTop: 12, width: 'auto', padding: '9px 24px' }}
-              >
-                Ver todos los fármacos
-              </button>
+              <h3>Sin resultados en el catálogo</h3>
+              <p>No se encontraron fármacos para <strong>"{query}"</strong> en la base local.</p>
+
+              {catalogSuggestion ? (
+                /* Hay un parecido en el catálogo: sugerencia local SIN consumir tokens IA */
+                <>
+                  <p style={{ marginTop: 10, fontSize: '.92rem' }}>
+                    ¿Quisiste decir <strong>{catalogSuggestion}</strong>?
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                      className="btnp"
+                      onClick={() => handleQueryChange(catalogSuggestion)}
+                      style={{ width: 'auto', padding: '10px 22px', background: 'var(--blue)', color: '#fff' }}
+                    >
+                      Sí, buscar {catalogSuggestion}
+                    </button>
+                    <button
+                      className="btnp"
+                      onClick={handleAISearch}
+                      disabled={aiLoading}
+                      style={{
+                        width: 'auto', padding: '10px 22px',
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        background: 'var(--gray-light)',
+                      }}
+                    >
+                      <SparklesIcon size={15} />
+                      {aiLoading ? 'Consultando...' : `No, buscar "${trimmedQuery}" con IA`}
+                    </button>
+                  </div>
+                </>
+              ) : canSearchAI ? (
+                <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    className="btnp"
+                    onClick={handleAISearch}
+                    disabled={aiLoading}
+                    style={{
+                      width: 'auto', padding: '10px 22px',
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      background: 'var(--blue)', color: '#fff',
+                    }}
+                  >
+                    <SparklesIcon size={15} />
+                    {aiLoading ? 'Consultando IA...' : `Buscar "${trimmedQuery}" con IA`}
+                  </button>
+                  <button
+                    className="btnp"
+                    onClick={() => { handleQueryChange(''); setActiveCategory('ALL') }}
+                    style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
+                  >
+                    Ver todos los fármacos
+                  </button>
+                </div>
+              ) : (
+                <p style={{ marginTop: 10, fontSize: '.82rem', color: 'var(--soft)' }}>
+                  Escribe al menos 3 caracteres para buscar con IA.
+                </p>
+              )}
             </div>
+          )}
+
+          {/* Resultado IA inline */}
+          {aiTerm && (
+            <AIDrugResult
+              query={aiTerm}
+              aiData={aiData}
+              loading={aiLoading}
+              error={aiError}
+              onClose={closeAI}
+              onAskAI={user && onChatOpen ? (name => { addRecent(name); onChatOpen(true) }) : null}
+            />
           )}
         </div>
       </div>
