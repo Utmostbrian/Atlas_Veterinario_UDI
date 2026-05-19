@@ -350,6 +350,35 @@
   margin-top: 4px;
 }
 
+/* ─── Delete / Actions ──────────────────────────────────────────────── */
+.cellActions {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.btnDanger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  background: transparent;
+  color: #CC0000;
+  border: 1.5px solid rgba(204, 0, 0, .3);
+  border-radius: 7px;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.btnDanger:hover:not(:disabled) {
+  background: rgba(204, 0, 0, .08);
+  border-color: #CC0000;
+}
+.btnDanger:disabled { opacity: .4; cursor: not-allowed; }
+
 /* ─── Dark mode ─────────────────────────────────────────────────────── */
 :global(.dark) .tableWrap,
 :global(.dark) .modal,

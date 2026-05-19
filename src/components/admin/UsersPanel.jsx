@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { listUsers, createUser, updateUserRole } from '../../services/userService'
+import { listUsers, createUser, updateUserRole, deleteUser } from '../../services/userService'
 import ConfirmDialog from '../ui/ConfirmDialog'
 import styles from './UsersPanel.module.css'
 
@@ -189,8 +189,10 @@ export default function UsersPanel() {
   const [creating,   setCreating]   = useState(false)
   const [search,     setSearch]     = useState('')
   const [roleFilter, setRoleFilter] = useState('')
-  const [roleEditing, setRoleEditing] = useState(null) // {userId, newRole}
-  const [savingRole, setSavingRole] = useState(false)
+  const [roleEditing,  setRoleEditing]  = useState(null) // {userId, currentRole, newRole}
+  const [savingRole,   setSavingRole]   = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null) // {userId, name}
+  const [deletingBusy, setDeletingBusy] = useState(false)
 
   const canManageRoles = me?.role === 'admin'
 
@@ -227,6 +229,20 @@ export default function UsersPanel() {
   function requestRoleChange(userId, currentRole, newRole) {
     if (currentRole === newRole) return
     setRoleEditing({ userId, currentRole, newRole })
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeletingBusy(true)
+    const res = await deleteUser(deleteTarget.userId)
+    setDeletingBusy(false)
+    if (!res.ok) {
+      alert(`No se pudo eliminar el usuario: ${res.error}`)
+      setDeleteTarget(null)
+      return
+    }
+    setUsers(prev => prev.filter(u => u.id !== deleteTarget.userId))
+    setDeleteTarget(null)
   }
 
   async function confirmRoleChange() {
@@ -314,6 +330,7 @@ export default function UsersPanel() {
                 <th>Rol</th>
                 <th>Creado</th>
                 <th>Último ingreso</th>
+                {canManageRoles && <th></th>}
               </tr>
             </thead>
             <tbody>
@@ -347,6 +364,26 @@ export default function UsersPanel() {
                   </td>
                   <td className={styles.cellMuted}>{formatDate(u.created_at)}</td>
                   <td className={styles.cellMuted}>{formatDate(u.last_sign_in)}</td>
+                  {canManageRoles && (
+                    <td className={styles.cellActions}>
+                      {u.id !== me?.id && (
+                        <button
+                          className={styles.btnDanger}
+                          onClick={() => setDeleteTarget({ userId: u.id, name: u.name ?? u.email })}
+                          title={`Eliminar a ${u.name ?? u.email}`}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                          Eliminar
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -371,6 +408,20 @@ export default function UsersPanel() {
         loading={savingRole}
         onConfirm={confirmRoleChange}
         onCancel={() => !savingRole && setRoleEditing(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar usuario"
+        message={deleteTarget
+          ? `¿Eliminar a "${deleteTarget.name}"? Esta acción no se puede deshacer y el usuario perderá el acceso de inmediato.`
+          : ''}
+        confirmLabel={deletingBusy ? 'Eliminando...' : 'Eliminar'}
+        cancelLabel="Cancelar"
+        loading={deletingBusy}
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => !deletingBusy && setDeleteTarget(null)}
       />
     </div>
   )

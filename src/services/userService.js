@@ -49,6 +49,18 @@ const ADMIN_ERROR_MESSAGES = {
   invalid_json:           'Datos inválidos.',
 }
 
+const DELETE_ERROR_MESSAGES = {
+  unauthorized:           'Necesitas iniciar sesión.',
+  invalid_session:        'Sesión inválida. Vuelve a iniciar sesión.',
+  forbidden_admin_only:   'Solo un administrador puede eliminar usuarios.',
+  cannot_delete_self:     'No puedes eliminar tu propia cuenta.',
+  missing_user_id:        'ID de usuario requerido.',
+  user_not_found:         'El usuario no existe o ya fue eliminado.',
+  server_misconfigured:   'Servidor mal configurado. Avisa al equipo técnico.',
+  method_not_allowed:     'Método no permitido.',
+  invalid_json:           'Datos inválidos.',
+}
+
 /**
  * Crea un nuevo usuario vía Edge Function admin-create-user.
  * Requiere sesión activa de admin (validado en el server).
@@ -91,5 +103,49 @@ export async function createUser({ email, password, name, role }) {
       return { ok: false, error: 'La solicitud tardó demasiado.' }
     }
     return { ok: false, error: err?.message ?? 'Error inesperado al crear el usuario.' }
+  }
+}
+
+/**
+ * Elimina un usuario vía Edge Function admin-delete-user.
+ * Requiere sesión activa de admin. No se puede eliminar a uno mismo.
+ *
+ * @param {string} userId
+ */
+export async function deleteUser(userId) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      return { ok: false, error: 'Tu sesión expiró. Vuelve a iniciar sesión.' }
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000)
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-delete-user`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey':        ANON_KEY,
+      },
+      body: JSON.stringify({ userId }),
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      const code = data?.error ?? 'unknown_error'
+      return { ok: false, error: DELETE_ERROR_MESSAGES[code] ?? code }
+    }
+
+    return { ok: true }
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      return { ok: false, error: 'La solicitud tardó demasiado.' }
+    }
+    return { ok: false, error: err?.message ?? 'Error inesperado al eliminar el usuario.' }
   }
 }
