@@ -12,7 +12,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const INGEST_SECRET = Deno.env.get('INGEST_SECRET') ?? ''
-const BATCH_SIZE    = 5   // chunks por lote de embeddings (gte-small es síncrono)
+const BATCH_SIZE    = 100  // chunks por lote de inserción (sin embeddings, muy rápido)
 
 interface Chunk {
   drug_name?:   string | null
@@ -23,28 +23,9 @@ interface Chunk {
 interface InsertRow {
   drug_name:   string | null
   content:     string
-  embedding:   number[]
   chunk_index: number
   source:      string
-}
-
-// Genera embedding de un texto usando Supabase AI (gte-small, 384 dims)
-async function embedText(text: string): Promise<number[] | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const globalWithAI = globalThis as any
-    if (!globalWithAI.Supabase?.ai?.Session) {
-      console.warn('[ingest] Supabase.ai.Session no disponible en este entorno.')
-      return null
-    }
-    const session = new globalWithAI.Supabase.ai.Session('gte-small')
-    const output  = await session.run(text.slice(0, 2048), { mean_pool: true, normalize: true })
-    return Array.from(output as Float32Array)
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    console.warn('[ingest] Error generando embedding:', msg)
-    return null
-  }
+  // embedding se omite intencionalmente — se usa búsqueda por trigrama (pg_trgm)
 }
 
 function cors(req: Request) {
@@ -97,46 +78,33 @@ Deno.serve(async (req: Request) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  // Si se envía clear=true, borrar todos los chunks de 'plumbs' antes de insertar
+  // Si se envía clear=true, invocar la función SQL que hace el DELETE
+  // (evita el schema cache de PostgREST que puede fallar justo tras una migración)
   if (body.clear === true) {
-    const { error: delErr } = await supabase
-      .from('vademecum_chunks')
-      .delete()
-      .eq('source', 'plumbs')
-
-    if (delErr) {
-      return Response.json({ error: `Error limpiando tabla: ${delErr.message}` }, { status: 500, headers: cors(req) })
+    const { error: clearErr } = await supabase.rpc('clear_vademecum_chunks', { source_name: 'plumbs' })
+    if (clearErr) {
+      return Response.json({ error: `Error limpiando tabla: ${clearErr.message}` }, { status: 500, headers: cors(req) })
     }
-    console.log('[ingest] Tabla limpiada (source=plumbs).')
+    console.log('[ingest] Tabla limpiada via RPC.')
   }
 
+  // Inserción directa sin embeddings — la búsqueda usa pg_trgm (match_vademecum_text)
   let inserted  = 0
   let skipped   = 0
   const errors: string[] = []
 
   for (let i = 0; i < validChunks.length; i += BATCH_SIZE) {
     const batch = validChunks.slice(i, i + BATCH_SIZE)
-    const rows:  InsertRow[] = []
-
-    for (const chunk of batch) {
-      const text      = chunk.content.trim()
-      const embedding = await embedText(text)
-
-      if (!embedding) {
-        skipped++
-        continue
-      }
-
-      rows.push({
-        drug_name:   chunk.drug_name ?? null,
-        content:     text,
-        embedding,
-        chunk_index: chunk.chunk_index ?? 0,
+    const rows: InsertRow[] = batch
+      .filter(c => c.content.trim().length >= 20)
+      .map(c => ({
+        drug_name:   c.drug_name ?? null,
+        content:     c.content.trim(),
+        chunk_index: c.chunk_index ?? 0,
         source:      'plumbs',
-      })
-    }
+      }))
 
-    if (rows.length === 0) continue
+    if (rows.length === 0) { skipped += batch.length; continue }
 
     const { error: insErr } = await supabase
       .from('vademecum_chunks')
@@ -145,7 +113,6 @@ Deno.serve(async (req: Request) => {
     if (insErr) {
       console.error('[ingest] Insert error:', insErr.message)
       errors.push(insErr.message)
-      // Continuar con el siguiente lote en vez de abortar
     } else {
       inserted += rows.length
     }

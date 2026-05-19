@@ -34,7 +34,7 @@ const ENDPOINT      = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/ingest-vademe
 const CHUNK_TARGET  = 700
 const CHUNK_OVERLAP = 80
 // Lote de chunks por solicitud al Edge Function
-const BATCH_SIZE    = 50
+const BATCH_SIZE    = 20
 
 async function main() {
   const args = process.argv.slice(2)
@@ -94,8 +94,8 @@ async function main() {
           'x-ingest-secret': INGEST_SECRET,
         },
         body: JSON.stringify({
-          chunks,
-          clear: isFirstBatch && doClear,
+          chunks: batch,
+          clear:  isFirstBatch && doClear,
         }),
       })
     } catch (e) {

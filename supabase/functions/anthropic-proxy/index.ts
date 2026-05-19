@@ -119,19 +119,7 @@ function streamWithHeartbeat(upstream: ReadableStream<Uint8Array>): ReadableStre
   })
 }
 
-// ── Motor 1: Embedding con gte-small ─────────────────────────────────────────
-async function embedQuery(text: string): Promise<number[] | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const g = globalThis as any
-    if (!g?.Supabase?.ai?.Session) return null
-    const session = new g.Supabase.ai.Session('gte-small')
-    const output  = await session.run(text.slice(0, 512), { mean_pool: true, normalize: true })
-    return Array.from(output as Float32Array)
-  } catch {
-    return null
-  }
-}
+// (Motor 1 usa match_vademecum_text con pg_trgm — sin modelo de embeddings)
 
 // ── Motor 2: Búsqueda en Merck Veterinary Manual ─────────────────────────────
 async function searchMerckManual(query: string): Promise<string> {
@@ -273,27 +261,24 @@ async function handleDualEngine(
 
   const usedSources: string[] = []
 
-  // ── Motor 1: RAG desde Plumb's PDF ────────────────────────────────────────
+  // ── Motor 1: RAG desde Plumb's PDF (búsqueda textual con pg_trgm) ──────────
   let vademecumContext = ''
   if (searchQuery) {
-    const qEmbedding = await embedQuery(searchQuery)
-    if (qEmbedding) {
-      try {
-        const { data: chunks, error: rpcErr } = await supabase.rpc('match_vademecum', {
-          query_embedding: qEmbedding,
-          match_threshold: 0.55,
-          match_count:     5,
-        })
+    try {
+      const { data: chunks, error: rpcErr } = await supabase.rpc('match_vademecum_text', {
+        search_query:    searchQuery,
+        match_threshold: 0.1,
+        match_count:     6,
+      })
 
-        if (!rpcErr && Array.isArray(chunks) && chunks.length > 0) {
-          usedSources.push('vademecum')
-          vademecumContext = (chunks as Array<{ content: string }>)
-            .map(c => c.content)
-            .join('\n\n---\n\n')
-        }
-      } catch {
-        // Tabla aún no existe o pgvector no disponible → continuar sin RAG
+      if (!rpcErr && Array.isArray(chunks) && chunks.length > 0) {
+        usedSources.push('vademecum')
+        vademecumContext = (chunks as Array<{ drug_name: string | null; content: string }>)
+          .map(c => (c.drug_name ? `[${c.drug_name}]\n${c.content}` : c.content))
+          .join('\n\n---\n\n')
       }
+    } catch {
+      // La tabla aún no existe o la función no fue creada → continuar sin RAG
     }
   }
 
