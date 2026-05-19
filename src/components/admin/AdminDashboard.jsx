@@ -321,17 +321,17 @@ export default function AdminDashboard() {
               title="Distribución por especie"
               subtitle="Consultas con especie identificada"
               empty={speciesData.length === 0 ? 'Sin especie registrada en el período.' : null}
-              height={340}
+              height={420}
             >
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <PieChart margin={{ top: 16, right: 16, bottom: 0, left: 16 }}>
                 <Pie
                   data={speciesData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="42%"
-                  innerRadius={40}
-                  outerRadius={72}
+                  cy="44%"
+                  innerRadius={50}
+                  outerRadius={95}
                   paddingAngle={2}
                   labelLine={false}
                 >
@@ -345,7 +345,7 @@ export default function AdminDashboard() {
                   align="center"
                   iconType="circle"
                   iconSize={9}
-                  wrapperStyle={{ fontSize: 11, paddingTop: 16, lineHeight: 1.8 }}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 28, lineHeight: 1.9 }}
                 />
               </PieChart>
             </ChartCard>
@@ -374,16 +374,16 @@ export default function AdminDashboard() {
               title="Consultas por rol de usuario"
               subtitle="Quién genera la mayor parte del tráfico"
               empty={roleData.length === 0 ? 'Sin datos de rol todavía.' : null}
-              height={340}
+              height={420}
             >
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <PieChart margin={{ top: 16, right: 16, bottom: 0, left: 16 }}>
                 <Pie
                   data={roleData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="42%"
-                  outerRadius={72}
+                  cy="44%"
+                  outerRadius={95}
                   paddingAngle={2}
                   labelLine={false}
                 >
@@ -395,7 +395,7 @@ export default function AdminDashboard() {
                   align="center"
                   iconType="circle"
                   iconSize={9}
-                  wrapperStyle={{ fontSize: 11, paddingTop: 16, lineHeight: 1.8 }}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 28, lineHeight: 1.9 }}
                   formatter={(value) => {
                     const item = roleData.find(r => r.name === value)
                     if (!item) return value

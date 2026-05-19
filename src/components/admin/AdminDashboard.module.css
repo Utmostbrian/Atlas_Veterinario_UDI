@@ -186,8 +186,11 @@
 }
 
 .chartBody {
-  flex: 1;
+  /* flex:1 se eliminó — conflicto con height inline que causaba que Recharts
+     recibiera ~104px en vez de los px declarados, cortando los pie charts */
+  flex-shrink: 0;
   min-height: 140px;
+  overflow: visible; /* permite que arcos de pie que excedan el borde no se recorten */
 }
 
 .chartEmpty {
