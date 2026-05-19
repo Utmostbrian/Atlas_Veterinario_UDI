@@ -5,6 +5,7 @@ import {
   PieChart, Pie, Legend,
   LineChart, Line,
 } from 'recharts'
+import { useAuth } from '../../context/AuthContext'
 import { getStats, getFailedLogins } from '../../services/auditService'
 import {
   FileTextIcon, SearchIcon, SparklesIcon, CalculatorIcon, SyringeIcon,
@@ -13,6 +14,7 @@ import {
 import styles from './AdminDashboard.module.css'
 
 const ConsultationHistory = lazy(() => import('../audit/ConsultationHistory'))
+const UsersPanel          = lazy(() => import('./UsersPanel'))
 
 const EVENT_LABELS = {
   DRUG_SEARCH:       { label: 'Búsquedas',        color: '#003087', Icon: SearchIcon },
@@ -62,7 +64,7 @@ function KpiCard({ Icon, label, value, accent, sub }) {
   )
 }
 
-function ChartCard({ title, subtitle, children, height = 280, empty }) {
+function ChartCard({ title, subtitle, children, height = 300, empty, raw = false }) {
   return (
     <div className={styles.chartCard}>
       <div className={styles.chartHead}>
@@ -72,6 +74,10 @@ function ChartCard({ title, subtitle, children, height = 280, empty }) {
       <div className={styles.chartBody} style={{ height }}>
         {empty ? (
           <div className={styles.chartEmpty}>{empty}</div>
+        ) : raw ? (
+          /* HTML/div content (e.g. heatmap) — ResponsiveContainer solo acepta
+             componentes Recharts y rompe layout con children no-SVG */
+          children
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             {children}
@@ -83,27 +89,40 @@ function ChartCard({ title, subtitle, children, height = 280, empty }) {
 }
 
 function HourHeatmap({ data }) {
-  const max = Math.max(1, ...data.map(d => d.events_count))
-  const map = new Map(data.map(d => [d.hour_of_day, d.events_count]))
+  const map = new Map((data ?? []).map(d => [Number(d.hour_of_day), Number(d.events_count)]))
+  const counts = Array.from({ length: 24 }, (_, h) => map.get(h) ?? 0)
+  const max = Math.max(1, ...counts)
+  const peakHour = counts.indexOf(max)
+  const totalEvents = counts.reduce((a, b) => a + b, 0)
+
   return (
-    <div className={styles.heatmap}>
-      {Array.from({ length: 24 }, (_, h) => {
-        const count = map.get(h) ?? 0
-        const intensity = count / max
-        return (
-          <div key={h} className={styles.heatmapCell} title={`${h.toString().padStart(2, '0')}:00 — ${count} eventos`}>
+    <div className={styles.heatmapWrap}>
+      <div className={styles.heatmapGrid}>
+        {counts.map((count, h) => {
+          const intensity = count / max
+          return (
             <div
-              className={styles.heatmapBlock}
-              style={{
-                background: count > 0
-                  ? `rgba(204, 0, 0, ${0.15 + intensity * 0.75})`
-                  : 'rgba(0,0,0,.05)',
-              }}
-            />
-            <span className={styles.heatmapLabel}>{h.toString().padStart(2, '0')}</span>
-          </div>
-        )
-      })}
+              key={h}
+              className={styles.heatmapCell}
+              title={`${h.toString().padStart(2, '0')}:00 — ${count} eventos`}
+            >
+              <div
+                className={styles.heatmapBlock}
+                style={{
+                  background: count > 0
+                    ? `rgba(204, 0, 0, ${0.18 + intensity * 0.78})`
+                    : 'rgba(0,0,0,.04)',
+                }}
+              />
+              <span className={styles.heatmapLabel}>{h.toString().padStart(2, '0')}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className={styles.heatmapMeta}>
+        <span>Pico: <strong>{peakHour.toString().padStart(2, '0')}:00</strong> ({max} eventos)</span>
+        <span>{totalEvents} eventos en total</span>
+      </div>
     </div>
   )
 }
@@ -127,6 +146,7 @@ function Tabs({ value, onChange, items }) {
 }
 
 export default function AdminDashboard() {
+  const { user: me } = useAuth()
   const [period,     setPeriod]     = useState(30)
   const [kpis,       setKpis]       = useState(null)
   const [failedLog,  setFailedLog]  = useState(null)
@@ -200,7 +220,7 @@ export default function AdminDashboard() {
   if (tab === 'log') {
     return (
       <div className="wrap">
-        <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} hideControls />
+        <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} role={me?.role} hideControls />
         <Suspense fallback={<div className="ld"><div className="sp" /><p>Cargando log...</p></div>}>
           <ConsultationHistory />
         </Suspense>
@@ -208,9 +228,20 @@ export default function AdminDashboard() {
     )
   }
 
+  if (tab === 'users') {
+    return (
+      <div className="wrap">
+        <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} role={me?.role} hideControls />
+        <Suspense fallback={<div className="ld"><div className="sp" /><p>Cargando usuarios...</p></div>}>
+          <UsersPanel />
+        </Suspense>
+      </div>
+    )
+  }
+
   return (
     <div className="wrap">
-      <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} />
+      <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} role={me?.role} />
 
       {error && (
         <div className={styles.errorBanner}>
@@ -286,24 +317,32 @@ export default function AdminDashboard() {
               title="Distribución por especie"
               subtitle="Consultas con especie identificada"
               empty={speciesData.length === 0 ? 'Sin especie registrada en el período.' : null}
+              height={340}
             >
-              <PieChart>
+              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                 <Pie
                   data={speciesData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
-                  innerRadius={48}
-                  outerRadius={86}
+                  cy="42%"
+                  innerRadius={40}
+                  outerRadius={72}
                   paddingAngle={2}
+                  labelLine={false}
                 >
                   {speciesData.map((entry, idx) => (
                     <Cell key={entry.name} fill={SPECIES_PALETTE[idx % SPECIES_PALETTE.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Legend
+                  verticalAlign="bottom"
+                  align="center"
+                  iconType="circle"
+                  iconSize={9}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 16, lineHeight: 1.8 }}
+                />
               </PieChart>
             </ChartCard>
 
@@ -331,22 +370,36 @@ export default function AdminDashboard() {
               title="Consultas por rol de usuario"
               subtitle="Quién genera la mayor parte del tráfico"
               empty={roleData.length === 0 ? 'Sin datos de rol todavía.' : null}
+              height={340}
             >
-              <PieChart>
+              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                 <Pie
                   data={roleData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
-                  outerRadius={86}
+                  cy="42%"
+                  outerRadius={72}
                   paddingAngle={2}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   labelLine={false}
                 >
                   {roleData.map(entry => <Cell key={entry.role} fill={entry.color} />)}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
+                <Legend
+                  verticalAlign="bottom"
+                  align="center"
+                  iconType="circle"
+                  iconSize={9}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 16, lineHeight: 1.8 }}
+                  formatter={(value) => {
+                    const item = roleData.find(r => r.name === value)
+                    if (!item) return value
+                    const total = roleData.reduce((s, r) => s + r.value, 0)
+                    const pct = total > 0 ? Math.round((item.value / total) * 100) : 0
+                    return `${value} (${pct}%)`
+                  }}
+                />
               </PieChart>
             </ChartCard>
 
@@ -413,7 +466,8 @@ export default function AdminDashboard() {
             <ChartCard
               title="Actividad por hora del día"
               subtitle="Heatmap de picos de uso (hora local)"
-              height={140}
+              height={180}
+              raw
               empty={(kpis?.by_hour ?? []).length === 0 ? 'Sin actividad horaria todavía.' : null}
             >
               <HourHeatmap data={kpis?.by_hour ?? []} />
@@ -425,27 +479,27 @@ export default function AdminDashboard() {
   )
 }
 
-function DashboardHeader({ period, onPeriodChange, tab, setTab, hideControls }) {
+function DashboardHeader({ period, onPeriodChange, tab, setTab, role, hideControls }) {
+  const tabs = [
+    { value: 'dashboard', label: 'KPIs' },
+    { value: 'log',       label: 'Log de eventos' },
+    { value: 'users',     label: 'Usuarios' },
+  ]
+  // 'users' siempre visible para admin/docente; docente entra en modo lectura
   return (
     <div className={styles.dashHeader}>
       <div>
         <h1 className={styles.dashTitle}>
-          <FileTextIcon size={22} style={{ color: 'var(--blue)' }} />
+          <FileTextIcon size={20} style={{ color: 'var(--blue)' }} />
           Dashboard de Administración
         </h1>
         <p className={styles.dashSub}>
           Monitoreo en tiempo real del Atlas Farmacológico Veterinario · UDI
+          {role && <span className={styles.roleHint}> · {role === 'admin' ? 'Admin' : 'Docente'}</span>}
         </p>
       </div>
       <div className={styles.dashControls}>
-        <Tabs
-          value={tab}
-          onChange={setTab}
-          items={[
-            { value: 'dashboard', label: 'KPIs' },
-            { value: 'log',       label: 'Log de eventos' },
-          ]}
-        />
+        <Tabs value={tab} onChange={setTab} items={tabs} />
         {!hideControls && (
           <select
             className={styles.periodSelect}

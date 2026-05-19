@@ -137,7 +137,15 @@ export function AuthProvider({ children }) {
         supabase.auth.signInWithPassword({ email, password }),
         10000
       )
-      if (error) return { ok: false, error: friendlyError(error.message) }
+      if (error) {
+        // Registrar fallo en login_failures (best-effort, no bloquea UI)
+        supabase.rpc('log_login_failure', {
+          p_email:      email,
+          p_reason:     error.message?.slice(0, 200) ?? 'unknown',
+          p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        }).then(() => {}).catch(() => {})
+        return { ok: false, error: friendlyError(error.message) }
+      }
       return { ok: true }
     } catch (e) {
       return { ok: false, error: e.message ?? 'Error de conexión. Verifica tu internet.' }

@@ -16,6 +16,16 @@
   color: var(--dark);
   margin: 0 0 4px;
 }
+.dashTitle svg {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
+}
+
+.roleHint {
+  color: var(--blue);
+  font-weight: 600;
+}
 
 .dashSub {
   font-size: .85rem;
@@ -85,10 +95,19 @@
 }
 
 .kpiIcon {
-  width: 42px; height: 42px;
+  width: 40px; height: 40px;
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+/* Constrain SVG estrictamente — algunos browsers estiran SVG sin width/height
+   explícitos a 100% del flex parent, sacando el icono fuera del contenedor. */
+.kpiIcon svg {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0;
+  display: block;
 }
 
 .kpiBody { min-width: 0; }
@@ -183,24 +202,35 @@
 }
 
 /* ─── Heatmap (24 horas) ────────────────────────────────────────────── */
-.heatmap {
-  display: grid;
-  grid-template-columns: repeat(24, 1fr);
-  gap: 3px;
-  align-items: end;
+.heatmapWrap {
   height: 100%;
-  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px 0;
+}
+.heatmapGrid {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 4px;
+  flex: 1;
+  align-items: stretch;
+  min-height: 0;
 }
 .heatmapCell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: flex-end;
+  gap: 4px;
   min-width: 0;
+  min-height: 0;
 }
 .heatmapBlock {
   width: 100%;
-  height: 56px;
+  flex: 1;
+  min-height: 18px;
+  max-height: 80px;
   border-radius: 4px;
   transition: background .2s;
 }
@@ -208,7 +238,19 @@
   font-size: 9px;
   color: var(--gray);
   font-family: 'Source Sans 3', sans-serif;
+  line-height: 1;
+  flex-shrink: 0;
 }
+.heatmapMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: .72rem;
+  color: var(--soft);
+  padding: 4px 4px 0;
+  border-top: 1px dashed var(--border);
+  flex-shrink: 0;
+}
+.heatmapMeta strong { color: var(--blue); font-weight: 700; }
 
 /* ─── Security card (failed logins) ─────────────────────────────────── */
 .securityCard {
