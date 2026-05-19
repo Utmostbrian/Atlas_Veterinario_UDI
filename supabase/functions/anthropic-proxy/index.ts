@@ -383,6 +383,7 @@ async function handleDualEngine(
             max_tokens: maxTokens,
             system:     systemPrompt,
             messages:   secondMessages,
+            tools,
           }),
         })
       } catch (e) {
