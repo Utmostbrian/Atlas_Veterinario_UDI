@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { CloseIcon, AlertCircleIcon, SparklesIcon } from '../../Icons/Icons'
 
 export default function AIDiseaseResult({ query, aiData, loading, error, onClose }) {
   const panelRef = useRef(null)
@@ -16,10 +17,10 @@ export default function AIDiseaseResult({ query, aiData, loading, error, onClose
   return (
     <div ref={panelRef} className="aip" style={{ gridColumn: '1 / -1', marginTop: 12 }}>
       <div className="aiph">
-        <button className="aiclose" onClick={onClose} aria-label="Cerrar">✕</button>
+        <button className="aiclose" onClick={onClose} aria-label="Cerrar"><CloseIcon size={14} /></button>
         <div className="ainame">{shown}</div>
         <div className="aitags">
-          <span className="aitag ia">✦ IA</span>
+          <span className="aitag ia" style={{ display:'inline-flex', alignItems:'center', gap:3 }}><SparklesIcon size={10} /> IA</span>
         </div>
       </div>
 
@@ -103,7 +104,7 @@ export default function AIDiseaseResult({ query, aiData, loading, error, onClose
             )}
 
             <div className="wbox">
-              <span>!</span>
+              <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
               <span>Protocolo generado por IA. El diagnóstico definitivo debe realizarlo un veterinario profesional.</span>
             </div>
           </>

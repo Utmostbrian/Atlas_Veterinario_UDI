@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useDrugCalculator, UNITS } from '../../hooks/useDrugCalculator'
 import { validateDose, fetchDrugProfileWithAI } from '../../services/anthropicService'
 import { logDoseCalculation, logDoseValidation } from '../../services/auditService'
-import { CalculatorIcon, SparklesIcon } from '../../Icons/Icons'
+import { CalculatorIcon, SparklesIcon, WarningIcon } from '../../Icons/Icons'
 import { DRUG_NAMES } from '../../data/drugsDatabase'
 import { markdownToHtml } from '../../utils/markdownToHtml'
 
@@ -298,7 +298,7 @@ export default function DosageCalculator({ onLoginRequired }) {
                 />
                 {calc.doseWarning && (
                   <div className="wbox" style={{ marginTop: 4, padding: '4px 8px', fontSize: '.8rem' }}>
-                    <span>⚠</span>
+                    <WarningIcon size={15} style={{ flexShrink: 0 }} />
                     <span>{calc.doseWarning}</span>
                   </div>
                 )}
@@ -434,7 +434,7 @@ export default function DosageCalculator({ onLoginRequired }) {
 
                 {calc.result.volumeWarning && (
                   <div className="wbox" style={{ marginTop: 8, fontSize: '.82rem' }}>
-                    <span>⚠</span>
+                    <WarningIcon size={15} style={{ flexShrink: 0 }} />
                     <span>{calc.result.volumeWarning}</span>
                   </div>
                 )}
@@ -461,7 +461,7 @@ export default function DosageCalculator({ onLoginRequired }) {
 
             {aiError && (
               <div className="wbox" style={{ marginTop: 12 }}>
-                <span>⚠</span>
+                <WarningIcon size={15} style={{ flexShrink: 0 }} />
                 <span><strong>Error:</strong> {aiError}</span>
               </div>
             )}
@@ -594,7 +594,9 @@ export default function DosageCalculator({ onLoginRequired }) {
                         <strong>{h.totalMg} {h.doseUnit === 'UI/kg' ? 'UI' : 'mg'}</strong>
                         {' '}({h.volMl} mL)
                         {h.hadWarning && (
-                          <span style={{ color: '#f59e0b', marginLeft: 6 }}>⚠ fuera de rango</span>
+                          <span style={{ color: '#f59e0b', marginLeft: 6, display:'inline-flex', alignItems:'center', gap:2 }}>
+                            <WarningIcon size={12} /> fuera de rango
+                          </span>
                         )}
                       </div>
                     </div>

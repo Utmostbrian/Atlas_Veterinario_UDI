@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { CATEGORY_MAP } from '../../data/drugs'
 import { logDrugSearch } from '../../services/auditService'
-import { SparklesIcon } from '../../Icons/Icons'
+import { SparklesIcon, CloseIcon, WarningIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
 import { searchDrugWithAI, relatedDrugs } from '../../modules/atlas'
 
 const STRIPE_CLASS = { AB: 'ab', AP: 'ap', AI: 'ai', AN: 'an', AF: 'af', HO: 'ho' }
@@ -77,14 +77,14 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
         <div ref={panelRef} className="aip" style={{ gridColumn: '1 / -1' }}>
           {/* Header — siempre datos locales para respuesta inmediata */}
           <div className="aiph">
-            <button className="aiclose" onClick={() => { setExpanded(false); setAiData(null) }}>✕</button>
+            <button className="aiclose" onClick={() => { setExpanded(false); setAiData(null) }} aria-label="Cerrar"><CloseIcon size={14} /></button>
             <div className="ainame">{drug.name}</div>
             <div className="ailat">{drug.latin}</div>
             <div className="aitags">
               <span className="aitag">{cat.label}</span>
               <span className="aitag">{drug.routes}</span>
               <span className="aitag">{drug.species}</span>
-              {aiData?.encontrado && <span className="aitag ia">✦ IA</span>}
+              {aiData?.encontrado && <span className="aitag ia" style={{ display:'inline-flex', alignItems:'center', gap:3 }}><SparklesIcon size={10} /> IA</span>}
             </div>
           </div>
 
@@ -196,7 +196,7 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
 
                 {aiData.avisoClinico && (
                   <div className="wbox">
-                    <span>⚠</span>
+                    <WarningIcon size={16} style={{ flexShrink: 0 }} />
                     <span>{aiData.avisoClinico}</span>
                   </div>
                 )}
@@ -216,16 +216,16 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
                   <div style={{ fontSize: '.78rem', color: 'var(--muted,#6b7280)', borderTop: '1px solid var(--border,#e5e7eb)', paddingTop: 10, marginTop: 4 }}>
                     <strong style={{ display: 'block', marginBottom: 4 }}>Fuentes consultadas:</strong>
                     {aiData._sources.includes('vademecum') && (
-                      <div>📖 Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}><BookOpenIcon size={13} /> Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
                     )}
                     {aiData._sources.includes('merck') && (
-                      <div>🌐 Merck Veterinary Manual (merckvetmanual.com)</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}><GlobeIcon size={13} /> Merck Veterinary Manual (merckvetmanual.com)</div>
                     )}
                   </div>
                 )}
 
                 <div className="wbox">
-                  <span>!</span>
+                  <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
                   <span>Información generada por IA. Usar siempre bajo supervisión veterinaria profesional.</span>
                 </div>
 

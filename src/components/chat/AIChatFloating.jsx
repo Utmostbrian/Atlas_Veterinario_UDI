@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useChat } from '../../hooks/useChat'
+import { listConversations } from '../../services/chatHistoryService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
+import { CloseIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
 
 const QUICK_PROMPTS = [
@@ -120,6 +122,17 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const [historyRefresh, setHistoryRefresh] = useState(0)
   // Refresca el listado cuando cambia la conversación activa (nueva creada)
   useEffect(() => { setHistoryRefresh((v) => v + 1) }, [conversationId])
+
+  // Auto-restaurar la conversación más reciente al autenticarse (o montar el componente)
+  const autoRestoredRef = useRef(false)
+  useEffect(() => {
+    if (!isAuthenticated || autoRestoredRef.current || conversationId || messages.length > 0) return
+    autoRestoredRef.current = true
+    listConversations({ limit: 1 })
+      .then((rows) => { if (rows.length > 0) loadConversation(rows[0].id) })
+      .catch(() => {})
+  }, [isAuthenticated, conversationId, messages.length, loadConversation])
+
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const fileRef    = useRef(null)
@@ -372,7 +385,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                       <span>{imageData.fileName}</span>
                       <span className={styles.visionBadge}>Vision IA</span>
                     </div>
-                    <button className={styles.removeImg} onClick={removeImage}>✕</button>
+                    <button className={styles.removeImg} onClick={removeImage} aria-label="Quitar imagen"><CloseIcon size={13} /></button>
                   </div>
                 )}
 

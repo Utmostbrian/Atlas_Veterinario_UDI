@@ -3,6 +3,7 @@ import { TABS } from '../../data/tabs'
 import { useAuth } from '../../context/AuthContext'
 import ProfileMenu, { Avatar } from './ProfileMenu'
 import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
+import { MenuIcon, CloseIcon, SunIcon, MoonIcon } from '../../Icons/Icons'
 
 const ROLE_LABEL_SHORT = {
   admin:   'Admin',
@@ -41,8 +42,8 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
 
           {/* Desktop utility nav */}
           <nav className="hnav">
-            <button onClick={onToggleDark} title="Cambiar tema">
-              {darkMode ? '☀ Claro' : '◑ Oscuro'}
+            <button onClick={onToggleDark} title="Cambiar tema" style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+              {darkMode ? <><SunIcon size={14} /> Claro</> : <><MoonIcon size={14} /> Oscuro</>}
             </button>
           </nav>
 
@@ -55,7 +56,7 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
 
           {/* Mobile hamburger */}
           <button className="hburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menú">
-            {menuOpen ? '✕' : '☰'}
+            {menuOpen ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
           </button>
         </div>
       </header>
@@ -120,8 +121,8 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
             </button>
           ))}
 
-          <button onClick={() => { onToggleDark(); setMenuOpen(false) }}>
-            {darkMode ? '☀ Modo claro' : '◑ Modo oscuro'}
+          <button onClick={() => { onToggleDark(); setMenuOpen(false) }} style={{ display:'flex', alignItems:'center', gap:6 }}>
+            {darkMode ? <><SunIcon size={16} /> Modo claro</> : <><MoonIcon size={16} /> Modo oscuro</>}
           </button>
 
           {user && (
@@ -140,8 +141,8 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
             </button>
           )}
 
-          <button className="mobclose" onClick={() => setMenuOpen(false)}>
-            ✕ Cerrar menú
+          <button className="mobclose" onClick={() => setMenuOpen(false)} style={{ display:'flex', alignItems:'center', gap:6, justifyContent:'center' }}>
+            <CloseIcon size={15} /> Cerrar menú
           </button>
         </div>
       </div>

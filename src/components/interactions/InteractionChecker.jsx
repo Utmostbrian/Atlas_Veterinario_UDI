@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { checkInteractions } from '../../services/anthropicService'
 import { logInteractionCheck } from '../../services/auditService'
-import { ZapIcon, SparklesIcon } from '../../Icons/Icons'
+import { ZapIcon, SparklesIcon, AlertCircleIcon } from '../../Icons/Icons'
 import { DRUGS } from '../../data/drugs'
 import { DRUGS_DATABASE } from '../../data/drugsDatabase'
 import { markdownToHtml } from '../../utils/markdownToHtml'
@@ -275,7 +275,7 @@ export default function InteractionChecker() {
 
             {error && (
               <div className="wbox" style={{ marginBottom: 0 }}>
-                <span>!</span>
+                <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
                 <span><strong>Error:</strong> {error}</span>
               </div>
             )}

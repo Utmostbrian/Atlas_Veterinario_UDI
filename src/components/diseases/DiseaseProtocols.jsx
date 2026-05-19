@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { DISEASES } from '../../data/diseases'
-import { SearchIcon, ActivityIcon, SparklesIcon } from '../../Icons/Icons'
+import { SearchIcon, ActivityIcon, SparklesIcon, CloseIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
 import { searchDiseaseWithAI, buildLocalFallback } from '../../modules/diseases'
 import { useAuth } from '../../context/AuthContext'
 import AIDiseaseResult from './AIDiseaseResult'
@@ -287,12 +287,12 @@ function DiseaseCard({ disease }) {
       {expanded && (
         <div ref={panelRef} className="aip" style={{ gridColumn: '1 / -1' }}>
           <div className="aiph">
-            <button className="aiclose" onClick={() => { setExpanded(false); setAiData(null) }}>✕</button>
+            <button className="aiclose" onClick={() => { setExpanded(false); setAiData(null) }} aria-label="Cerrar"><CloseIcon size={14} /></button>
             <div className="ainame">{disease.name}</div>
             <div className="ailat">{disease.species}</div>
             <div className="aitags">
               <span className="aitag">{disease.severity}</span>
-              {aiData?.status === 'ok' && <span className="aitag ia">✦ IA</span>}
+              {aiData?.status === 'ok' && <span className="aitag ia" style={{ display:'inline-flex', alignItems:'center', gap:3 }}><SparklesIcon size={10} /> IA</span>}
             </div>
           </div>
 
@@ -370,16 +370,16 @@ function DiseaseCard({ disease }) {
                   <div style={{ fontSize: '.78rem', color: 'var(--muted,#6b7280)', borderTop: '1px solid var(--border,#e5e7eb)', paddingTop: 10, marginTop: 4 }}>
                     <strong style={{ display: 'block', marginBottom: 4 }}>Fuentes consultadas:</strong>
                     {aiData._sources.includes('vademecum') && (
-                      <div>📖 Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}><BookOpenIcon size={13} /> Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
                     )}
                     {aiData._sources.includes('merck') && (
-                      <div>🌐 Merck Veterinary Manual (merckvetmanual.com)</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}><GlobeIcon size={13} /> Merck Veterinary Manual (merckvetmanual.com)</div>
                     )}
                   </div>
                 )}
 
                 <div className="wbox">
-                  <span>!</span>
+                  <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
                   <span>Este protocolo es orientativo. Usar siempre bajo supervisión veterinaria profesional.</span>
                 </div>
               </>
@@ -392,7 +392,7 @@ function DiseaseCard({ disease }) {
                   </p>
                 </div>
                 <div className="wbox">
-                  <span>!</span>
+                  <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
                   <span>Verifica el nombre de la enfermedad y consulta con un profesional veterinario.</span>
                 </div>
               </>
@@ -451,7 +451,7 @@ function LocalFallback({ disease }) {
       )}
 
       <div className="wbox">
-        <span>!</span>
+        <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
         <span>Este protocolo es orientativo. El diagnóstico definitivo debe realizarlo un veterinario profesional.</span>
       </div>
     </>

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { SparklesIcon } from '../../Icons/Icons'
+import { SparklesIcon, CloseIcon, WarningIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
 
 export default function AIDrugResult({ query, aiData, loading, error, onClose, onAskAI }) {
   const panelRef = useRef(null)
@@ -17,11 +17,11 @@ export default function AIDrugResult({ query, aiData, loading, error, onClose, o
   return (
     <div ref={panelRef} className="aip" style={{ gridColumn: '1 / -1', marginTop: 12 }}>
       <div className="aiph">
-        <button className="aiclose" onClick={onClose} aria-label="Cerrar">✕</button>
+        <button className="aiclose" onClick={onClose} aria-label="Cerrar"><CloseIcon size={14} /></button>
         <div className="ainame">{shown}</div>
         {aiData?.nombreCientifico && <div className="ailat">{aiData.nombreCientifico}</div>}
         <div className="aitags">
-          <span className="aitag ia">✦ IA</span>
+          <span className="aitag ia" style={{ display:'inline-flex', alignItems:'center', gap:3 }}><SparklesIcon size={10} /> IA</span>
           {aiData?.categoria && <span className="aitag">{aiData.categoria}</span>}
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function AIDrugResult({ query, aiData, loading, error, onClose, o
 
             {aiData.avisoClinico && (
               <div className="wbox">
-                <span>⚠</span>
+                <WarningIcon size={16} style={{ flexShrink: 0 }} />
                 <span>{aiData.avisoClinico}</span>
               </div>
             )}
@@ -138,16 +138,16 @@ export default function AIDrugResult({ query, aiData, loading, error, onClose, o
               <div style={{ fontSize: '.78rem', color: 'var(--muted,#6b7280)', borderTop: '1px solid var(--border,#e5e7eb)', paddingTop: 10, marginTop: 4 }}>
                 <strong style={{ display: 'block', marginBottom: 4 }}>Fuentes consultadas:</strong>
                 {aiData._sources.includes('vademecum') && (
-                  <div>📖 Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5 }}><BookOpenIcon size={13} /> Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
                 )}
                 {aiData._sources.includes('merck') && (
-                  <div>🌐 Merck Veterinary Manual (merckvetmanual.com)</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5 }}><GlobeIcon size={13} /> Merck Veterinary Manual (merckvetmanual.com)</div>
                 )}
               </div>
             )}
 
             <div className="wbox">
-              <span>!</span>
+              <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
               <span>Información generada por IA. Usar siempre bajo supervisión veterinaria profesional.</span>
             </div>
 

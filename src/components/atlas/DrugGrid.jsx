@@ -4,7 +4,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useAuth } from '../../context/AuthContext'
 import DrugCard from './DrugCard'
 import AIDrugResult from './AIDrugResult'
-import { SearchIcon, SparklesIcon } from '../../Icons/Icons'
+import { SearchIcon, SparklesIcon, WarningIcon } from '../../Icons/Icons'
 import { searchDrugWithAI } from '../../modules/atlas'
 import {
   validateAISearchInput, consumeClientRateLimit,
@@ -148,7 +148,7 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
         {/* ── Sidebar ── */}
         <aside className="sb">
           <div className="sbc">
-            <div className="sbh red">⚠ Aviso Clínico</div>
+            <div className="sbh red" style={{ display:'flex', alignItems:'center', gap:6 }}><WarningIcon size={13} /> Aviso Clínico</div>
             <div className="sbb">
               Las dosis son <strong>orientativas</strong>. Ajustar siempre según especie,
               peso, estado clínico y criterio veterinario. No reemplaza la prescripción profesional.

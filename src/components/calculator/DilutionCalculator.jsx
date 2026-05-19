@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FlaskIcon } from '../../Icons/Icons'
+import { FlaskIcon, WarningIcon } from '../../Icons/Icons'
 
 function calcDilution({ c1, c2, v2 }) {
   // A-04: return error object instead of null so the user sees feedback
@@ -75,7 +75,7 @@ export default function DilutionCalculator() {
             {dilResult && (
               <div className="cres show">
                 {dilResult.error ? (
-                  <div className="wbox"><span>⚠</span><span>{dilResult.error}</span></div>
+                  <div className="wbox"><WarningIcon size={15} style={{ flexShrink:0 }} /><span>{dilResult.error}</span></div>
                 ) : (
                   <>
                     <div className="crtitle">Resultado</div>
@@ -135,7 +135,7 @@ export default function DilutionCalculator() {
             {dripResult && (
               <div className="cres show">
                 {dripResult.error ? (
-                  <div className="wbox"><span>⚠</span><span>{dripResult.error}</span></div>
+                  <div className="wbox"><WarningIcon size={15} style={{ flexShrink:0 }} /><span>{dripResult.error}</span></div>
                 ) : (
                   <>
                     <div className="crtitle">Resultado</div>

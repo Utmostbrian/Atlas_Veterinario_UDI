@@ -84,7 +84,7 @@ export function useDrugCalculator() {
     const d = parseFloat(dose)
     if (isNaN(d) || d <= 0) return null
     if (d > range.max)
-      return `⛔ LÍMITE ABSOLUTO — ${effectiveDrug.name} en ${species}: máximo ${range.max} ${effectiveDrug.doseUnit}. Superar este límite causa daño irreversible. Cálculo bloqueado.`
+      return `LÍMITE ABSOLUTO — ${effectiveDrug.name} en ${species}: máximo ${range.max} ${effectiveDrug.doseUnit}. Superar este límite causa daño irreversible. Cálculo bloqueado.`
     return null
   }, [matchedDrugName, aiDrugProfile, dose, species]) // eslint-disable-line react-hooks/exhaustive-deps
 
