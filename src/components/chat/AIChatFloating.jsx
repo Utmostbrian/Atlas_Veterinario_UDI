@@ -8,7 +8,7 @@ import { listConversations } from '../../services/chatHistoryService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
-import { CloseIcon, MicIcon, VolumeIcon, VolumeOffIcon, PhoneIcon } from '../../Icons/Icons'
+import { CloseIcon, PhoneIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
 import VoiceCallModal from './VoiceCallModal'
 
@@ -167,20 +167,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const streamRef  = useRef(null)
   const sendingRef = useRef(false) // M-08: prevents double-send race before loading state propagates
 
-  // STT: dictado de voz → texto en el textarea. El usuario revisa y envía.
-  const appendDictation = useCallback((finalText) => {
-    if (!finalText) return
-    setText((prev) => (prev ? prev.trimEnd() + ' ' : '') + finalText)
-    // Reajustar altura del textarea tras inyectar dictado.
-    setTimeout(() => {
-      const ta = inputRef.current
-      if (!ta) return
-      ta.style.height = 'auto'
-      ta.style.height = `${Math.min(ta.scrollHeight, 110)}px`
-      ta.focus()
-    }, 0)
-  }, [])
-
   // ── Modo conversación tipo llamada ────────────────────────────────────────
   // Loop: escuchar → enviar a IA → hablar respuesta → re-escuchar.
   const [callMode,      setCallMode]      = useState(false)
@@ -193,21 +179,17 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   useEffect(() => { callModeRef.current     = callMode     }, [callMode])
   useEffect(() => { callMicMutedRef.current = callMicMuted }, [callMicMuted])
 
-  // STT continuo. En dictado escribe al textarea; en llamada despacha al chat.
+  // STT solo se usa dentro del modo llamada. Fuera, los resultados se ignoran.
   const handleSTTFinal = useCallback((finalText) => {
     if (!finalText?.trim()) return
-    if (callModeRef.current) {
-      if (callMicMutedRef.current) return
-      // Parar mic mientras la IA piensa/habla, evita que se capture a sí misma.
-      stt.stop()
-      send({ text: finalText.trim(), imageData: null })
-    } else {
-      appendDictation(finalText)
-    }
-    // stt ya no está en la dep para evitar recrear callback en cada render.
-    // El cambio de identidad de stt.stop está manejado vía el hook useCallback.
+    if (!callModeRef.current) return
+    if (callMicMutedRef.current) return
+    // Parar mic mientras la IA piensa/habla, evita que se capture a sí misma.
+    stt.stop()
+    send({ text: finalText.trim(), imageData: null })
+  // stt.stop es estable (useCallback en el hook); evitamos recrear callback.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appendDictation, send])
+  }, [send])
 
   const stt = useSpeechRecognition({
     lang:       'es-ES',
@@ -219,6 +201,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   // Mostrar errores de STT al usuario (no-speech y aborted ya se filtran en el hook).
   useEffect(() => {
     if (!stt.error) return
+    if (!callModeRef.current) return
     const msg = stt.error === 'not-allowed' || stt.error === 'service-not-allowed'
       ? 'Permiso de micrófono denegado. Habilítalo en la configuración del navegador.'
       : stt.error === 'audio-capture'
@@ -226,24 +209,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
         : `Error de reconocimiento de voz: ${stt.error}`
     alert(msg)
   }, [stt.error])
-
-  const handleMicToggle = useCallback(() => {
-    if (!isAuthenticated) { onOpenLogin?.(); return }
-    if (!stt.supported) {
-      alert('Tu navegador no soporta dictado por voz. Usa Chrome, Edge o Safari actualizado.')
-      return
-    }
-    if (stt.isListening) stt.stop()
-    else                 stt.start()
-  }, [stt, isAuthenticated, onOpenLogin])
-
-  const handleTTSToggle = useCallback(() => {
-    if (!tts.supported) {
-      alert('Tu navegador no soporta voz sintetizada.')
-      return
-    }
-    tts.toggle()
-  }, [tts])
 
   // Iniciar modo llamada: fuerza TTS encendido y empieza a escuchar.
   const startCall = useCallback(() => {
@@ -519,19 +484,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                 <PhoneIcon size={14} />
               </button>
             )}
-            {isAuthenticated && !minimized && tts.supported && (
-              <button
-                className={`${styles.iconBtn} ${tts.enabled ? styles.iconBtnActive : ''} ${tts.isSpeaking ? styles.iconBtnPulse : ''}`}
-                onClick={handleTTSToggle}
-                title={tts.enabled ? 'Silenciar voz de la IA' : 'Activar voz de la IA'}
-                aria-label={tts.enabled ? 'Silenciar voz de la IA' : 'Activar voz de la IA'}
-                aria-pressed={tts.enabled}
-              >
-                {tts.enabled
-                  ? <VolumeIcon size={14} />
-                  : <VolumeOffIcon size={14} />}
-              </button>
-            )}
             {isAuthenticated && !minimized && (
               <button
                 className={styles.iconBtn}
@@ -637,26 +589,10 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                     </svg>
                   </button>
 
-                  {stt.supported && (
-                    <button
-                      className={`${styles.attachBtn} ${stt.isListening ? styles.micActive : ''}`}
-                      onClick={handleMicToggle}
-                      title={stt.isListening ? 'Detener dictado' : 'Dictar por voz'}
-                      aria-label={stt.isListening ? 'Detener dictado por voz' : 'Iniciar dictado por voz'}
-                      aria-pressed={stt.isListening}
-                    >
-                      <MicIcon size={18} />
-                    </button>
-                  )}
-
                   <textarea
                     ref={inputRef}
                     className={styles.textInput}
-                    placeholder={
-                      stt.isListening
-                        ? (stt.interimTranscript || 'Escuchando...')
-                        : (imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...')
-                    }
+                    placeholder={imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...'}
                     value={text}
                     onChange={handleTextChange}
                     onKeyDown={handleKeyDown}
