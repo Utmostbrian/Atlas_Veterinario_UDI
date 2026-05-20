@@ -19,7 +19,7 @@ const MAX_LEN = 60
 // Whitelist estricta: letras latinas (con acentos y ñ), dígitos, espacios,
 // punto, guion y guión bajo. Bloquea comillas, llaves, paréntesis, signos
 // de control y caracteres no imprimibles usados en payloads de inyección.
-const ALLOWED_CHARS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ._\-]+$/
+const ALLOWED_CHARS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ._-]+$/
 
 // Patrones típicos de prompt injection / jailbreak. No exhaustivos —
 // la prompt en sí también valida el contenido server-side via IA.
@@ -266,3 +266,4 @@ export function setCachedAIResult(category, term, data) {
   }
   writeCache(category, store)
 }
+
