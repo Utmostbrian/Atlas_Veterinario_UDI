@@ -89,7 +89,7 @@ export default function HistoryPanel({
   return (
     <aside
       className={`${styles.historyPanel} ${open ? styles.historyPanelOpen : ''}`}
-      aria-hidden={!open}
+      {...(!open ? { inert: '' } : {})}
       aria-label="Historial de conversaciones"
     >
       <div className={styles.historyHeader}>

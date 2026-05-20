@@ -133,8 +133,6 @@ header {
   align-items: center;
   gap: 14px;
   padding: 10px 36px;
-  max-width: 1300px;
-  margin: 0 auto;
 }
 
 .hlogo {
@@ -215,7 +213,6 @@ header {
 .dark .tabbar { background: #1e293b; border-color: #334155; }
 
 .tabinner {
-  max-width: 1300px; margin: 0 auto;
   padding: 0 36px; display: flex;
   overflow-x: auto; scrollbar-width: none;
 }
@@ -241,7 +238,7 @@ header {
 }
 
 /* ── MAIN LAYOUT ── */
-.wrap { max-width: 1300px; margin: 0 auto; padding: 28px 36px; }
+.wrap { padding: 28px 36px; }
 
 .twocol {
   display: grid;
@@ -942,7 +939,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
 .fstripe { height: 5px; background: linear-gradient(90deg, var(--red) 50%, var(--gray) 50%); }
 
 .fbody {
-  max-width: 1300px; margin: 0 auto; padding: 34px 36px;
+  padding: 34px 36px;
   display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 30px;
 }
 .fbrand h3 { font-family: 'Playfair Display', serif; color: #fff; font-size: .94rem; margin-bottom: 7px; }
@@ -962,7 +959,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
 
 .fbot {
   border-top: 1px solid rgba(255,255,255,.1);
-  padding: 13px 36px; max-width: 1300px; margin: 0 auto;
+  padding: 13px 36px;
   display: flex; justify-content: space-between; align-items: center;
   font-size: .72rem;
 }

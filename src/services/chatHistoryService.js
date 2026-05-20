@@ -56,7 +56,16 @@ export async function loadMessages(conversationId) {
   const { data, error } = await supabase.rpc('sp_get_chat_messages', {
     p_conversation_id: conversationId,
   })
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error('[chatHistory] sp_get_chat_messages error:', {
+      message: error.message,
+      code:    error.code,
+      details: error.details,
+      hint:    error.hint,
+      conversationId,
+    })
+    throw new Error(error.message)
+  }
   return (data ?? []).map((row) => ({
     id:        row.id,
     role:      row.role,

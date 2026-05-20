@@ -110,7 +110,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const isAuthenticated = !!user
 
   const {
-    messages, loading, send, stop,
+    messages, loading, error: chatError, send, stop,
     conversationId, loadConversation, newConversation,
   } = useChat()
   const [text,         setText]         = useState('')
@@ -130,7 +130,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     autoRestoredRef.current = true
     listConversations({ limit: 1 })
       .then((rows) => { if (rows.length > 0) loadConversation(rows[0].id) })
-      .catch(() => {})
+      .catch((e) => console.error('[autoRestore] No se pudo restaurar conversación:', e?.message, e))
   }, [isAuthenticated, conversationId, messages.length, loadConversation])
 
   const bottomRef  = useRef(null)
@@ -359,7 +359,17 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
               /* ── Chat normal: con sesión ── */
               <>
                 <div className={styles.messages}>
-                  {messages.length === 0 && (
+                  {chatError && (
+                    <div style={{
+                      margin: '12px 14px', padding: '10px 13px',
+                      background: 'rgba(204,0,0,.1)', border: '1px solid rgba(204,0,0,.3)',
+                      borderRadius: 8, fontSize: '.81rem', color: 'var(--red)',
+                    }}>
+                      <strong>Error al cargar conversación:</strong> {chatError}
+                      <br /><span style={{ opacity: .75, fontSize: '.76rem' }}>Abre la consola del navegador (F12) para ver el detalle técnico.</span>
+                    </div>
+                  )}
+                  {!chatError && messages.length === 0 && (
                     <div className={styles.welcome}>
                       <h3>Chat IA Veterinario</h3>
                       <p>Consulta sobre fármacos, dosis, interacciones o adjunta una imagen de receta, síntoma o etiqueta.</p>
