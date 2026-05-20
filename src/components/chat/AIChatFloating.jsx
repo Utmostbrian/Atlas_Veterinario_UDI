@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useChat } from '../../hooks/useChat'
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
+import { useSpeechSynthesis } from '../../hooks/useSpeechSynthesis'
+import { createSentenceBuffer } from '../../utils/sentenceBuffer'
 import { listConversations } from '../../services/chatHistoryService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
-import { CloseIcon } from '../../Icons/Icons'
+import { CloseIcon, MicIcon, VolumeIcon, VolumeOffIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
 
 const QUICK_PROMPTS = [
@@ -109,10 +112,33 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const { user } = useAuth()
   const isAuthenticated = !!user
 
+  // TTS: voz de la IA. Cola de oraciones para hablar mientras llega el streaming.
+  const tts = useSpeechSynthesis({ lang: 'es-ES' })
+  const sentenceBufRef = useRef(null)
+
   const {
     messages, loading, error: chatError, send, stop,
     conversationId, loadConversation, newConversation,
-  } = useChat()
+  } = useChat({
+    onAssistantChunk: (chunk) => {
+      if (!tts.enabled) return
+      if (!sentenceBufRef.current) {
+        sentenceBufRef.current = createSentenceBuffer({
+          onSentence: (s) => tts.enqueue(s),
+        })
+      }
+      sentenceBufRef.current.push(chunk)
+    },
+    onAssistantComplete: () => {
+      sentenceBufRef.current?.flush()
+      sentenceBufRef.current = null
+    },
+    onAssistantAbort: () => {
+      sentenceBufRef.current?.reset()
+      sentenceBufRef.current = null
+      tts.stop()
+    },
+  })
   const [text,         setText]         = useState('')
   const [imageData,    setImageData]    = useState(null)
   const [minimized,    setMinimized]    = useState(false)
@@ -139,6 +165,45 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const videoRef   = useRef(null)
   const streamRef  = useRef(null)
   const sendingRef = useRef(false) // M-08: prevents double-send race before loading state propagates
+
+  // STT: dictado de voz → texto en el textarea. El usuario revisa y envía.
+  const appendDictation = useCallback((finalText) => {
+    if (!finalText) return
+    setText((prev) => (prev ? prev.trimEnd() + ' ' : '') + finalText)
+    // Reajustar altura del textarea tras inyectar dictado.
+    setTimeout(() => {
+      const ta = inputRef.current
+      if (!ta) return
+      ta.style.height = 'auto'
+      ta.style.height = `${Math.min(ta.scrollHeight, 110)}px`
+      ta.focus()
+    }, 0)
+  }, [])
+
+  const stt = useSpeechRecognition({
+    lang:       'es-ES',
+    continuous: false,
+    interim:    true,
+    onResult:   appendDictation,
+  })
+
+  const handleMicToggle = useCallback(() => {
+    if (!isAuthenticated) { onOpenLogin?.(); return }
+    if (!stt.supported) {
+      alert('Tu navegador no soporta dictado por voz. Usa Chrome, Edge o Safari actualizado.')
+      return
+    }
+    if (stt.isListening) stt.stop()
+    else                 stt.start()
+  }, [stt, isAuthenticated, onOpenLogin])
+
+  const handleTTSToggle = useCallback(() => {
+    if (!tts.supported) {
+      alert('Tu navegador no soporta voz sintetizada.')
+      return
+    }
+    tts.toggle()
+  }, [tts])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -250,15 +315,19 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
   function handleToggle() {
     if (streamRef.current) closeCamera()
+    if (stt.isListening) stt.stop()
+    tts.stop()
     setHistoryOpen(false)
     onToggle()
   }
 
   function handleSelectConversation(id) {
+    tts.stop()
     loadConversation(id)
   }
 
   function handleNewConversation() {
+    tts.stop()
     newConversation()
   }
 
@@ -325,6 +394,19 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             </div>
           </div>
           <div className={styles.headerActions}>
+            {isAuthenticated && !minimized && tts.supported && (
+              <button
+                className={`${styles.iconBtn} ${tts.enabled ? styles.iconBtnActive : ''} ${tts.isSpeaking ? styles.iconBtnPulse : ''}`}
+                onClick={handleTTSToggle}
+                title={tts.enabled ? 'Silenciar voz de la IA' : 'Activar voz de la IA'}
+                aria-label={tts.enabled ? 'Silenciar voz de la IA' : 'Activar voz de la IA'}
+                aria-pressed={tts.enabled}
+              >
+                {tts.enabled
+                  ? <VolumeIcon size={14} />
+                  : <VolumeOffIcon size={14} />}
+              </button>
+            )}
             {isAuthenticated && !minimized && (
               <button
                 className={styles.iconBtn}
@@ -430,10 +512,26 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                     </svg>
                   </button>
 
+                  {stt.supported && (
+                    <button
+                      className={`${styles.attachBtn} ${stt.isListening ? styles.micActive : ''}`}
+                      onClick={handleMicToggle}
+                      title={stt.isListening ? 'Detener dictado' : 'Dictar por voz'}
+                      aria-label={stt.isListening ? 'Detener dictado por voz' : 'Iniciar dictado por voz'}
+                      aria-pressed={stt.isListening}
+                    >
+                      <MicIcon size={18} />
+                    </button>
+                  )}
+
                   <textarea
                     ref={inputRef}
                     className={styles.textInput}
-                    placeholder={imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...'}
+                    placeholder={
+                      stt.isListening
+                        ? (stt.interimTranscript || 'Escuchando...')
+                        : (imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...')
+                    }
                     value={text}
                     onChange={handleTextChange}
                     onKeyDown={handleKeyDown}

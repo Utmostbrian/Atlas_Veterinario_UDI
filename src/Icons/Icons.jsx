@@ -210,3 +210,31 @@ export function MoonIcon(p) {
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </Ico>
 }
+
+/* ── Micrófono / Dictar voz ── */
+export function MicIcon(p) {
+  return <Ico {...p}>
+    <rect x="9" y="2" width="6" height="12" rx="3" />
+    <path d="M5 10a7 7 0 0 0 14 0" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+    <line x1="8" y1="22" x2="16" y2="22" />
+  </Ico>
+}
+
+/* ── Volumen activado / TTS encendido ── */
+export function VolumeIcon(p) {
+  return <Ico {...p}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+  </Ico>
+}
+
+/* ── Volumen silenciado / TTS apagado ── */
+export function VolumeOffIcon(p) {
+  return <Ico {...p}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <line x1="22" y1="9" x2="16" y2="15" />
+    <line x1="16" y1="9" x2="22" y2="15" />
+  </Ico>
+}

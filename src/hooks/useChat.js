@@ -12,7 +12,7 @@ import { uid } from '../lib/uid'
 
 const MAX_HISTORY = 20
 
-export function useChat() {
+export function useChat(opts = {}) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
@@ -22,6 +22,15 @@ export function useChat() {
   const messagesRef    = useRef([])
   const conversationRef = useRef(null)
   const titleSetRef    = useRef(false)
+
+  // Callbacks opcionales (TTS u otras integraciones). Refrescamos en cada render
+  // para que send() siempre vea la última referencia sin recrearse.
+  const cbRef = useRef({})
+  cbRef.current = {
+    onAssistantChunk:    opts.onAssistantChunk,
+    onAssistantComplete: opts.onAssistantComplete,
+    onAssistantAbort:    opts.onAssistantAbort,
+  }
 
   // Mantener refs sincronizadas para evitar stale closures
   useLayoutEffect(() => { messagesRef.current = messages }, [messages])
@@ -131,7 +140,7 @@ export function useChat() {
           userText: text,
           imageData,
           signal: abortRef.current.signal,
-          onChunk: (_chunk, fullText) => {
+          onChunk: (chunk, fullText) => {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === placeholderId
@@ -139,6 +148,7 @@ export function useChat() {
                   : m
               )
             )
+            try { cbRef.current.onAssistantChunk?.(chunk, fullText) } catch { /* ignore */ }
           },
         })
 
@@ -147,6 +157,8 @@ export function useChat() {
             m.id === placeholderId ? { ...m, streaming: false } : m
           )
         )
+
+        try { cbRef.current.onAssistantComplete?.(typeof fullResponse === 'string' ? fullResponse : '') } catch { /* ignore */ }
 
         // Persistir respuesta completa del asistente
         if (convId && typeof fullResponse === 'string' && fullResponse.trim()) {
@@ -158,6 +170,7 @@ export function useChat() {
 
         logAiConsultation(text, typeof fullResponse === 'string' ? fullResponse.slice(0, 200) : '')
       } catch (err) {
+        try { cbRef.current.onAssistantAbort?.() } catch { /* ignore */ }
         if (err.name === 'AbortError') {
           setMessages((prev) => prev.filter((m) => m.id !== placeholderId))
         } else {
