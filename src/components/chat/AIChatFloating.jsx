@@ -8,8 +8,9 @@ import { listConversations } from '../../services/chatHistoryService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
-import { CloseIcon, MicIcon, VolumeIcon, VolumeOffIcon } from '../../Icons/Icons'
+import { CloseIcon, MicIcon, VolumeIcon, VolumeOffIcon, PhoneIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
+import VoiceCallModal from './VoiceCallModal'
 
 const QUICK_PROMPTS = [
   '¿Cuáles son los antibióticos más seguros para gatos?',
@@ -180,12 +181,51 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     }, 0)
   }, [])
 
+  // ── Modo conversación tipo llamada ────────────────────────────────────────
+  // Loop: escuchar → enviar a IA → hablar respuesta → re-escuchar.
+  const [callMode,      setCallMode]      = useState(false)
+  const [callMicMuted,  setCallMicMuted]  = useState(false)
+  const [lastAssistantSpeech, setLastAssistantSpeech] = useState('')
+  const callModeRef     = useRef(false)
+  const callMicMutedRef = useRef(false)
+  const ttsPrevEnabledRef = useRef(false)
+
+  useEffect(() => { callModeRef.current     = callMode     }, [callMode])
+  useEffect(() => { callMicMutedRef.current = callMicMuted }, [callMicMuted])
+
+  // STT continuo. En dictado escribe al textarea; en llamada despacha al chat.
+  const handleSTTFinal = useCallback((finalText) => {
+    if (!finalText?.trim()) return
+    if (callModeRef.current) {
+      if (callMicMutedRef.current) return
+      // Parar mic mientras la IA piensa/habla, evita que se capture a sí misma.
+      stt.stop()
+      send({ text: finalText.trim(), imageData: null })
+    } else {
+      appendDictation(finalText)
+    }
+    // stt ya no está en la dep para evitar recrear callback en cada render.
+    // El cambio de identidad de stt.stop está manejado vía el hook useCallback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appendDictation, send])
+
   const stt = useSpeechRecognition({
     lang:       'es-ES',
-    continuous: false,
+    continuous: true,
     interim:    true,
-    onResult:   appendDictation,
+    onResult:   handleSTTFinal,
   })
+
+  // Mostrar errores de STT al usuario (no-speech y aborted ya se filtran en el hook).
+  useEffect(() => {
+    if (!stt.error) return
+    const msg = stt.error === 'not-allowed' || stt.error === 'service-not-allowed'
+      ? 'Permiso de micrófono denegado. Habilítalo en la configuración del navegador.'
+      : stt.error === 'audio-capture'
+        ? 'No se detectó micrófono. Conecta uno y vuelve a intentar.'
+        : `Error de reconocimiento de voz: ${stt.error}`
+    alert(msg)
+  }, [stt.error])
 
   const handleMicToggle = useCallback(() => {
     if (!isAuthenticated) { onOpenLogin?.(); return }
@@ -204,6 +244,77 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     }
     tts.toggle()
   }, [tts])
+
+  // Iniciar modo llamada: fuerza TTS encendido y empieza a escuchar.
+  const startCall = useCallback(() => {
+    if (!isAuthenticated) { onOpenLogin?.(); return }
+    if (!stt.supported)  { alert('Tu navegador no soporta voz. Usa Chrome, Edge o Safari.'); return }
+    if (!tts.supported)  { alert('Tu navegador no soporta síntesis de voz.'); return }
+    ttsPrevEnabledRef.current = tts.enabled
+    if (!tts.enabled) tts.setEnabled(true)
+    setLastAssistantSpeech('')
+    setCallMicMuted(false)
+    setCallMode(true)
+    // Pequeño delay para que el modal se monte antes de pedir el mic.
+    setTimeout(() => stt.start(), 120)
+  }, [isAuthenticated, onOpenLogin, stt, tts])
+
+  // Terminar llamada y restaurar estado previo del TTS.
+  const endCall = useCallback(() => {
+    setCallMode(false)
+    stt.stop()
+    tts.stop()
+    // Restaurar preferencia anterior de TTS (si estaba apagado, apagar de nuevo).
+    if (!ttsPrevEnabledRef.current) tts.setEnabled(false)
+  }, [stt, tts])
+
+  // Capturar la última oración hablada para mostrarla en el modal.
+  // Sobrescribe el callback onSentence del sentenceBuffer original mediante
+  // un efecto en la respuesta del asistente: leemos el último mensaje del
+  // asistente y exhibimos su contenido parcial mientras dure el TTS.
+  useEffect(() => {
+    if (!callMode) return
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+    if (lastAssistant?.content) setLastAssistantSpeech(lastAssistant.content)
+  }, [callMode, messages])
+
+  // ── Loop de la llamada: reanudar STT cuando la IA termina de hablar ──────
+  useEffect(() => {
+    if (!callMode) return
+    if (callMicMuted) return
+    if (loading) return              // IA pensando/generando
+    if (tts.isSpeaking) return       // IA hablando
+    if (tts.queueLength > 0) return  // hay oraciones encoladas por hablar
+    if (stt.isListening) return      // ya escuchando
+    // Delay para evitar capturar la cola del audio que acabó.
+    const t = setTimeout(() => {
+      if (!callModeRef.current) return
+      if (callMicMutedRef.current) return
+      try { stt.start() } catch { /* ignore */ }
+    }, 450)
+    return () => clearTimeout(t)
+  }, [callMode, callMicMuted, loading, tts.isSpeaking, tts.queueLength, stt])
+
+  // Estado derivado para el modal (idle/listening/thinking/speaking).
+  const callStatus = !callMode
+    ? 'idle'
+    : tts.isSpeaking || tts.queueLength > 0
+      ? 'speaking'
+      : loading
+        ? 'thinking'
+        : 'listening'
+
+  const toggleCallMic = useCallback(() => {
+    setCallMicMuted((prev) => {
+      const next = !prev
+      if (next) {
+        try { stt.stop() } catch { /* ignore */ }
+      } else if (!loading && !tts.isSpeaking && tts.queueLength === 0) {
+        try { stt.start() } catch { /* ignore */ }
+      }
+      return next
+    })
+  }, [stt, loading, tts.isSpeaking, tts.queueLength])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -315,6 +426,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
   function handleToggle() {
     if (streamRef.current) closeCamera()
+    if (callMode) endCall()
     if (stt.isListening) stt.stop()
     tts.stop()
     setHistoryOpen(false)
@@ -322,12 +434,15 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   }
 
   function handleSelectConversation(id) {
+    if (callMode) endCall()
     tts.stop()
     loadConversation(id)
   }
 
   function handleNewConversation() {
+    if (callMode) endCall()
     tts.stop()
+    setLastAssistantSpeech('')
     newConversation()
   }
 
@@ -394,6 +509,16 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             </div>
           </div>
           <div className={styles.headerActions}>
+            {isAuthenticated && !minimized && stt.supported && tts.supported && (
+              <button
+                className={styles.iconBtn}
+                onClick={startCall}
+                title="Hablar con la IA (modo llamada)"
+                aria-label="Iniciar conversación por voz con la IA"
+              >
+                <PhoneIcon size={14} />
+              </button>
+            )}
             {isAuthenticated && !minimized && tts.supported && (
               <button
                 className={`${styles.iconBtn} ${tts.enabled ? styles.iconBtnActive : ''} ${tts.isSpeaking ? styles.iconBtnPulse : ''}`}
@@ -565,6 +690,16 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
           </>
         )}
       </div>
+
+      <VoiceCallModal
+        open={callMode}
+        status={callStatus}
+        userInterim={stt.interimTranscript}
+        assistantText={lastAssistantSpeech}
+        micMuted={callMicMuted}
+        onToggleMute={toggleCallMic}
+        onHangup={endCall}
+      />
     </>
   )
 }

@@ -1,0 +1,235 @@
+/* Modal de llamada por voz. Pantalla completa con orbe animado central. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: radial-gradient(circle at 50% 30%, #1a1f3a 0%, #08090f 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+.scene {
+  width: 100%;
+  max-width: 460px;
+  padding: 40px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  text-align: center;
+}
+
+/* ─── Orbe central ───────────────────────────────────────────────── */
+.orbWrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 26px;
+}
+
+.orb {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5b8def 0%, #3a5fcc 60%, #1f3a8a 100%);
+  box-shadow:
+    0 0 60px rgba(91,141,239,.55),
+    inset 0 -8px 24px rgba(0,0,0,.35),
+    inset 0 8px 24px rgba(255,255,255,.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+
+.orbIcon {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: .92;
+}
+
+/* Anillos animados detrás del orbe */
+.orbRing, .orbRing2 {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(91,141,239,.35);
+  pointer-events: none;
+}
+.orbRing  { width: 170px; height: 170px; }
+.orbRing2 { width: 200px; height: 200px; border-color: rgba(91,141,239,.18); }
+
+/* Estado: escuchando → anillos expanden y orbe respira */
+.orb_listening .orb {
+  animation: orbBreath 2.4s ease-in-out infinite;
+}
+.orb_listening .orbRing {
+  animation: ringPulse 1.8s ease-out infinite;
+}
+.orb_listening .orbRing2 {
+  animation: ringPulse 1.8s ease-out infinite .6s;
+}
+
+/* Estado: pensando → orbe gira sutilmente con anillos lentos */
+.orb_thinking .orb {
+  animation: orbSpin 3s linear infinite;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #92400e 100%);
+  box-shadow: 0 0 60px rgba(245,158,11,.45),
+              inset 0 -8px 24px rgba(0,0,0,.35),
+              inset 0 8px 24px rgba(255,255,255,.18);
+}
+
+/* Estado: hablando → orbe vibra rápido, color verde */
+.orb_speaking .orb {
+  animation: orbSpeak .5s ease-in-out infinite;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 60%, #047857 100%);
+  box-shadow: 0 0 70px rgba(52,211,153,.6),
+              inset 0 -8px 24px rgba(0,0,0,.35),
+              inset 0 8px 24px rgba(255,255,255,.18);
+}
+.orb_speaking .orbRing {
+  animation: ringPulse 1s ease-out infinite;
+}
+.orb_speaking .orbRing2 {
+  animation: ringPulse 1s ease-out infinite .3s;
+}
+
+@keyframes orbBreath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.07); }
+}
+@keyframes orbSpeak {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+@keyframes orbSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes ringPulse {
+  0%   { transform: scale(.85); opacity: .8; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* ─── Textos ─────────────────────────────────────────────────────── */
+.title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin-bottom: 4px;
+}
+
+.status {
+  font-size: .95rem;
+  color: rgba(255,255,255,.65);
+  margin-bottom: 22px;
+  min-height: 22px;
+  letter-spacing: .02em;
+}
+
+.assistantBubble {
+  max-width: 100%;
+  padding: 12px 18px;
+  background: rgba(52,211,153,.12);
+  border: 1px solid rgba(52,211,153,.3);
+  border-radius: 14px;
+  font-size: .92rem;
+  line-height: 1.45;
+  color: rgba(255,255,255,.92);
+  margin-bottom: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.userBubble {
+  max-width: 100%;
+  padding: 10px 16px;
+  background: rgba(91,141,239,.18);
+  border: 1px solid rgba(91,141,239,.35);
+  border-radius: 14px;
+  font-size: .88rem;
+  line-height: 1.4;
+  color: rgba(255,255,255,.85);
+  margin-bottom: 18px;
+  font-style: italic;
+}
+
+/* ─── Controles ──────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 28px;
+  margin-top: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.controlBtn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .15s, background .15s;
+  backdrop-filter: blur(4px);
+}
+
+.controlBtn:hover {
+  background: rgba(255,255,255,.2);
+  transform: scale(1.05);
+}
+
+.controlBtnMuted {
+  background: rgba(248,113,113,.25);
+  color: #fca5a5;
+}
+
+.hangupBtn {
+  background: #dc2626;
+  width: 72px;
+  height: 72px;
+}
+
+.hangupBtn:hover {
+  background: #b91c1c;
+}
+
+.hint {
+  margin-top: 24px;
+  font-size: .76rem;
+  color: rgba(255,255,255,.4);
+  max-width: 320px;
+  line-height: 1.45;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .orbWrap { width: 160px; height: 160px; margin-bottom: 20px; }
+  .orb     { width: 110px; height: 110px; }
+  .orbIcon { width: 68px; height: 68px; }
+  .orbRing  { width: 135px; height: 135px; }
+  .orbRing2 { width: 160px; height: 160px; }
+  .title   { font-size: 1.4rem; }
+  .controls { gap: 22px; }
+  .controlBtn { width: 56px; height: 56px; }
+  .hangupBtn  { width: 64px; height: 64px; }
+}

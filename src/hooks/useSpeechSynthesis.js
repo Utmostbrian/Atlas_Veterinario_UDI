@@ -32,12 +32,15 @@ export function useSpeechSynthesis(opts = {}) {
     if (typeof window === 'undefined') return false
     try { return localStorage.getItem(STORAGE_KEY) === '1' } catch { return false }
   })
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [voice,      setVoice]      = useState(null)
+  const [isSpeaking,  setIsSpeaking]  = useState(false)
+  const [queueLength, setQueueLength] = useState(0)
+  const [voice,       setVoice]       = useState(null)
 
   const queueRef    = useRef([])     // Oraciones pendientes por hablar
   const speakingRef = useRef(false)  // Hay un utterance en curso
   const voiceRef    = useRef(null)
+
+  const syncQueueLength = () => setQueueLength(queueRef.current.length)
 
   // Cargar voces (asíncrono en algunos navegadores).
   useEffect(() => {
@@ -60,6 +63,7 @@ export function useSpeechSynthesis(opts = {}) {
     if (!supported) return
     if (speakingRef.current) return
     const next = queueRef.current.shift()
+    syncQueueLength()
     if (!next) {
       setIsSpeaking(false)
       return
@@ -90,6 +94,7 @@ export function useSpeechSynthesis(opts = {}) {
     const t = (text ?? '').trim()
     if (!t) return
     queueRef.current.push(t)
+    syncQueueLength()
     processQueue()
   }, [supported, enabled, processQueue])
 
@@ -97,6 +102,7 @@ export function useSpeechSynthesis(opts = {}) {
   const stop = useCallback(() => {
     queueRef.current = []
     speakingRef.current = false
+    syncQueueLength()
     if (supported) {
       try { window.speechSynthesis.cancel() } catch { /* ignore */ }
     }
@@ -133,6 +139,7 @@ export function useSpeechSynthesis(opts = {}) {
     supported,
     enabled,
     isSpeaking,
+    queueLength,
     voice,
     enqueue,
     stop,
