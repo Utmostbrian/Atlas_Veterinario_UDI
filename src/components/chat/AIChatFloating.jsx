@@ -8,7 +8,7 @@ import { listConversations } from '../../services/chatHistoryService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
-import { CloseIcon, PhoneIcon } from '../../Icons/Icons'
+import { CloseIcon, MicIcon, PhoneIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
 import VoiceCallModal from './VoiceCallModal'
 
@@ -180,18 +180,34 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   useEffect(() => { callModeRef.current     = callMode     }, [callMode])
   useEffect(() => { callMicMutedRef.current = callMicMuted }, [callMicMuted])
 
-  // STT solo se usa dentro del modo llamada. Fuera, los resultados se ignoran.
+  // Dictado por voz: agrega el texto reconocido al textarea.
+  const appendDictation = useCallback((finalText) => {
+    if (!finalText) return
+    setText((prev) => (prev ? prev.trimEnd() + ' ' : '') + finalText)
+    setTimeout(() => {
+      const ta = inputRef.current
+      if (!ta) return
+      ta.style.height = 'auto'
+      ta.style.height = `${Math.min(ta.scrollHeight, 110)}px`
+      ta.focus()
+    }, 0)
+  }, [])
+
+  // En modo llamada el texto se envía directo al chat; fuera, se agrega al textarea.
   const handleSTTFinal = useCallback((finalText) => {
     console.log('[Voice] STT final result:', finalText)
     if (!finalText?.trim()) return
-    if (!callModeRef.current) return
-    if (callMicMutedRef.current) return
-    // Parar mic mientras la IA piensa/habla, evita que se capture a sí misma.
-    stt.stop()
-    send({ text: finalText.trim(), imageData: null })
+    if (callModeRef.current) {
+      if (callMicMutedRef.current) return
+      // Parar mic mientras la IA piensa/habla, evita que se capture a sí misma.
+      stt.stop()
+      send({ text: finalText.trim(), imageData: null })
+    } else {
+      appendDictation(finalText.trim())
+    }
   // stt.stop es estable (useCallback en el hook); evitamos recrear callback.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [send])
+  }, [send, appendDictation])
 
   const stt = useSpeechRecognition({
     lang:       'es-ES',
@@ -200,10 +216,9 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     onResult:   handleSTTFinal,
   })
 
-  // Convertir errores de STT en mensajes visibles dentro del modal.
+  // Convertir errores de STT en mensajes visibles (modal en llamada, alerta en dictado).
   useEffect(() => {
     if (!stt.error) return
-    if (!callModeRef.current) return
     const msg = stt.error === 'not-allowed' || stt.error === 'service-not-allowed'
       ? 'Permiso de micrófono denegado. Habilítalo en la barra de direcciones del navegador y vuelve a intentar.'
       : stt.error === 'audio-capture'
@@ -211,9 +226,34 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
         : stt.error === 'network'
           ? 'Sin conexión para el reconocimiento de voz. Verifica tu internet.'
           : `Error de reconocimiento: ${stt.error}`
-    setCallError(msg)
     console.error('[Voice] STT error:', stt.error)
+    if (callModeRef.current) setCallError(msg)
+    else                     alert(msg)
   }, [stt.error])
+
+  // Botón de dictado por voz (icono mic en input area). Pre-pide permiso del
+  // micrófono dentro del user gesture para que Chrome muestre el popup.
+  const handleMicToggle = useCallback(async () => {
+    if (!isAuthenticated) { onOpenLogin?.(); return }
+    if (callMode) return
+    if (!stt.supported) {
+      alert('Tu navegador no soporta dictado por voz. Usa Chrome, Edge o Safari actualizado.')
+      return
+    }
+    if (stt.isListening) {
+      stt.stop()
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((t) => t.stop())
+    } catch (e) {
+      console.error('[Voice] Permiso mic denegado:', e?.name, e?.message)
+      alert('Para dictar por voz necesitas conceder permiso del micrófono.')
+      return
+    }
+    stt.start()
+  }, [stt, callMode, isAuthenticated, onOpenLogin])
 
   // Iniciar modo llamada. ASYNC y SIN setTimeout para preservar el contexto
   // de user-gesture que Chrome requiere para conceder permiso del micrófono.
@@ -629,10 +669,26 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                     </svg>
                   </button>
 
+                  {stt.supported && !callMode && (
+                    <button
+                      className={`${styles.attachBtn} ${stt.isListening ? styles.micActive : ''}`}
+                      onClick={handleMicToggle}
+                      title={stt.isListening ? 'Detener dictado' : 'Dictar por voz'}
+                      aria-label={stt.isListening ? 'Detener dictado por voz' : 'Iniciar dictado por voz'}
+                      aria-pressed={stt.isListening}
+                    >
+                      <MicIcon size={18} />
+                    </button>
+                  )}
+
                   <textarea
                     ref={inputRef}
                     className={styles.textInput}
-                    placeholder={imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...'}
+                    placeholder={
+                      stt.isListening && !callMode
+                        ? (stt.interimTranscript || 'Escuchando...')
+                        : (imageData ? 'Describe qué observar en la imagen...' : 'Pregunta sobre fármacos, dosis, síntomas...')
+                    }
                     value={text}
                     onChange={handleTextChange}
                     onKeyDown={handleKeyDown}
