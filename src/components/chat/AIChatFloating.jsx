@@ -8,7 +8,7 @@ import { listConversations } from '../../services/chatHistoryService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
-import { CloseIcon, MicIcon, PhoneIcon } from '../../Icons/Icons'
+import { CloseIcon, MicIcon, SpeakIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
 import VoiceCallModal from './VoiceCallModal'
 
@@ -542,9 +542,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
         {/* Header */}
         <div className={styles.chatHeader}>
           <div className={styles.headerLeft}>
-            <div className={styles.headerAvatar}>
-              <img src={chatIAIcon} alt="IA" style={{ width: 100, height: 100, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-            </div>
             <div>
               <div className={styles.headerName}>Atlas IA</div>
               <div className={styles.headerStatus}>
@@ -554,16 +551,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             </div>
           </div>
           <div className={styles.headerActions}>
-            {isAuthenticated && !minimized && (
-              <button
-                className={styles.iconBtn}
-                onClick={startCall}
-                title="Hablar con la IA (modo llamada)"
-                aria-label="Iniciar conversación por voz con la IA"
-              >
-                <PhoneIcon size={14} />
-              </button>
-            )}
             {isAuthenticated && !minimized && (
               <button
                 className={styles.iconBtn}
@@ -695,6 +682,15 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
                     onPaste={handlePaste}
                     rows={1}
                   />
+
+                  <button
+                    className={styles.attachBtn}
+                    onClick={startCall}
+                    title="Hablar con la IA (modo llamada)"
+                    aria-label="Iniciar conversación por voz con la IA"
+                  >
+                    <SpeakIcon size={18} />
+                  </button>
 
                   {loading ? (
                     <button className={`${styles.sendBtn} ${styles.stopBtn}`} onClick={stop} title="Detener">
