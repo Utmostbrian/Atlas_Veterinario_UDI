@@ -141,6 +141,20 @@
   letter-spacing: .02em;
 }
 
+.errorBanner {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(220,38,38,.15);
+  border: 1px solid rgba(220,38,38,.45);
+  border-radius: 12px;
+  font-size: .88rem;
+  line-height: 1.4;
+  color: #fecaca;
+  margin-bottom: 16px;
+  text-align: left;
+}
+.errorBanner strong { color: #fff; margin-right: 4px; }
+
 .assistantBubble {
   max-width: 100%;
   padding: 12px 18px;

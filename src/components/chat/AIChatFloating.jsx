@@ -172,6 +172,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const [callMode,      setCallMode]      = useState(false)
   const [callMicMuted,  setCallMicMuted]  = useState(false)
   const [lastAssistantSpeech, setLastAssistantSpeech] = useState('')
+  const [callError,     setCallError]     = useState(null)
   const callModeRef     = useRef(false)
   const callMicMutedRef = useRef(false)
   const ttsPrevEnabledRef = useRef(false)
@@ -181,6 +182,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
   // STT solo se usa dentro del modo llamada. Fuera, los resultados se ignoran.
   const handleSTTFinal = useCallback((finalText) => {
+    console.log('[Voice] STT final result:', finalText)
     if (!finalText?.trim()) return
     if (!callModeRef.current) return
     if (callMicMutedRef.current) return
@@ -198,35 +200,73 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     onResult:   handleSTTFinal,
   })
 
-  // Mostrar errores de STT al usuario (no-speech y aborted ya se filtran en el hook).
+  // Convertir errores de STT en mensajes visibles dentro del modal.
   useEffect(() => {
     if (!stt.error) return
     if (!callModeRef.current) return
     const msg = stt.error === 'not-allowed' || stt.error === 'service-not-allowed'
-      ? 'Permiso de micrófono denegado. Habilítalo en la configuración del navegador.'
+      ? 'Permiso de micrófono denegado. Habilítalo en la barra de direcciones del navegador y vuelve a intentar.'
       : stt.error === 'audio-capture'
         ? 'No se detectó micrófono. Conecta uno y vuelve a intentar.'
-        : `Error de reconocimiento de voz: ${stt.error}`
-    alert(msg)
+        : stt.error === 'network'
+          ? 'Sin conexión para el reconocimiento de voz. Verifica tu internet.'
+          : `Error de reconocimiento: ${stt.error}`
+    setCallError(msg)
+    console.error('[Voice] STT error:', stt.error)
   }, [stt.error])
 
-  // Iniciar modo llamada: fuerza TTS encendido y empieza a escuchar.
-  const startCall = useCallback(() => {
+  // Iniciar modo llamada. ASYNC y SIN setTimeout para preservar el contexto
+  // de user-gesture que Chrome requiere para conceder permiso del micrófono.
+  const startCall = useCallback(async () => {
     if (!isAuthenticated) { onOpenLogin?.(); return }
-    if (!stt.supported)  { alert('Tu navegador no soporta voz. Usa Chrome, Edge o Safari.'); return }
-    if (!tts.supported)  { alert('Tu navegador no soporta síntesis de voz.'); return }
-    ttsPrevEnabledRef.current = tts.enabled
-    if (!tts.enabled) tts.setEnabled(true)
+    if (!stt.supported) {
+      alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome, Edge o Safari actualizado.')
+      return
+    }
+    if (!tts.supported) {
+      alert('Tu navegador no soporta síntesis de voz.')
+      return
+    }
+
+    console.log('[Voice] Iniciando modo llamada...')
+    setCallError(null)
     setLastAssistantSpeech('')
     setCallMicMuted(false)
+
+    // 1) Pre-solicitar permiso del micrófono explícitamente. Esto es lo que
+    //    realmente dispara el popup del navegador. Web Speech API solo usa
+    //    el permiso que ya esté concedido.
+    try {
+      console.log('[Voice] Pidiendo permiso del micrófono...')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Liberar la stream inmediatamente: SpeechRecognition usará el mic por su cuenta.
+      stream.getTracks().forEach((t) => t.stop())
+      console.log('[Voice] Permiso del micrófono CONCEDIDO')
+    } catch (e) {
+      console.error('[Voice] Permiso del micrófono DENEGADO:', e?.name, e?.message)
+      alert('Para hablar con la IA necesitas conceder permiso del micrófono. Haz clic en el ícono de candado/cámara en la barra de direcciones y permite el micrófono.')
+      return
+    }
+
+    // 2) Forzar TTS encendido para el modo llamada.
+    ttsPrevEnabledRef.current = tts.enabled
+    if (!tts.enabled) tts.setEnabled(true)
+
+    // 3) Abrir el modal y arrancar el reconocedor.
     setCallMode(true)
-    // Pequeño delay para que el modal se monte antes de pedir el mic.
-    setTimeout(() => stt.start(), 120)
+    console.log('[Voice] Arrancando reconocedor de voz...')
+    const ok = stt.start()
+    console.log('[Voice] stt.start() =>', ok ? 'OK' : 'FALLÓ')
+    if (!ok) {
+      setCallError('No se pudo iniciar el reconocedor de voz. Cierra y vuelve a abrir la llamada.')
+    }
   }, [isAuthenticated, onOpenLogin, stt, tts])
 
   // Terminar llamada y restaurar estado previo del TTS.
   const endCall = useCallback(() => {
+    console.log('[Voice] Colgando llamada')
     setCallMode(false)
+    setCallError(null)
     stt.stop()
     tts.stop()
     // Restaurar preferencia anterior de TTS (si estaba apagado, apagar de nuevo).
@@ -474,7 +514,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             </div>
           </div>
           <div className={styles.headerActions}>
-            {isAuthenticated && !minimized && stt.supported && tts.supported && (
+            {isAuthenticated && !minimized && (
               <button
                 className={styles.iconBtn}
                 onClick={startCall}
@@ -633,6 +673,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
         userInterim={stt.interimTranscript}
         assistantText={lastAssistantSpeech}
         micMuted={callMicMuted}
+        error={callError}
         onToggleMute={toggleCallMic}
         onHangup={endCall}
       />

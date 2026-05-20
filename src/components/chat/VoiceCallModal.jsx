@@ -13,6 +13,7 @@ import { PhoneOffIcon, MicIcon } from '../../Icons/Icons'
  * @param {string} props.userInterim    Transcripción parcial del usuario
  * @param {string} props.assistantText  Última frase hablada/hablándose por la IA
  * @param {boolean} props.micMuted      Mic temporalmente silenciado
+ * @param {string|null} props.error     Mensaje de error visible (permiso denegado, etc.)
  * @param {() => void} props.onToggleMute
  * @param {() => void} props.onHangup
  */
@@ -22,6 +23,7 @@ export default function VoiceCallModal({
   userInterim,
   assistantText,
   micMuted,
+  error,
   onToggleMute,
   onHangup,
 }) {
@@ -49,15 +51,22 @@ export default function VoiceCallModal({
         <div className={styles.title}>Atlas IA</div>
         <div className={styles.status}>{statusLabel}</div>
 
+        {/* Error visible (permiso denegado, sin micrófono, etc.) */}
+        {error && (
+          <div className={styles.errorBanner} role="alert">
+            <strong>Problema:</strong> {error}
+          </div>
+        )}
+
         {/* Última respuesta de la IA (texto sincronizado con TTS aprox.) */}
-        {assistantText && (
+        {assistantText && !error && (
           <div className={styles.assistantBubble}>
             {assistantText}
           </div>
         )}
 
         {/* Transcripción del usuario en vivo */}
-        {userInterim && status === 'listening' && (
+        {userInterim && status === 'listening' && !error && (
           <div className={styles.userBubble}>
             {userInterim}
           </div>

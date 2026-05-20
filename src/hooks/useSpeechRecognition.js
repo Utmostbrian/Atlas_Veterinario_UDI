@@ -49,14 +49,17 @@ export function useSpeechRecognition(opts = {}) {
     rec.maxAlternatives = 1
 
     rec.onstart = () => {
+      console.log('[STT] onstart — reconocedor activo')
       setIsListening(true)
       setError(null)
     }
     rec.onend = () => {
+      console.log('[STT] onend — reconocedor detenido')
       setIsListening(false)
       setInterimTranscript('')
     }
     rec.onerror = (e) => {
+      console.warn('[STT] onerror:', e.error, e.message ?? '')
       // 'no-speech' y 'aborted' son comunes y no son fallos reales.
       if (e.error === 'no-speech' || e.error === 'aborted') {
         setIsListening(false)
@@ -74,9 +77,11 @@ export function useSpeechRecognition(opts = {}) {
         else             interimTxt += res[0].transcript
       }
       if (finalText) {
+        console.log('[STT] resultado FINAL:', finalText.trim())
         setTranscript(prev => (prev ? prev + ' ' : '') + finalText.trim())
         onResultRef.current?.(finalText.trim())
       }
+      if (interimTxt) console.log('[STT] interim:', interimTxt)
       setInterimTranscript(interimTxt)
     }
 
@@ -90,15 +95,29 @@ export function useSpeechRecognition(opts = {}) {
   }, [supported, lang, continuous, interim])
 
   const start = useCallback(() => {
-    if (!supported || !recognitionRef.current) return
+    if (!supported) {
+      console.warn('[STT] start() ignorado — navegador no soporta SpeechRecognition')
+      return false
+    }
+    if (!recognitionRef.current) {
+      console.warn('[STT] start() ignorado — recognitionRef.current es null')
+      return false
+    }
     setTranscript('')
     setInterimTranscript('')
     setError(null)
     try {
       recognitionRef.current.start()
+      return true
     } catch (e) {
-      // start() lanza si ya está activo; lo tratamos como no-op.
-      if (!/already started/i.test(e?.message ?? '')) setError(e.message)
+      // start() lanza si ya está activo; lo tratamos como no-op (ya escuchando).
+      if (/already started/i.test(e?.message ?? '')) {
+        console.log('[STT] start() — ya estaba activo, ignorado')
+        return true
+      }
+      console.error('[STT] start() falló:', e?.name, e?.message)
+      setError(e.message || 'start-failed')
+      return false
     }
   }, [supported])
 
