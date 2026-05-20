@@ -61,7 +61,11 @@ export function AuthProvider({ children }) {
     // 'INITIAL_SESSION' inmediatamente al suscribirse, lo que cubre el caso
     // del getSession() inicial sin la condición de carrera anterior.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        // TOKEN_REFRESHED sólo actualiza el JWT — no cambia datos del perfil.
+        // Ignorar para evitar que un fallo transitorio de red borre nombre/foto.
+        if (event === 'TOKEN_REFRESHED') return
+
         if (session?.user) {
           await loadProfile(session.user)
         } else {
@@ -116,7 +120,9 @@ export function AuthProvider({ children }) {
                         ?? authUser.user_metadata?.role
                         ?? 'student'
 
-      setUser({
+      // Si ya había datos del usuario en contexto (p.ej. fallo en recarga),
+      // conservarlos íntegros para no borrar nombre/foto por un error transitorio.
+      setUser(prev => prev ?? {
         id:            authUser.id,
         email:         authUser.email,
         name:          authUser.email?.split('@')[0] ?? authUser.id,
