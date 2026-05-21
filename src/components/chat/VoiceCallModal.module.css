@@ -88,20 +88,20 @@
   animation: ringPulse 1.8s ease-out infinite .6s;
 }
 
-/* Estado: pensando → respiración lenta, color ámbar */
+/* Estado: pensando → respiración lenta, color gris UDI */
 .orb_thinking .orb {
   animation: orbBreathSlow 3s ease-in-out infinite;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #92400e 100%);
-  box-shadow: 0 0 60px rgba(245,158,11,.45),
+  background: linear-gradient(135deg, #9AA0AF 0%, #6b7280 60%, #4b5563 100%);
+  box-shadow: 0 0 60px rgba(154,160,175,.45),
               inset 0 -8px 24px rgba(0,0,0,.35),
               inset 0 8px 24px rgba(255,255,255,.18);
 }
 
-/* Estado: hablando → orbe vibra rápido, color verde */
+/* Estado: hablando → orbe vibra rápido, color rojo UDI */
 .orb_speaking .orb {
   animation: orbSpeak .5s ease-in-out infinite;
-  background: linear-gradient(135deg, #34d399 0%, #10b981 60%, #047857 100%);
-  box-shadow: 0 0 70px rgba(52,211,153,.6),
+  background: linear-gradient(135deg, #CC0000 0%, #990000 60%, #660000 100%);
+  box-shadow: 0 0 70px rgba(204,0,0,.6),
               inset 0 -8px 24px rgba(0,0,0,.35),
               inset 0 8px 24px rgba(255,255,255,.18);
 }
