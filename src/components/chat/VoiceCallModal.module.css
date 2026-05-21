@@ -88,8 +88,9 @@
   animation: ringPulse 1.8s ease-out infinite .6s;
 }
 
-/* Estado: pensando → solo cambia de color, sin rotación */
+/* Estado: pensando → respiración lenta, color ámbar */
 .orb_thinking .orb {
+  animation: orbBreathSlow 3s ease-in-out infinite;
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #92400e 100%);
   box-shadow: 0 0 60px rgba(245,158,11,.45),
               inset 0 -8px 24px rgba(0,0,0,.35),
@@ -114,6 +115,10 @@
 @keyframes orbBreath {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.07); }
+}
+@keyframes orbBreathSlow {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
 }
 @keyframes orbSpeak {
   0%, 100% { transform: scale(1); }
