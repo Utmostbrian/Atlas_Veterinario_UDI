@@ -58,9 +58,13 @@
 .orbIcon {
   width: 88px;
   height: 88px;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: .92;
+  color: #fff;
+  opacity: .95;
+}
+/* Barras del waveform más gruesas y con tope redondeado a este tamaño. */
+.orbIcon line {
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 
 /* Anillos animados detrás del orbe */

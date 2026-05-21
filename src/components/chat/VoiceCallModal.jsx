@@ -1,6 +1,5 @@
 import styles from './VoiceCallModal.module.css'
-import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
-import { PhoneOffIcon, MicIcon } from '../../Icons/Icons'
+import { PhoneOffIcon, MicIcon, SpeakIcon } from '../../Icons/Icons'
 
 /**
  * Modal de conversación por voz tipo "llamada". UI puramente presentacional.
@@ -44,7 +43,7 @@ export default function VoiceCallModal({
           <div className={styles.orbRing} />
           <div className={styles.orbRing2} />
           <div className={styles.orb}>
-            <img src={chatIAIcon} alt="" className={styles.orbIcon} />
+            <SpeakIcon size={88} className={styles.orbIcon} />
           </div>
         </div>
 
