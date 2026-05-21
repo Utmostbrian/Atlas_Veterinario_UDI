@@ -21,7 +21,6 @@ Herramienta docente de referencia farmacológica veterinaria con asistencia por 
 | **Protocolos de Enfermedades** | Protocolos terapéuticos por enfermedad y especie |
 | **Glosario** | Términos farmacológicos veterinarios |
 | **Generador de Recetas** | Plantillas profesionales imprimibles con guardado en historial |
-| **Quiz** | Evaluaciones rápidas de farmacología para estudiantes |
 | **Vademécum vectorial** | Búsqueda semántica sobre PDFs ingeridos (pgvector + Claude para citas) |
 
 ### Chat IA Veterinario
@@ -185,8 +184,8 @@ npm run lint         # ESLint flat config
 
 | Rol | Acceso | Login |
 |-----|--------|-------|
-| **Estudiante** | Atlas, calculadoras, glosario, recetas, chat IA, quiz | Nombre + código de clase |
-| **Docente** | Todo lo anterior + auditoría limitada + gestión de quiz | Email institucional + password |
+| **Estudiante** | Atlas, calculadoras, glosario, recetas, chat IA | Email Estudiantil  + password |
+| **Docente** | Todo lo anterior + auditoría limitada | Email institucional + password |
 | **Admin** | Todo lo anterior + gestión de usuarios + KPIs + ingesta de vademécum | Email institucional + password |
 
 El trigger `handle_new_user` siempre asigna rol `student` — promoción a admin/docente solo vía SQL directo (anti-escalación).
