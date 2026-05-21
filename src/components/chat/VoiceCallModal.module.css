@@ -88,9 +88,8 @@
   animation: ringPulse 1.8s ease-out infinite .6s;
 }
 
-/* Estado: pensando → orbe gira sutilmente con anillos lentos */
+/* Estado: pensando → solo cambia de color, sin rotación */
 .orb_thinking .orb {
-  animation: orbSpin 3s linear infinite;
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #92400e 100%);
   box-shadow: 0 0 60px rgba(245,158,11,.45),
               inset 0 -8px 24px rgba(0,0,0,.35),
@@ -119,10 +118,6 @@
 @keyframes orbSpeak {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.04); }
-}
-@keyframes orbSpin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 @keyframes ringPulse {
   0%   { transform: scale(.85); opacity: .8; }
