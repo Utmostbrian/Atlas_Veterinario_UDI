@@ -22,7 +22,7 @@ const MAX_HISTORY_TURNS = 20
 const MAX_BODY_BYTES    = 2_000_000
 const MAX_SINGLE_MSG    = 500_000
 const ANTHROPIC_TIMEOUT = 25_000
-const DUAL_ENGINE_TIMEOUT = 35_000   // RAG + Claude; evitar 504 largos en plan free
+const DUAL_ENGINE_TIMEOUT = 18_000   // RAG + Claude; fallar antes del timeout externo
 const SSE_HEARTBEAT_MS  = 15_000
 
 const ALLOWED_MODELS = new Set([
@@ -352,7 +352,7 @@ async function loadVademecumContext(
   }
 
   return Array.from(chunksById.values())
-    .slice(0, 8)
+    .slice(0, 4)
     .map(c => {
       const header = c.drug_name ? `[Consulta: ${c.query}] [${c.drug_name}]` : `[Consulta: ${c.query}]`
       return `${header}\n${c.content}`
@@ -375,7 +375,7 @@ function buildDualEngineSystem(mode: 'drug' | 'disease', vademecumContext: strin
 Responde SIEMPRE en español, sin excepción. Las fuentes que consultarás (Vademécum Plumb's, Merck Veterinary Manual) están en inglés. Debes traducir y adaptar toda esa información al español antes de incluirla en el JSON de respuesta. El usuario final solo lee español.`
 
   const context = vademecumContext.trim()
-    ? `\n\n── FUENTE PRIMARIA: Vademécum Plumb's Veterinary Drug Handbook (traducir al español) ──\n${vademecumContext.slice(0, 4500)}\n── FIN DEL CONTEXTO VADEMÉCUM ──`
+    ? `\n\n── FUENTE PRIMARIA: Vademécum Plumb's Veterinary Drug Handbook (traducir al español) ──\n${vademecumContext.slice(0, 2600)}\n── FIN DEL CONTEXTO VADEMÉCUM ──`
     : `\n\nFUENTE PRIMARIA: Plumb's Veterinary Drug Handbook\nNo se recuperaron fragmentos locales suficientes de Plumb's para esta consulta. Debes indicar evidencia insuficiente si la tarea exige validacion clinica directa.\nFIN DEL CONTEXTO VADEMECUM`
 
   const toolGuide = `
@@ -408,7 +408,7 @@ async function handleDualEngine(
   const messages    = (body.messages as Array<unknown> ?? []).slice(-MAX_HISTORY_TURNS)
   const requestedTokens = Number(body.max_tokens ?? 1600)
   const maxTokens = clinicalTask === 'atlas_drug'
-    ? Math.min(requestedTokens, 1400)
+    ? Math.min(requestedTokens, 900)
     : Math.min(requestedTokens, 3000)
 
   const usedSources: string[] = []

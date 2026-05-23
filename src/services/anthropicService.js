@@ -11,7 +11,8 @@
 import { supabase } from '../lib/supabase'
 import { cleanEnv } from '../lib/envUtils'
 
-const MODELS = ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7']
+const FAST_MODEL = 'claude-haiku-4-5-20251001'
+const MODELS = ['claude-sonnet-4-6', FAST_MODEL, 'claude-opus-4-7']
 const MAX_TOKENS = 1500
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.
@@ -355,11 +356,11 @@ Si ES un fármaco veterinario real, devuelve:
  * Búsqueda con motor dual (RAG Plumb's + Tool Calling Merck).
  * Solo disponible cuando el usuario tiene sesión activa (proxy requiere JWT).
  *
- * @param {{ query: string, queries?: string[], mode?: 'drug'|'disease', clinicalTask?: string, messages: Array, maxTokens?: number }} params
+ * @param {{ query: string, queries?: string[], mode?: 'drug'|'disease', clinicalTask?: string, messages: Array, maxTokens?: number, model?: string }} params
  * @returns {Promise<{ _sources: string[], _text: string, content: Array }|null>}
  *   null si no hay proxy/token (el caller debe hacer fallback al modo normal).
  */
-export async function searchDualEngine({ query, queries = [], mode = 'drug', clinicalTask, messages, maxTokens = 2000 }) {
+export async function searchDualEngine({ query, queries = [], mode = 'drug', clinicalTask, messages, maxTokens = 2000, model = FAST_MODEL }) {
   const proxyUrl = getProxyUrl()
   const token    = await getSessionToken()
   if (!proxyUrl || !token) return null
@@ -378,6 +379,7 @@ export async function searchDualEngine({ query, queries = [], mode = 'drug', cli
       clinical_task: clinicalTask,
       messages,
       max_tokens:   maxTokens,
+      model,
     }),
   })
 

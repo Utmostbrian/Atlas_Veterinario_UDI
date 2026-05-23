@@ -54,7 +54,7 @@ export async function searchDrugWithAI(name) {
       mode: 'drug',
       clinicalTask: 'atlas_drug',
       messages,
-      maxTokens: 1400,
+      maxTokens: 900,
     })
 
     if (dualResult) {
@@ -68,6 +68,9 @@ export async function searchDrugWithAI(name) {
   } catch (e) {
     // Si el dual engine falla (sin sesión, proxy caído), fallback al modo simple
     console.warn('[atlas] Dual engine failed, falling back:', e.message)
+    if (/timeout|tiempo de espera|504/i.test(String(e?.message || ''))) {
+      return { encontrado: false, mensaje: 'La validación clínica tardó demasiado. Intenta de nuevo en unos segundos.' }
+    }
   }
 
   // Fallback: búsqueda simple sin RAG ni tool calling
