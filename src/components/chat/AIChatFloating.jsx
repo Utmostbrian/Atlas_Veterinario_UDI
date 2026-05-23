@@ -205,9 +205,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     } else {
       appendDictation(finalText.trim())
     }
-  // stt.stop es estable (useCallback en el hook); evitamos recrear callback.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [send, appendDictation])
+  }, [send, appendDictation, stt])
 
   const stt = useSpeechRecognition({
     lang:       'es-ES',
@@ -335,7 +333,10 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     const t = setTimeout(() => {
       if (!callModeRef.current) return
       if (callMicMutedRef.current) return
-      try { stt.start() } catch { /* ignore */ }
+      const ok = stt.start()
+      if (!ok && callModeRef.current) {
+        console.warn('[Voice] Falló al reiniciar reconocedor — el error de STT se mostrará arriba')
+      }
     }, 450)
     return () => clearTimeout(t)
   }, [callMode, callMicMuted, loading, tts.isSpeaking, tts.queueLength, stt])

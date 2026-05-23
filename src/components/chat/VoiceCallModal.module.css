@@ -88,7 +88,7 @@
   animation: ringPulse 1.8s ease-out infinite .6s;
 }
 
-/* Estado: pensando → respiración lenta, color gris UDI */
+/* Estado: pensando → respiración lenta, color gris */
 .orb_thinking .orb {
   animation: orbBreathSlow 3s ease-in-out infinite;
   background: linear-gradient(135deg, #9AA0AF 0%, #6b7280 60%, #4b5563 100%);
@@ -97,7 +97,7 @@
               inset 0 8px 24px rgba(255,255,255,.18);
 }
 
-/* Estado: hablando → orbe vibra rápido, color rojo UDI */
+/* Estado: hablando → orbe vibra rápido, color rojo*/
 .orb_speaking .orb {
   animation: orbSpeak .5s ease-in-out infinite;
   background: linear-gradient(135deg, #CC0000 0%, #990000 60%, #660000 100%);

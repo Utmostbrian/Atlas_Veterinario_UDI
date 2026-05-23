@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Web Speech API: el constructor está prefijado en algunos navegadores.
 function getRecognitionCtor() {
   if (typeof window === 'undefined') return null
   return window.SpeechRecognition || window.webkitSpeechRecognition || null
@@ -10,14 +9,32 @@ export function isSpeechRecognitionSupported() {
   return getRecognitionCtor() !== null
 }
 
+function setupRecognition({
+  rec, lang, continuous, interim,
+  listeners,
+}) {
+  rec.lang            = lang
+  rec.continuous      = continuous
+  rec.interimResults  = interim
+  rec.maxAlternatives = 1
+  rec.onstart   = () => listeners.onStart()
+  rec.onend     = () => listeners.onEnd()
+  rec.onerror   = (e) => listeners.onError(e)
+  rec.onresult  = (event) => listeners.onResult(event)
+}
+
 /**
  * Hook para Speech-to-Text usando Web Speech API (gratis, nativo).
  *
+ * Crea una instancia NUEVA del reconocedor en cada start().
+ * Esto evita el conocido bug de Chrome donde la misma instancia
+ * queda en estado inválido tras un stop() y no puede reiniciarse.
+ *
  * @param {Object} opts
- * @param {string} [opts.lang='es-ES']   Idioma del reconocimiento
- * @param {boolean} [opts.continuous=false] Si true, sigue escuchando hasta stop()
- * @param {boolean} [opts.interim=true]  Si true, emite resultados parciales
- * @param {(finalText: string) => void} [opts.onResult] Callback cuando hay texto final
+ * @param {string} [opts.lang='es-ES']
+ * @param {boolean} [opts.continuous=false]
+ * @param {boolean} [opts.interim=true]
+ * @param {(finalText: string) => void} [opts.onResult]
  */
 export function useSpeechRecognition(opts = {}) {
   const {
@@ -35,82 +52,89 @@ export function useSpeechRecognition(opts = {}) {
 
   const recognitionRef = useRef(null)
   const onResultRef    = useRef(onResult)
-  // Mantener la última referencia del callback sin recrear el reconocedor.
   useEffect(() => { onResultRef.current = onResult }, [onResult])
 
-  // Crear el reconocedor una sola vez. Reusarlo evita perder permisos del mic.
+  // Cleanup al desmontar
   useEffect(() => {
-    if (!supported) return
-    const Ctor = getRecognitionCtor()
-    const rec = new Ctor()
-    rec.lang            = lang
-    rec.continuous      = continuous
-    rec.interimResults  = interim
-    rec.maxAlternatives = 1
-
-    rec.onstart = () => {
-      console.log('[STT] onstart — reconocedor activo')
-      setIsListening(true)
-      setError(null)
-    }
-    rec.onend = () => {
-      console.log('[STT] onend — reconocedor detenido')
-      setIsListening(false)
-      setInterimTranscript('')
-    }
-    rec.onerror = (e) => {
-      console.warn('[STT] onerror:', e.error, e.message ?? '')
-      // 'no-speech' y 'aborted' son comunes y no son fallos reales.
-      if (e.error === 'no-speech' || e.error === 'aborted') {
-        setIsListening(false)
-        return
-      }
-      setError(e.error || 'speech-error')
-      setIsListening(false)
-    }
-    rec.onresult = (event) => {
-      let finalText  = ''
-      let interimTxt = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const res = event.results[i]
-        if (res.isFinal) finalText  += res[0].transcript
-        else             interimTxt += res[0].transcript
-      }
-      if (finalText) {
-        console.log('[STT] resultado FINAL:', finalText.trim())
-        setTranscript(prev => (prev ? prev + ' ' : '') + finalText.trim())
-        onResultRef.current?.(finalText.trim())
-      }
-      if (interimTxt) console.log('[STT] interim:', interimTxt)
-      setInterimTranscript(interimTxt)
-    }
-
-    recognitionRef.current = rec
-
     return () => {
-      try { rec.onstart = rec.onend = rec.onerror = rec.onresult = null } catch { /* ignore */ }
-      try { rec.abort() } catch { /* ignore */ }
-      recognitionRef.current = null
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort() } catch { /* ignore */ }
+        recognitionRef.current = null
+      }
     }
-  }, [supported, lang, continuous, interim])
+  }, [])
 
   const start = useCallback(() => {
     if (!supported) {
       console.warn('[STT] start() ignorado — navegador no soporta SpeechRecognition')
       return false
     }
-    if (!recognitionRef.current) {
-      console.warn('[STT] start() ignorado — recognitionRef.current es null')
+
+    // Destruir instancia previa si existe (garantiza estado limpio)
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort() } catch { /* ignore */ }
+      recognitionRef.current = null
+    }
+
+    const Ctor = getRecognitionCtor()
+    if (!Ctor) {
+      setError('create-failed')
       return false
     }
+
+    const rec = new Ctor()
+
+    setupRecognition({
+      rec, lang, continuous, interim,
+      listeners: {
+        onStart: () => {
+          console.log('[STT] onstart — reconocedor activo')
+          setIsListening(true)
+          setError(null)
+        },
+        onEnd: () => {
+          console.log('[STT] onend — reconocedor detenido')
+          setIsListening(false)
+          setInterimTranscript('')
+        },
+        onError: (e) => {
+          console.warn('[STT] onerror:', e.error, e.message ?? '')
+          if (e.error === 'no-speech' || e.error === 'aborted') {
+            setIsListening(false)
+            return
+          }
+          setError(e.error || 'speech-error')
+          setIsListening(false)
+        },
+        onResult: (event) => {
+          let finalText  = ''
+          let interimTxt = ''
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i]
+            if (res.isFinal) finalText  += res[0].transcript
+            else             interimTxt += res[0].transcript
+          }
+          if (finalText) {
+            console.log('[STT] resultado FINAL:', finalText.trim())
+            setTranscript(prev => (prev ? prev + ' ' : '') + finalText.trim())
+            onResultRef.current?.(finalText.trim())
+          }
+          if (interimTxt) console.log('[STT] interim:', interimTxt)
+          setInterimTranscript(interimTxt)
+        },
+      },
+    })
+
+    recognitionRef.current = rec
     setTranscript('')
     setInterimTranscript('')
     setError(null)
+
     try {
-      recognitionRef.current.start()
+      rec.start()
       return true
     } catch (e) {
-      // start() lanza si ya está activo; lo tratamos como no-op (ya escuchando).
+      recognitionRef.current = null
       if (/already started/i.test(e?.message ?? '')) {
         console.log('[STT] start() — ya estaba activo, ignorado')
         return true
@@ -119,7 +143,7 @@ export function useSpeechRecognition(opts = {}) {
       setError(e.message || 'start-failed')
       return false
     }
-  }, [supported])
+  }, [supported, lang, continuous, interim])
 
   const stop = useCallback(() => {
     if (!recognitionRef.current) return
