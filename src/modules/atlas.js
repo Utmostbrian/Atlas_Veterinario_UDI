@@ -54,7 +54,7 @@ export async function searchDrugWithAI(name) {
       mode: 'drug',
       clinicalTask: 'atlas_drug',
       messages,
-      maxTokens: 2200,
+      maxTokens: 1400,
     })
 
     if (dualResult) {

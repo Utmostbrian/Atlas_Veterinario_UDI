@@ -88,7 +88,10 @@ async function fetchViaProxy(body, signal) {
     }
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
-      throw new Error(err?.error?.message || `Error HTTP ${response.status}`)
+      const message = typeof err?.error === 'string'
+        ? err.error
+        : err?.error?.message || err?.message || `Error HTTP ${response.status}`
+      throw new Error(message)
     }
     return response
   }
@@ -121,7 +124,10 @@ async function fetchDirect(body, signal) {
     }
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
-      throw new Error(err?.error?.message || `Error HTTP ${response.status}`)
+      const message = typeof err?.error === 'string'
+        ? err.error
+        : err?.error?.message || err?.message || `Error HTTP ${response.status}`
+      throw new Error(message)
     }
     return response
   }
@@ -378,7 +384,10 @@ export async function searchDualEngine({ query, queries = [], mode = 'drug', cli
   if (response.status === 401) throw new Error('Sesión expirada. Inicia sesión de nuevo.')
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
-    throw new Error(err?.error || `Error HTTP ${response.status}`)
+    const message = typeof err?.error === 'string'
+      ? err.error
+      : err?.error?.message || err?.message || `Error HTTP ${response.status}`
+    throw new Error(message)
   }
 
   return response.json()

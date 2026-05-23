@@ -22,7 +22,7 @@ const MAX_HISTORY_TURNS = 20
 const MAX_BODY_BYTES    = 2_000_000
 const MAX_SINGLE_MSG    = 500_000
 const ANTHROPIC_TIMEOUT = 25_000
-const DUAL_ENGINE_TIMEOUT = 60_000   // dos llamadas + búsqueda web
+const DUAL_ENGINE_TIMEOUT = 35_000   // RAG + Claude; evitar 504 largos en plan free
 const SSE_HEARTBEAT_MS  = 15_000
 
 const ALLOWED_MODELS = new Set([
@@ -99,6 +99,17 @@ function json(req: Request, data: unknown, status = 200) {
     status,
     headers: { ...buildCors(req), 'Content-Type': 'application/json' },
   })
+}
+
+async function upstreamError(resp: Response, fallback: string) {
+  const data = await resp.json().catch(() => ({}))
+  const maybeError = (data as { error?: unknown }).error
+  const message = typeof maybeError === 'string'
+    ? maybeError
+    : maybeError && typeof maybeError === 'object' && 'message' in maybeError
+      ? String((maybeError as { message: unknown }).message)
+      : fallback
+  return { error: message, code: 'UPSTREAM_ERROR', upstream_status: resp.status, details: data }
 }
 
 function checkRateLimit(key: string): boolean {
@@ -341,7 +352,7 @@ async function loadVademecumContext(
   }
 
   return Array.from(chunksById.values())
-    .slice(0, 16)
+    .slice(0, 8)
     .map(c => {
       const header = c.drug_name ? `[Consulta: ${c.query}] [${c.drug_name}]` : `[Consulta: ${c.query}]`
       return `${header}\n${c.content}`
@@ -364,7 +375,7 @@ function buildDualEngineSystem(mode: 'drug' | 'disease', vademecumContext: strin
 Responde SIEMPRE en español, sin excepción. Las fuentes que consultarás (Vademécum Plumb's, Merck Veterinary Manual) están en inglés. Debes traducir y adaptar toda esa información al español antes de incluirla en el JSON de respuesta. El usuario final solo lee español.`
 
   const context = vademecumContext.trim()
-    ? `\n\n── FUENTE PRIMARIA: Vademécum Plumb's Veterinary Drug Handbook (traducir al español) ──\n${vademecumContext.slice(0, 8000)}\n── FIN DEL CONTEXTO VADEMÉCUM ──`
+    ? `\n\n── FUENTE PRIMARIA: Vademécum Plumb's Veterinary Drug Handbook (traducir al español) ──\n${vademecumContext.slice(0, 4500)}\n── FIN DEL CONTEXTO VADEMÉCUM ──`
     : `\n\nFUENTE PRIMARIA: Plumb's Veterinary Drug Handbook\nNo se recuperaron fragmentos locales suficientes de Plumb's para esta consulta. Debes indicar evidencia insuficiente si la tarea exige validacion clinica directa.\nFIN DEL CONTEXTO VADEMECUM`
 
   const toolGuide = `
@@ -395,7 +406,10 @@ async function handleDualEngine(
   const clinicalTask = normalizeClinicalTask(body.clinical_task, searchMode)
   const searchQueries = collectSearchQueries(body, searchQuery)
   const messages    = (body.messages as Array<unknown> ?? []).slice(-MAX_HISTORY_TURNS)
-  const maxTokens   = Math.min(Number(body.max_tokens ?? 2000), 4096)
+  const requestedTokens = Number(body.max_tokens ?? 1600)
+  const maxTokens = clinicalTask === 'atlas_drug'
+    ? Math.min(requestedTokens, 1400)
+    : Math.min(requestedTokens, 3000)
 
   const usedSources: string[] = []
 
@@ -443,6 +457,7 @@ async function handleDualEngine(
       required: ['query'],
     },
   }]
+  const requestTools = vademecumContext.trim() ? [] : tools
 
   // ── Primera llamada a Claude (con herramientas disponibles) ───────────────
   const firstCtrl    = new AbortController()
@@ -458,7 +473,7 @@ async function handleDualEngine(
         'x-api-key':         ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages, tools }),
+      body: JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages, tools: requestTools }),
     })
   } catch (e) {
     const isTimeout = e instanceof Error && e.name === 'AbortError'
@@ -473,8 +488,7 @@ async function handleDualEngine(
   }
 
   if (!firstRes.ok) {
-    const errData = await firstRes.json().catch(() => ({}))
-    return json(req, errData, firstRes.status)
+    return json(req, await upstreamError(firstRes, 'Error en Anthropic.'), firstRes.status)
   }
 
   const firstData = await firstRes.json() as {
@@ -541,8 +555,7 @@ async function handleDualEngine(
       }
 
       if (!secondRes.ok) {
-        const errData = await secondRes.json().catch(() => ({}))
-        return json(req, errData, secondRes.status)
+        return json(req, await upstreamError(secondRes, 'Error en segunda llamada a Anthropic.'), secondRes.status)
       }
 
       const secondData = await secondRes.json()
