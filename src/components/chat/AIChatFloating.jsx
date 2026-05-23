@@ -19,6 +19,10 @@ const QUICK_PROMPTS = [
   '¿Ivermectina en Collies es segura?',
 ]
 
+const CALL_SILENCE_MS = 2600
+
+const normalizeVoiceText = (value) => value.trim().replace(/\s+/g, ' ')
+
 function TypingIndicator() {
   return (
     <div className={styles.typingWrap}>
@@ -173,21 +177,25 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const [callMicMuted,  setCallMicMuted]  = useState(false)
   const [lastAssistantSpeech, setLastAssistantSpeech] = useState('')
   const [callError,     setCallError]     = useState(null)
+  const [callSubmitting, setCallSubmitting] = useState(false)
   const callModeRef     = useRef(false)
   const callMicMutedRef = useRef(false)
   const ttsPrevEnabledRef = useRef(false)
+  const sttRef = useRef(null)
 
   useEffect(() => { callModeRef.current     = callMode     }, [callMode])
   useEffect(() => { callMicMutedRef.current = callMicMuted }, [callMicMuted])
 
-  // Acumulador con debounce para modo llamada: espera ~1.5s de silencio
+  // Acumulador con debounce para modo llamada: espera silencio suficiente
   // antes de enviar el texto, así captura la frase completa del usuario.
   const callAccumulatorRef = useRef('')
   const callDebounceRef = useRef(null)
+  const callInterimRef = useRef('')
 
   useEffect(() => {
     return () => {
       if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
+      callInterimRef.current = ''
     }
   }, [])
 
@@ -204,37 +212,91 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     }, 0)
   }, [])
 
+  const mergeCallFragment = useCallback((rawText) => {
+    const fragment = normalizeVoiceText(rawText || '')
+    if (!fragment) return false
+
+    const current = normalizeVoiceText(callAccumulatorRef.current || '')
+    if (!current) {
+      callAccumulatorRef.current = fragment
+      return true
+    }
+    if (current === fragment || current.startsWith(fragment) || current.endsWith(fragment) || current.includes(` ${fragment}`)) return false
+    if (fragment.startsWith(current)) {
+      callAccumulatorRef.current = fragment
+      return true
+    }
+
+    callAccumulatorRef.current = `${current} ${fragment}`
+    return true
+  }, [])
+
+  const mergeInterimFallback = useCallback(() => {
+    const interimText = normalizeVoiceText(callInterimRef.current || '')
+    if (!interimText) return
+
+    const current = normalizeVoiceText(callAccumulatorRef.current || '')
+    if (!current || interimText.startsWith(current)) {
+      callAccumulatorRef.current = interimText
+    }
+  }, [])
+
+  const scheduleCallSend = useCallback(() => {
+    if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
+    callDebounceRef.current = setTimeout(() => {
+      callDebounceRef.current = null
+      if (!callModeRef.current || callMicMutedRef.current) return
+
+      mergeInterimFallback()
+      const textToSend = normalizeVoiceText(callAccumulatorRef.current || '')
+      callAccumulatorRef.current = ''
+      callInterimRef.current = ''
+      if (!textToSend) return
+
+      setCallSubmitting(true)
+      sttRef.current?.stop()
+      Promise.resolve(send({ text: textToSend, imageData: null }))
+        .finally(() => setCallSubmitting(false))
+    }, CALL_SILENCE_MS)
+  }, [mergeInterimFallback, send])
+
   // En modo llamada el texto se envía directo al chat; fuera, se agrega al textarea.
-  const CALL_SILENCE_MS = 1500 // ms de silencio para considerar que el usuario terminó de hablar
   const handleSTTFinal = useCallback((finalText) => {
     console.log('[Voice] STT final result:', finalText)
     if (!finalText?.trim()) return
     if (callModeRef.current) {
       if (callMicMutedRef.current) return
-      // Acumular el fragmento y reiniciar el timer de silencio.
-      // Así esperamos a que el usuario termine la frase completa
-      // antes de enviar, en vez de cortar en el primer fragmento.
-      callAccumulatorRef.current += (callAccumulatorRef.current ? ' ' : '') + finalText.trim()
-      if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
-      callDebounceRef.current = setTimeout(() => {
-        callDebounceRef.current = null
-        const text = callAccumulatorRef.current
-        callAccumulatorRef.current = ''
-        if (!text) return
-        stt.stop()
-        send({ text, imageData: null })
-      }, CALL_SILENCE_MS)
+      mergeCallFragment(finalText)
+      callInterimRef.current = ''
+      scheduleCallSend()
     } else {
       appendDictation(finalText.trim())
     }
-  }, [send, appendDictation, stt])
+  }, [appendDictation, mergeCallFragment, scheduleCallSend])
+
+  const handleSTTInterim = useCallback((interimText) => {
+    if (!callModeRef.current || callMicMutedRef.current) return
+    callInterimRef.current = normalizeVoiceText(interimText || '')
+    if (callInterimRef.current) scheduleCallSend()
+  }, [scheduleCallSend])
+
+  const handleSTTEnd = useCallback(() => {
+    if (!callModeRef.current || callMicMutedRef.current) return
+    if (callInterimRef.current) {
+      mergeInterimFallback()
+      scheduleCallSend()
+    }
+  }, [mergeInterimFallback, scheduleCallSend])
 
   const stt = useSpeechRecognition({
     lang:       'es-ES',
     continuous: true,
     interim:    true,
     onResult:   handleSTTFinal,
+    onInterim:  handleSTTInterim,
+    onEnd:      handleSTTEnd,
   })
+  useEffect(() => { sttRef.current = stt }, [stt])
 
   // Convertir errores de STT en mensajes visibles (modal en llamada, alerta en dictado).
   useEffect(() => {
@@ -291,8 +353,10 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     console.log('[Voice] Iniciando modo llamada...')
     setCallError(null)
     setLastAssistantSpeech('')
+    setCallSubmitting(false)
     setCallMicMuted(false)
     callAccumulatorRef.current = ''
+    callInterimRef.current = ''
     if (callDebounceRef.current) {
       clearTimeout(callDebounceRef.current)
       callDebounceRef.current = null
@@ -332,11 +396,13 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     console.log('[Voice] Colgando llamada')
     setCallMode(false)
     setCallError(null)
+    setCallSubmitting(false)
     if (callDebounceRef.current) {
       clearTimeout(callDebounceRef.current)
       callDebounceRef.current = null
     }
     callAccumulatorRef.current = ''
+    callInterimRef.current = ''
     stt.stop()
     tts.stop()
     // Restaurar preferencia anterior de TTS (si estaba apagado, apagar de nuevo).
@@ -357,6 +423,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   useEffect(() => {
     if (!callMode) return
     if (callMicMuted) return
+    if (callSubmitting) return
     if (loading) return              // IA pensando/generando
     if (tts.isSpeaking) return       // IA hablando
     if (tts.queueLength > 0) return  // hay oraciones encoladas por hablar
@@ -371,14 +438,14 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
       }
     }, 450)
     return () => clearTimeout(t)
-  }, [callMode, callMicMuted, loading, tts.isSpeaking, tts.queueLength, stt])
+  }, [callMode, callMicMuted, callSubmitting, loading, tts.isSpeaking, tts.queueLength, stt])
 
   // Estado derivado para el modal (idle/listening/thinking/speaking).
   const callStatus = !callMode
     ? 'idle'
     : tts.isSpeaking || tts.queueLength > 0
       ? 'speaking'
-      : loading
+      : loading || callSubmitting
         ? 'thinking'
         : 'listening'
 

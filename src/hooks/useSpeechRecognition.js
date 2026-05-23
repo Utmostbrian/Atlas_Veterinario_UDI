@@ -35,6 +35,8 @@ function setupRecognition({
  * @param {boolean} [opts.continuous=false]
  * @param {boolean} [opts.interim=true]
  * @param {(finalText: string) => void} [opts.onResult]
+ * @param {(interimText: string) => void} [opts.onInterim]
+ * @param {() => void} [opts.onEnd]
  */
 export function useSpeechRecognition(opts = {}) {
   const {
@@ -42,6 +44,8 @@ export function useSpeechRecognition(opts = {}) {
     continuous  = false,
     interim     = true,
     onResult,
+    onInterim,
+    onEnd,
   } = opts
 
   const supported = isSpeechRecognitionSupported()
@@ -52,7 +56,11 @@ export function useSpeechRecognition(opts = {}) {
 
   const recognitionRef = useRef(null)
   const onResultRef    = useRef(onResult)
+  const onInterimRef   = useRef(onInterim)
+  const onEndRef       = useRef(onEnd)
   useEffect(() => { onResultRef.current = onResult }, [onResult])
+  useEffect(() => { onInterimRef.current = onInterim }, [onInterim])
+  useEffect(() => { onEndRef.current = onEnd }, [onEnd])
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -88,16 +96,21 @@ export function useSpeechRecognition(opts = {}) {
       rec, lang, continuous, interim,
       listeners: {
         onStart: () => {
+          if (recognitionRef.current !== rec) return
           console.log('[STT] onstart — reconocedor activo')
           setIsListening(true)
           setError(null)
         },
         onEnd: () => {
+          if (recognitionRef.current !== rec) return
           console.log('[STT] onend — reconocedor detenido')
           setIsListening(false)
           setInterimTranscript('')
+          recognitionRef.current = null
+          onEndRef.current?.()
         },
         onError: (e) => {
+          if (recognitionRef.current !== rec) return
           console.warn('[STT] onerror:', e.error, e.message ?? '')
           if (e.error === 'no-speech' || e.error === 'aborted') {
             setIsListening(false)
@@ -107,6 +120,7 @@ export function useSpeechRecognition(opts = {}) {
           setIsListening(false)
         },
         onResult: (event) => {
+          if (recognitionRef.current !== rec) return
           let finalText  = ''
           let interimTxt = ''
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -121,6 +135,7 @@ export function useSpeechRecognition(opts = {}) {
           }
           if (interimTxt) console.log('[STT] interim:', interimTxt)
           setInterimTranscript(interimTxt)
+          onInterimRef.current?.(interimTxt.trim())
         },
       },
     })
