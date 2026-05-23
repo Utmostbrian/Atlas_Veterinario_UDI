@@ -180,6 +180,17 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   useEffect(() => { callModeRef.current     = callMode     }, [callMode])
   useEffect(() => { callMicMutedRef.current = callMicMuted }, [callMicMuted])
 
+  // Acumulador con debounce para modo llamada: espera ~1.5s de silencio
+  // antes de enviar el texto, así captura la frase completa del usuario.
+  const callAccumulatorRef = useRef('')
+  const callDebounceRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
+    }
+  }, [])
+
   // Dictado por voz: agrega el texto reconocido al textarea.
   const appendDictation = useCallback((finalText) => {
     if (!finalText) return
@@ -194,14 +205,25 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   }, [])
 
   // En modo llamada el texto se envía directo al chat; fuera, se agrega al textarea.
+  const CALL_SILENCE_MS = 1500 // ms de silencio para considerar que el usuario terminó de hablar
   const handleSTTFinal = useCallback((finalText) => {
     console.log('[Voice] STT final result:', finalText)
     if (!finalText?.trim()) return
     if (callModeRef.current) {
       if (callMicMutedRef.current) return
-      // Parar mic mientras la IA piensa/habla, evita que se capture a sí misma.
-      stt.stop()
-      send({ text: finalText.trim(), imageData: null })
+      // Acumular el fragmento y reiniciar el timer de silencio.
+      // Así esperamos a que el usuario termine la frase completa
+      // antes de enviar, en vez de cortar en el primer fragmento.
+      callAccumulatorRef.current += (callAccumulatorRef.current ? ' ' : '') + finalText.trim()
+      if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
+      callDebounceRef.current = setTimeout(() => {
+        callDebounceRef.current = null
+        const text = callAccumulatorRef.current
+        callAccumulatorRef.current = ''
+        if (!text) return
+        stt.stop()
+        send({ text, imageData: null })
+      }, CALL_SILENCE_MS)
     } else {
       appendDictation(finalText.trim())
     }
@@ -270,6 +292,11 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     setCallError(null)
     setLastAssistantSpeech('')
     setCallMicMuted(false)
+    callAccumulatorRef.current = ''
+    if (callDebounceRef.current) {
+      clearTimeout(callDebounceRef.current)
+      callDebounceRef.current = null
+    }
 
     // 1) Pre-solicitar permiso del micrófono explícitamente. Esto es lo que
     //    realmente dispara el popup del navegador. Web Speech API solo usa
@@ -305,6 +332,11 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     console.log('[Voice] Colgando llamada')
     setCallMode(false)
     setCallError(null)
+    if (callDebounceRef.current) {
+      clearTimeout(callDebounceRef.current)
+      callDebounceRef.current = null
+    }
+    callAccumulatorRef.current = ''
     stt.stop()
     tts.stop()
     // Restaurar preferencia anterior de TTS (si estaba apagado, apagar de nuevo).
