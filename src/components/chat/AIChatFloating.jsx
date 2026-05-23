@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useChat } from '../../hooks/useChat'
-import { useAudioTranscription } from '../../hooks/useAudioTranscription'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '../../hooks/useSpeechSynthesis'
 import { createSentenceBuffer } from '../../utils/sentenceBuffer'
 import { listConversations } from '../../services/chatHistoryService'
+import { refineVoiceTranscript } from '../../services/anthropicService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
@@ -122,7 +122,7 @@ function AuthGate({ onOpenLogin }) {
 export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const { user } = useAuth()
   const isAuthenticated = !!user
-  const useServerVoice = isMobileBrowser()
+  const useClaudeVoiceRefinement = isMobileBrowser()
 
   // TTS: voz de la IA. Cola de oraciones para hablar mientras llega el streaming.
   const tts = useSpeechSynthesis({ lang: 'es-ES' })
@@ -185,7 +185,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const [lastAssistantSpeech, setLastAssistantSpeech] = useState('')
   const [callError,     setCallError]     = useState(null)
   const [callSubmitting, setCallSubmitting] = useState(false)
-  const [serverVoiceDisabled, setServerVoiceDisabled] = useState(false)
   const callModeRef     = useRef(false)
   const callMicMutedRef = useRef(false)
   const ttsPrevEnabledRef = useRef(false)
@@ -251,7 +250,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
   const scheduleCallSend = useCallback(() => {
     if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
-    callDebounceRef.current = setTimeout(() => {
+    callDebounceRef.current = setTimeout(async () => {
       callDebounceRef.current = null
       if (!callModeRef.current || callMicMutedRef.current) return
 
@@ -263,10 +262,19 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
       setCallSubmitting(true)
       sttRef.current?.stop()
-      Promise.resolve(send({ text: textToSend, imageData: null }))
-        .finally(() => setCallSubmitting(false))
+      try {
+        const text = useClaudeVoiceRefinement
+          ? await refineVoiceTranscript(textToSend).catch((e) => {
+            console.warn('[Voice] No se pudo refinar transcripción con Claude:', e?.message)
+            return textToSend
+          })
+          : textToSend
+        await send({ text, imageData: null })
+      } finally {
+        setCallSubmitting(false)
+      }
     }, CALL_SILENCE_MS)
-  }, [mergeInterimFallback, send])
+  }, [mergeInterimFallback, send, useClaudeVoiceRefinement])
 
   // En modo llamada el texto se envía directo al chat; fuera, se agrega al textarea.
   const handleSTTFinal = useCallback((finalText) => {
@@ -306,46 +314,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   })
   useEffect(() => { sttRef.current = stt }, [stt])
 
-  const handleAudioTranscriptionResult = useCallback((finalText) => {
-    const textToSend = normalizeVoiceText(finalText || '')
-    if (!textToSend) return
-
-    if (callModeRef.current) {
-      if (callMicMutedRef.current) return
-      setCallSubmitting(true)
-      Promise.resolve(send({ text: textToSend, imageData: null }))
-        .finally(() => setCallSubmitting(false))
-    } else {
-      appendDictation(textToSend)
-    }
-  }, [appendDictation, send])
-
-  const handleAudioTranscriptionError = useCallback((errorCode) => {
-    const shouldFallbackToNative = errorCode === 'server_misconfigured' || errorCode === 'transcription_unavailable'
-    if (shouldFallbackToNative) setServerVoiceDisabled(true)
-
-    const msg = errorCode === 'not-allowed'
-      ? 'Permiso de micrófono denegado. Habilítalo en el navegador y vuelve a intentar.'
-      : errorCode === 'unsupported'
-        ? 'Tu navegador no soporta grabación de audio para transcripción.'
-        : errorCode === 'server_misconfigured'
-          ? 'La transcripción móvil no está configurada en el servidor. Se usará el reconocimiento nativo como respaldo.'
-          : `Error de transcripción: ${errorCode}`
-
-    console.error('[Voice] Audio transcription error:', errorCode)
-    if (callModeRef.current) setCallError(msg)
-    else                     alert(msg)
-  }, [])
-
-  const audioStt = useAudioTranscription({
-    language: 'es',
-    silenceMs: 1900,
-    maxRecordingMs: 24000,
-    onResult: handleAudioTranscriptionResult,
-    onError:  handleAudioTranscriptionError,
-  })
-  const useAudioVoice = useServerVoice && audioStt.supported && !serverVoiceDisabled
-  const voiceInput = useAudioVoice ? audioStt : stt
+  const voiceInput = stt
 
   // Convertir errores de STT en mensajes visibles (modal en llamada, alerta en dictado).
   useEffect(() => {
@@ -367,7 +336,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const handleMicToggle = useCallback(async () => {
     if (!isAuthenticated) { onOpenLogin?.(); return }
     if (callMode) return
-    const voice = useAudioVoice ? audioStt : stt
+    const voice = stt
     if (!voice.supported) {
       alert('Tu navegador no soporta dictado por voz. Usa Chrome, Edge o Safari actualizado.')
       return
@@ -385,13 +354,13 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
       return
     }
     voice.start()
-  }, [audioStt, stt, callMode, isAuthenticated, onOpenLogin, useAudioVoice])
+  }, [stt, callMode, isAuthenticated, onOpenLogin])
 
   // Iniciar modo llamada. ASYNC y SIN setTimeout para preservar el contexto
   // de user-gesture que Chrome requiere para conceder permiso del micrófono.
   const startCall = useCallback(async () => {
     if (!isAuthenticated) { onOpenLogin?.(); return }
-    const voice = useAudioVoice ? audioStt : stt
+    const voice = stt
     if (!voice.supported) {
       alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome, Edge o Safari actualizado.')
       return
@@ -440,7 +409,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     if (!ok) {
       setCallError('No se pudo iniciar el reconocedor de voz. Cierra y vuelve a abrir la llamada.')
     }
-  }, [audioStt, isAuthenticated, onOpenLogin, stt, tts, useAudioVoice])
+  }, [isAuthenticated, onOpenLogin, stt, tts])
 
   // Terminar llamada y restaurar estado previo del TTS.
   const endCall = useCallback(() => {
@@ -455,11 +424,10 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     callAccumulatorRef.current = ''
     callInterimRef.current = ''
     stt.stop()
-    audioStt.cancel()
     tts.stop()
     // Restaurar preferencia anterior de TTS (si estaba apagado, apagar de nuevo).
     if (!ttsPrevEnabledRef.current) tts.setEnabled(false)
-  }, [audioStt, stt, tts])
+  }, [stt, tts])
 
   // Capturar la última oración hablada para mostrarla en el modal.
   // Sobrescribe el callback onSentence del sentenceBuffer original mediante
@@ -479,29 +447,25 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     if (loading) return              // IA pensando/generando
     if (tts.isSpeaking) return       // IA hablando
     if (tts.queueLength > 0) return  // hay oraciones encoladas por hablar
-    if (useAudioVoice) {
-      if (audioStt.isListening || audioStt.isTranscribing) return
-    } else if (stt.isListening) return      // ya escuchando
+    if (stt.isListening) return      // ya escuchando
     // Delay para evitar capturar la cola del audio que acabó.
     const t = setTimeout(() => {
       if (!callModeRef.current) return
       if (callMicMutedRef.current) return
-      const voice = useAudioVoice ? audioStt : stt
-      Promise.resolve(voice.start()).then((ok) => {
-        if (!ok && callModeRef.current) {
-          console.warn('[Voice] Falló al reiniciar reconocedor — el error de STT se mostrará arriba')
-        }
-      })
+      const ok = stt.start()
+      if (!ok && callModeRef.current) {
+        console.warn('[Voice] Falló al reiniciar reconocedor — el error de STT se mostrará arriba')
+      }
     }, 450)
     return () => clearTimeout(t)
-  }, [audioStt, callMode, callMicMuted, callSubmitting, loading, stt, tts.isSpeaking, tts.queueLength, useAudioVoice])
+  }, [callMode, callMicMuted, callSubmitting, loading, stt, tts.isSpeaking, tts.queueLength])
 
   // Estado derivado para el modal (idle/listening/thinking/speaking).
   const callStatus = !callMode
     ? 'idle'
     : tts.isSpeaking || tts.queueLength > 0
       ? 'speaking'
-      : loading || callSubmitting || audioStt.isTranscribing
+      : loading || callSubmitting
         ? 'thinking'
         : 'listening'
 
@@ -510,14 +474,12 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
       const next = !prev
       if (next) {
         try { stt.stop() } catch { /* ignore */ }
-        try { audioStt.cancel() } catch { /* ignore */ }
       } else if (!loading && !tts.isSpeaking && tts.queueLength === 0) {
-        const voice = useAudioVoice ? audioStt : stt
-        try { voice.start() } catch { /* ignore */ }
+        try { stt.start() } catch { /* ignore */ }
       }
       return next
     })
-  }, [audioStt, stt, loading, tts.isSpeaking, tts.queueLength, useAudioVoice])
+  }, [stt, loading, tts.isSpeaking, tts.queueLength])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -631,7 +593,6 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     if (streamRef.current) closeCamera()
     if (callMode) endCall()
     if (stt.isListening) stt.stop()
-    if (audioStt.isListening || audioStt.isTranscribing) audioStt.cancel()
     tts.stop()
     setHistoryOpen(false)
     onToggle()

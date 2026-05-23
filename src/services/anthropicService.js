@@ -339,6 +339,31 @@ export async function searchDualEngine({ query, mode = 'drug', messages, maxToke
   return response.json()
 }
 
+export async function refineVoiceTranscript(rawText) {
+  const text = String(rawText || '').trim()
+  if (!text) return ''
+
+  const prompt = `Corrige esta transcripción de voz en español de una consulta veterinaria.
+
+Reglas estrictas:
+1. Conserva la intención clínica del usuario.
+2. Corrige errores obvios de dictado, puntuación y nombres farmacológicos comunes.
+3. No agregues datos, dosis, especies ni fármacos que no estén insinuados en el texto.
+4. Si el texto es ambiguo, conserva la ambigüedad en vez de inventar.
+5. Responde solo con la frase corregida, sin comillas ni explicación.
+
+Transcripción cruda:
+${text}`
+
+  const response = await fetchViaProxy({
+    max_tokens: 220,
+    system: 'Eres un corrector de transcripciones médicas veterinarias. Respondes solo con la transcripción corregida.',
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const data = await response.json()
+  return (data.content?.[0]?.text || text).trim()
+}
+
 export async function compareDrugs(drug1, drug2) {
   const prompt = `Compara farmacológicamente ${drug1} vs ${drug2} para uso veterinario.
 
