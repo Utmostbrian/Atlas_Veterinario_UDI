@@ -209,6 +209,19 @@ Evalúa:
 
 Responde con: [SEGURA] / [REVISAR] / [PELIGROSA] y justificación. No uses emojis.`
 
+  try {
+    const dualResult = await searchDualEngine({
+      query: drug,
+      mode: 'drug',
+      clinicalTask: 'dose_validation',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 700,
+    })
+    if (dualResult?._text) return dualResult._text
+  } catch (e) {
+    console.warn('[validateDose] Dual engine failed, falling back:', e.message)
+  }
+
   const response = await fetchViaProxy({ max_tokens: 600, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
   const data = await response.json()
   return data.content?.[0]?.text ?? ''
@@ -225,6 +238,20 @@ Para cada par o combinación:
 - Recomendación clínica
 
 Indica cuáles combinaciones son seguras para uso veterinario conjunto.`
+
+  try {
+    const dualResult = await searchDualEngine({
+      query: drugList,
+      queries: drugs,
+      mode: 'drug',
+      clinicalTask: 'interactions',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1400,
+    })
+    if (dualResult?._text) return dualResult._text
+  } catch (e) {
+    console.warn('[checkInteractions] Dual engine failed, falling back:', e.message)
+  }
 
   const response = await fetchViaProxy({ max_tokens: 1000, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
   const data = await response.json()
@@ -257,13 +284,29 @@ Si ES un fármaco veterinario real, devuelve:
   "note": "advertencias clínicas o null"
 }`
 
-  const response = await fetchViaProxy({
-    max_tokens: 900,
-    system: 'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido.',
-    messages: [{ role: 'user', content: prompt }],
-  })
-  const data = await response.json()
-  const rawText = data.content?.[0]?.text ?? ''
+  let rawText = ''
+  try {
+    const dualResult = await searchDualEngine({
+      query: drug,
+      mode: 'drug',
+      clinicalTask: 'drug_profile',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1100,
+    })
+    rawText = dualResult?._text || ''
+  } catch (e) {
+    console.warn('[fetchDrugProfileWithAI] Dual engine failed, falling back:', e.message)
+  }
+
+  if (!rawText) {
+    const response = await fetchViaProxy({
+      max_tokens: 900,
+      system: 'Eres un farmacólogo veterinario experto. Respondes EXCLUSIVAMENTE con JSON válido.',
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const data = await response.json()
+    rawText = data.content?.[0]?.text ?? ''
+  }
 
   let jsonStr = rawText
   const fenced = rawText.match(/```(?:json)?\s*([\s\S]*?)```/s)
@@ -306,11 +349,11 @@ Si ES un fármaco veterinario real, devuelve:
  * Búsqueda con motor dual (RAG Plumb's + Tool Calling Merck).
  * Solo disponible cuando el usuario tiene sesión activa (proxy requiere JWT).
  *
- * @param {{ query: string, mode?: 'drug'|'disease', messages: Array, maxTokens?: number }} params
+ * @param {{ query: string, queries?: string[], mode?: 'drug'|'disease', clinicalTask?: string, messages: Array, maxTokens?: number }} params
  * @returns {Promise<{ _sources: string[], _text: string, content: Array }|null>}
  *   null si no hay proxy/token (el caller debe hacer fallback al modo normal).
  */
-export async function searchDualEngine({ query, mode = 'drug', messages, maxTokens = 2000 }) {
+export async function searchDualEngine({ query, queries = [], mode = 'drug', clinicalTask, messages, maxTokens = 2000 }) {
   const proxyUrl = getProxyUrl()
   const token    = await getSessionToken()
   if (!proxyUrl || !token) return null
@@ -324,7 +367,9 @@ export async function searchDualEngine({ query, mode = 'drug', messages, maxToke
     body: JSON.stringify({
       dual_engine:  true,
       search_query: query,
+      search_queries: queries,
       search_mode:  mode,
+      clinical_task: clinicalTask,
       messages,
       max_tokens:   maxTokens,
     }),
@@ -380,6 +425,20 @@ Incluye tabla comparativa con:
 - Ventajas y desventajas
 
 Conclusión: ¿Cuándo elegir uno u otro?`
+
+  try {
+    const dualResult = await searchDualEngine({
+      query: `${drug1} ${drug2}`,
+      queries: [drug1, drug2],
+      mode: 'drug',
+      clinicalTask: 'drug_compare',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1400,
+    })
+    if (dualResult?._text) return dualResult._text
+  } catch (e) {
+    console.warn('[compareDrugs] Dual engine failed, falling back:', e.message)
+  }
 
   const response = await fetchViaProxy({ max_tokens: 1200, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
   const data = await response.json()

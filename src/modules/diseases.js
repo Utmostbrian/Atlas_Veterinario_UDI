@@ -46,7 +46,13 @@ export async function searchDiseaseWithAI(name) {
 
   try {
     // Motor dual: RAG (Plumb's) + Tool Calling (Merck) — el proxy decide qué fuentes usar
-    const dualResult = await searchDualEngine({ query: name, mode: 'disease', messages, maxTokens: 2000 })
+    const dualResult = await searchDualEngine({
+      query: name,
+      mode: 'disease',
+      clinicalTask: 'disease_protocol',
+      messages,
+      maxTokens: 2000,
+    })
 
     if (dualResult) {
       const rawText = dualResult._text || dualResult.content?.[0]?.text || ''

@@ -12,7 +12,9 @@ dist/
 
 # Archivos temporales
 implementation_plan.md.resolved
-scripts/
+scripts/*
+!scripts/ingest-pdf.cjs
+!scripts/ingest-md.cjs
 
 # Documentos confidenciales — no subir al repo
 Reporte_Tecnico_DoD.docx
