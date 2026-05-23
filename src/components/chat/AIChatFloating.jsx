@@ -21,8 +21,17 @@ const QUICK_PROMPTS = [
 ]
 
 const CALL_SILENCE_MS = 2600
+const MOBILE_STT_RETRY_MS = 300
 
 const normalizeVoiceText = (value) => value.trim().replace(/\s+/g, ' ')
+
+function isIncompleteMobileVoiceText(value) {
+  const text = normalizeVoiceText(value || '').toLowerCase()
+  if (!text) return true
+  const words = text.split(' ').filter(Boolean)
+  const commonFragments = new Set(['que', 'qué', 'la', 'el', 'lo', 'un', 'una', 'es', 'de', 'del'])
+  return text.length < 10 || (words.length <= 1 && commonFragments.has(text))
+}
 
 function isMobileBrowser() {
   if (typeof navigator === 'undefined') return false
@@ -198,10 +207,12 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const callAccumulatorRef = useRef('')
   const callDebounceRef = useRef(null)
   const callInterimRef = useRef('')
+  const mobileRetryRef = useRef(null)
 
   useEffect(() => {
     return () => {
       if (callDebounceRef.current) clearTimeout(callDebounceRef.current)
+      if (mobileRetryRef.current) clearTimeout(mobileRetryRef.current)
       callInterimRef.current = ''
     }
   }, [])
@@ -256,9 +267,19 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
 
       mergeInterimFallback()
       const textToSend = normalizeVoiceText(callAccumulatorRef.current || '')
-      callAccumulatorRef.current = ''
       callInterimRef.current = ''
       if (!textToSend) return
+
+      if (useClaudeVoiceRefinement && isIncompleteMobileVoiceText(textToSend)) {
+        callAccumulatorRef.current = textToSend
+        if (mobileRetryRef.current) clearTimeout(mobileRetryRef.current)
+        mobileRetryRef.current = setTimeout(() => {
+          mobileRetryRef.current = null
+          if (!callModeRef.current || callMicMutedRef.current) return
+          sttRef.current?.start()
+        }, MOBILE_STT_RETRY_MS)
+        return
+      }
 
       setCallSubmitting(true)
       sttRef.current?.stop()
@@ -269,6 +290,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             return textToSend
           })
           : textToSend
+        callAccumulatorRef.current = ''
         await send({ text, imageData: null })
       } finally {
         setCallSubmitting(false)
@@ -293,8 +315,9 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   const handleSTTInterim = useCallback((interimText) => {
     if (!callModeRef.current || callMicMutedRef.current) return
     callInterimRef.current = normalizeVoiceText(interimText || '')
+    if (useClaudeVoiceRefinement) return
     if (callInterimRef.current) scheduleCallSend()
-  }, [scheduleCallSend])
+  }, [scheduleCallSend, useClaudeVoiceRefinement])
 
   const handleSTTEnd = useCallback(() => {
     if (!callModeRef.current || callMicMutedRef.current) return
@@ -377,6 +400,10 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     setCallMicMuted(false)
     callAccumulatorRef.current = ''
     callInterimRef.current = ''
+    if (mobileRetryRef.current) {
+      clearTimeout(mobileRetryRef.current)
+      mobileRetryRef.current = null
+    }
     if (callDebounceRef.current) {
       clearTimeout(callDebounceRef.current)
       callDebounceRef.current = null
@@ -423,6 +450,10 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     }
     callAccumulatorRef.current = ''
     callInterimRef.current = ''
+    if (mobileRetryRef.current) {
+      clearTimeout(mobileRetryRef.current)
+      mobileRetryRef.current = null
+    }
     stt.stop()
     tts.stop()
     // Restaurar preferencia anterior de TTS (si estaba apagado, apagar de nuevo).
