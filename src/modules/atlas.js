@@ -13,36 +13,40 @@ REGLAS DE SEGURIDAD ANTES DE RESPONDER:
 5. Prioriza la seguridad clínica. Si faltan dosis, vías, especies o retiro/supresión en la fuente primaria, marca validación clínica como insuficiente o revisar.
 6. Se detallado y completo en cada campo. Proporciona informacion clinica exhaustiva con fundamento farmacologico.
 
-Responde ÚNICAMENTE con JSON válido, sin markdown, sin texto extra, sin bloques de código. El JSON debe ser completo y abarcador:
+IDIOMA: Toda la respuesta debe estar COMPLETAMENTE EN ESPAÑOL. Nombres científicos pueden ir en latín, pero descripciones, dosis, indicaciones, contraindicaciones, efectos adversos, interacciones, avisos clínicos y cualquier texto deben redactarse íntegramente en español. No incluyas texto en inglés bajo ninguna circunstancia.
+
+FUENTES: El catalogo local del proyecto (abajo) es solo un punto de partida. Utiliza tu formacion como farmacologo veterinario para completar la ficha con toda la informacion clinica necesaria. Plumb's Veterinary Drug Handbook es la referencia primaria, pero debes complementar con tu propio conocimiento farmacologico veterinario donde la informacion sea insuficiente. Rellena cada campo de forma completa y detallada usando tu base de conocimiento.
+
+Responde ÚNICAMENTE con JSON válido, sin markdown, sin texto extra, sin bloques de código. El JSON debe ser completo y abarcador, con informacion extensa en cada campo:
 
 {
   "encontrado": true,
-  "nombre": "nombre oficial",
+  "nombre": "nombre oficial en español",
   "nombreCorregido": null,
   "nombreCientifico": "DCI/sinonimo",
   "categoria": "categoria farmacologica",
   "tags": ["tag"],
-  "descripcion": "resumen clinico",
-  "historia": null,
-  "mecanismo": "mecanismo",
-  "indicaciones": ["indicacion"],
-  "contraindicaciones": ["contraindicacion"],
-  "efectosAdversos": ["efecto"],
+  "descripcion": "descripcion extensa del farmaco, su historia, usos clinicos y perfil farmacologico",
+  "historia": "historia del descubrimiento y desarrollo del farmaco, o null si es desconocida",
+  "mecanismo": "explicacion detallada del mecanismo de accion farmacologica",
+  "indicaciones": ["indicacion detallada 1", "indicacion detallada 2", "indicacion detallada 3"],
+  "contraindicaciones": ["contraindicacion detallada 1", "contraindicacion detallada 2"],
+  "efectosAdversos": ["efecto adverso detallado 1", "efecto adverso detallado 2"],
   "dosis": [{"especie":"Perro","dosis":"5 mg/kg","via":"VO","frecuencia":"c/24h","duracion":"segun indicacion"}],
-  "interacciones": "texto",
-  "supresion": null,
-  "avisoClinico": "advertencia",
+  "interacciones": "texto detallado sobre interacciones farmacologicas relevantes",
+  "supresion": "periodo de supresion para especies productoras de alimentos, o null si no aplica",
+  "avisoClinico": "advertencia clinica importante",
   "validacionClinica": {
     "estado": "aprobado|revisar|peligroso|insuficiente",
     "fuentePrimaria": "Plumb's Veterinary Drug Handbook, 10.ª edición",
     "coincidencia": "exacta|alias|probable|no_encontrado",
-    "hallazgos": ["hallazgo"],
-    "advertenciasCriticas": ["advertencia"]
+    "hallazgos": ["hallazgo clinico detallado 1", "hallazgo clinico detallado 2"],
+    "advertenciasCriticas": ["advertencia critica detallada 1"]
   },
   "_sources": ["vademecum", "catalogo_local"]
 }
 
-Contexto local del proyecto:
+Catalogo local del proyecto (solo como referencia, completar con tu conocimiento):
 ${JSON.stringify(localContext, null, 2)}`
 }
 

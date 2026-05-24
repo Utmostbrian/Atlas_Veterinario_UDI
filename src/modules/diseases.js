@@ -12,25 +12,36 @@ REGLAS DE SEGURIDAD ANTES DE RESPONDER:
 4. Si el término está mal escrito pero reconoces la enfermedad intentada (ej. "parbovirosis" -> "parvovirosis"), úsala y reporta el nombre corregido en "nombreCorregido".
 5. Se detallado y completo en cada campo. Proporciona informacion clinica exhaustiva con protocolos terapeuticos detallados.
 
-Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra, sin bloques de código). El JSON debe ser completo y abarcador:
+IDIOMA: Toda la respuesta debe estar COMPLETAMENTE EN ESPAÑOL. Nombres científicos o fármacos pueden ir en latín o su denominación oficial, pero diagnósticos, signos clínicos, protocolos, dosis, medidas de soporte, pronóstico y cualquier texto deben redactarse íntegramente en español. No incluyas texto en inglés bajo ninguna circunstancia.
+
+FUENTES: Plumb's Veterinary Drug Handbook y Merck Veterinary Manual son las referencias primarias. Sin embargo, debes complementar con tu propio conocimiento clínico veterinario donde la información sea insuficiente. Rellena cada campo de forma completa y detallada usando tu base de conocimiento. No te limites a lo que aparece en las referencias — investiga con tu propia formacion para ofrecer un protocolo completo.
+
+Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra, sin bloques de código). El JSON debe ser completo y abarcador, con informacion extensa en cada campo:
 
 {
   "status": "ok",
-  "nombre": "nombre oficial de la enfermedad",
+  "nombre": "nombre oficial de la enfermedad en español",
   "nombreCorregido": "nombre correcto si el usuario lo escribió mal, o null si está bien",
-  "diagnostico": "diagnóstico diferencial y etiología detallada",
-  "signosClinicos": ["signo clínico 1", "signo clínico 2"],
+  "diagnostico": "diagnóstico diferencial completo, etiología detallada, métodos diagnósticos y consideraciones clínicas",
+  "signosClinicos": ["signo clínico detallado 1", "signo clínico detallado 2", "signo clínico detallado 3"],
   "fases": [
     {
       "titulo": "Fase 1: Tratamiento inicial",
-      "objetivo": "objetivo de esta fase o null",
+      "objetivo": "objetivo detallado de esta fase",
       "farmacos": [
-        {"nombre": "Nombre del fármaco", "dosis": "dosis", "via": "IV", "frecuencia": "c/12h", "duracion": "3-5 días"}
+        {"nombre": "Nombre del fármaco", "dosis": "dosis detallada", "via": "IV", "frecuencia": "c/12h", "duracion": "3-5 días"}
+      ]
+    },
+    {
+      "titulo": "Fase 2: Tratamiento de mantenimiento",
+      "objetivo": "objetivo detallado de esta fase",
+      "farmacos": [
+        {"nombre": "Nombre del fármaco", "dosis": "dosis detallada", "via": "VO", "frecuencia": "c/24h", "duracion": "7-14 días"}
       ]
     }
   ],
-  "medidasSoporte": ["medida de soporte 1", "medida de soporte 2"],
-  "pronostico": "pronóstico clínico y medidas de prevención"
+  "medidasSoporte": ["medida de soporte detallada 1", "medida de soporte detallada 2", "medida de soporte detallada 3"],
+  "pronostico": "pronóstico clínico detallado, factores pronósticos, y medidas de prevención"
 }
 
 Si no pasa los filtros o no es una enfermedad reconocida: {"status": "not-found"}
