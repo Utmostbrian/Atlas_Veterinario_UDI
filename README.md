@@ -166,7 +166,6 @@ Configura estos secrets en **GitHub -> Settings -> Secrets and variables -> Acti
 | Secret | Valor |
 |--------|-------|
 | `SUPABASE_ACCESS_TOKEN` | Personal Access Token de Supabase |
-| `SUPABASE_PROJECT_REF` | Ref del proyecto, por ejemplo `abcdefghijklmnopqrst` |
 | `SUPABASE_DB_URL` | Connection string **Session Pooler**, no la URL directa `db.<ref>.supabase.co` |
 
 `SUPABASE_DB_URL` debe salir de **Supabase Dashboard -> Project -> Connect -> Session Pooler** y tiene forma:
