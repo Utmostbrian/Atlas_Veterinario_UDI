@@ -22,7 +22,7 @@ const MAX_HISTORY_TURNS = 20
 const MAX_BODY_BYTES    = 2_000_000
 const MAX_SINGLE_MSG    = 500_000
 const ANTHROPIC_TIMEOUT = 25_000
-const DUAL_ENGINE_TIMEOUT = 27_000   // RAG + Claude; cerca del límite de edge ~30s
+const DUAL_ENGINE_TIMEOUT = 50_000   // RAG + Claude; edge functions Supabase permiten hasta 150s wall-clock
 const SSE_HEARTBEAT_MS  = 15_000
 
 const ALLOWED_MODELS = new Set([
@@ -255,8 +255,12 @@ function buildTaskContract(task: string): string {
     return `
 
 -- CONTRATO ATLAS FARMACOLOGICO --
-Devuelve exclusivamente JSON valido con el esquema solicitado por el usuario.
-Ademas de los campos solicitados, puedes incluir:
+Devuelve exclusivamente JSON valido con el esquema solicitado.
+SE CONCISO: cada campo de texto libre no debe exceder 350 caracteres.
+Los arrays (indicaciones, contraindicaciones, efectosAdversos) max 5 items, cada item max 180 chars.
+"dosis" max 6 entradas para las especies mas relevantes.
+Prioriza completar el JSON antes que detallar exhaustivamente.
+Ademas de los campos del esquema, puedes incluir:
 "validacionClinica": {
   "estado": "aprobado|revisar|peligroso|insuficiente",
   "fuentePrimaria": "Plumb's Veterinary Drug Handbook 10th ed.",
@@ -324,6 +328,41 @@ function collectSearchQueries(body: Record<string, unknown>, fallback: string): 
     seen.add(key)
     return true
   }).slice(0, 8)
+}
+
+// Traduce un nombre de farmaco ES->EN con Haiku para mejorar match en RAG.
+// Solo se invoca cuando el RAG con queries originales devolvio 0 hits.
+// Retorna el nombre original si la traduccion falla.
+async function translateDrugToEnglish(name: string): Promise<string> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 4_000)
+  try {
+    const resp = await fetch(ANTHROPIC_URL, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 25,
+        system: 'You translate Spanish veterinary drug names to English. Respond ONLY with the English INN/USAN name, no explanations, no punctuation, no extra words.',
+        messages: [{ role: 'user', content: name }],
+      }),
+    })
+    if (!resp.ok) return name
+    const data = await resp.json() as { content?: Array<{ type: string; text?: string }> }
+    const text = data.content?.find(b => b.type === 'text')?.text?.trim() ?? ''
+    // Sanea: solo letras y guion, una palabra
+    const clean = text.replace(/[^A-Za-z\- ]/g, '').trim().split(/\s+/)[0] ?? ''
+    return clean.length >= 3 ? clean : name
+  } catch {
+    return name
+  } finally {
+    clearTimeout(t)
+  }
 }
 
 async function loadVademecumContext(
@@ -408,7 +447,7 @@ async function handleDualEngine(
   const messages    = (body.messages as Array<unknown> ?? []).slice(-MAX_HISTORY_TURNS)
   const requestedTokens = Number(body.max_tokens ?? 1600)
   const maxTokens = clinicalTask === 'atlas_drug'
-    ? Math.min(requestedTokens, 1200)   // JSON atlas necesita ~800-1100 tokens
+    ? Math.min(Math.max(requestedTokens, 3000), 3500)   // JSON atlas: Sonnet con contexto Plumb's es prolijo; subir holgura
     : Math.min(requestedTokens, 3000)
 
   const usedSources: string[] = []
@@ -435,6 +474,20 @@ async function handleDualEngine(
       }
     } catch {
       // La tabla aún no existe o la función no fue creada → continuar sin RAG
+    }
+  }
+
+  // Fallback ES->EN: si seguimos sin contexto y es busqueda de farmaco, traducir
+  // el nombre al ingles con Haiku y reintentar. Plumb's esta en ingles, asi que
+  // "Amoxicilina" no matchea con "Amoxicillin" via pg_trgm sin ayuda.
+  if (!vademecumContext.trim() && searchMode === 'drug' && searchQuery) {
+    const englishName = await translateDrugToEnglish(searchQuery)
+    if (englishName.toLowerCase() !== searchQuery.toLowerCase()) {
+      const retryContext = await loadVademecumContext(supabase, [englishName], clinicalTask === 'interactions' ? 4 : 8)
+      if (retryContext.trim()) {
+        usedSources.push('vademecum_translated')
+        vademecumContext = retryContext
+      }
     }
   }
 

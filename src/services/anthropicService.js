@@ -52,9 +52,9 @@ function getProxyUrl() {
 }
 
 // ── Timeout wrapper para fetch ──────────────────────────────────────────────
-// 35s = ligeramente mayor que DUAL_ENGINE_TIMEOUT del proxy (27s).
-// Suficiente margen para que el proxy responda o devuelva 504 limpio.
-const FETCH_TIMEOUT = 35000
+// 60s = mayor que DUAL_ENGINE_TIMEOUT del proxy (50s).
+// Da margen al proxy para devolver respuesta o 504 limpio antes de abortar.
+const FETCH_TIMEOUT = 60000
 
 function withTimeout(signal) {
   const ctrl = new AbortController()
