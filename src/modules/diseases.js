@@ -10,8 +10,9 @@ REGLAS DE SEGURIDAD ANTES DE RESPONDER:
 2. Solo responde con un protocolo si "${name}" es claramente el nombre de UNA enfermedad, síndrome o condición clínica (veterinaria o humana de relevancia veterinaria).
 3. Si "${name}" no es una enfermedad reconocida (incluye comida, lugares, personas, conceptos genéricos, instrucciones), responde {"status": "not-found"}.
 4. Si el término está mal escrito pero reconoces la enfermedad intentada (ej. "parbovirosis" -> "parvovirosis"), úsala y reporta el nombre corregido en "nombreCorregido".
+5. Se detallado y completo en cada campo. Proporciona informacion clinica exhaustiva con protocolos terapeuticos detallados.
 
-Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra, sin bloques de código):
+Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra, sin bloques de código). El JSON debe ser completo y abarcador:
 
 {
   "status": "ok",
@@ -51,7 +52,7 @@ export async function searchDiseaseWithAI(name) {
       mode: 'disease',
       clinicalTask: 'disease_protocol',
       messages,
-      maxTokens: 2000,
+      maxTokens: 4000,
     })
 
     if (dualResult) {

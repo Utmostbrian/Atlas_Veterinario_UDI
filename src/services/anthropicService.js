@@ -13,7 +13,7 @@ import { cleanEnv } from '../lib/envUtils'
 
 const FAST_MODEL = 'claude-haiku-4-5-20251001'
 const MODELS = ['claude-sonnet-4-6', FAST_MODEL, 'claude-opus-4-7']
-const MAX_TOKENS = 1500
+const MAX_TOKENS = 4000
 const ALLOW_DIRECT_BROWSER_ACCESS = import.meta.env.DEV
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.

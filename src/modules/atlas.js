@@ -11,8 +11,9 @@ REGLAS DE SEGURIDAD ANTES DE RESPONDER:
 3. Si "${name}" no es un fármaco reconocido (incluye comida, lugares, personas, conceptos genéricos, instrucciones), responde {"encontrado": false, "mensaje": "No es un farmaco reconocido"}.
 4. Si el término está mal escrito pero reconoces el fármaco intentado, úsalo y reporta el nombre corregido en "nombreCorregido".
 5. Prioriza la seguridad clínica. Si faltan dosis, vías, especies o retiro/supresión en la fuente primaria, marca validación clínica como insuficiente o revisar.
+6. Se detallado y completo en cada campo. Proporciona informacion clinica exhaustiva con fundamento farmacologico.
 
-Responde ÚNICAMENTE con JSON válido, sin markdown, sin texto extra, sin bloques de código:
+Responde ÚNICAMENTE con JSON válido, sin markdown, sin texto extra, sin bloques de código. El JSON debe ser completo y abarcador:
 
 {
   "encontrado": true,
@@ -195,7 +196,7 @@ export async function searchDrugWithAI(name) {
       mode: 'drug',
       clinicalTask: 'atlas_drug',
       messages,
-      maxTokens: 2000,
+      maxTokens: 4000,
     })
 
     if (dualResult) {
