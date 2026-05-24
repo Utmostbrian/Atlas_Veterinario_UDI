@@ -9,7 +9,7 @@ import { searchDrugWithAI } from '../../modules/atlas'
 import {
   validateAISearchInput, consumeClientRateLimit,
   getCachedAIResult, setCachedAIResult, findCatalogSuggestion,
-  isAISearchAllowed, isExactInDictionary,
+  isAISearchAllowed,
 } from '../../modules/aiSearch'
 import { EXTENDED_DRUG_NAMES, DRUG_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
 import { logAiConsultation } from '../../services/auditService'

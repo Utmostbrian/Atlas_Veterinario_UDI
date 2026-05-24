@@ -81,7 +81,7 @@ function looksLikeJsonPayload(raw) {
 function lineLooksJsonish(line) {
   const t = line.trim()
   if (!t) return false
-  if (/^[\{\[\}\]]/.test(t)) return true
+  if (/^[{[\]}]/.test(t)) return true
   if (/^"[^"]+"\s*:/.test(t)) return true
   return false
 }

@@ -25,23 +25,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check Supabase secrets
+        id: secrets
+        shell: bash
+        run: |
+          if [[ -z "$SUPABASE_ACCESS_TOKEN" || -z "$SUPABASE_DB_URL" ]]; then
+            echo "::warning::Skipping Supabase deploy — set SUPABASE_ACCESS_TOKEN and SUPABASE_DB_URL repo secrets to enable automatic deployment."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: supabase/setup-cli@v1
+        if: steps.secrets.outputs.ready == 'true'
         with:
           version: latest
 
-      - name: Validate required secrets
+      - name: Validate DB URL
+        if: steps.secrets.outputs.ready == 'true'
         shell: bash
         run: |
-          : "${SUPABASE_ACCESS_TOKEN:?Missing SUPABASE_ACCESS_TOKEN secret}"
-          : "${SUPABASE_DB_URL:?Missing SUPABASE_DB_URL secret. Use the Supabase Session Pooler URL, not the direct db host.}"
-
           if [[ "$SUPABASE_DB_URL" != *.pooler.supabase.com* ]]; then
             echo "::error::SUPABASE_DB_URL must use the Supabase Session Pooler host (*.pooler.supabase.com), not the direct Postgres host."
             exit 1
           fi
 
       - name: Deploy database migrations
+        if: steps.secrets.outputs.ready == 'true'
         run: supabase db push --db-url "$SUPABASE_DB_URL"
 
       - name: Deploy Edge Functions
+        if: steps.secrets.outputs.ready == 'true'
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
