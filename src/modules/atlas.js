@@ -1,6 +1,6 @@
-import { jsonrepair } from 'jsonrepair'
 import { DRUGS, CATEGORY_MAP } from '../data/drugs'
 import { searchDualEngine, sendMessage } from '../services/anthropicService'
+import { safeJSON, parseJSONResponse, askClaudeJSON } from '../lib/jsonUtils'
 
 function buildAtlasPrompt(name, localContext) {
   return `Eres un farmacologo veterinario experto. El usuario buscó: "${name}".
@@ -70,15 +70,6 @@ function buildLocalContext(term) {
       warnings: d.warnings || null,
       interactions: d.interactions || null,
     }))
-}
-
-function safeParseJSON(str) {
-  try {
-    return JSON.parse(str)
-  } catch {
-    return JSON.parse(jsonrepair(str))
-  }
-}
 
 function normalizeDoseRows(doses) {
   if (!Array.isArray(doses)) return []
@@ -205,9 +196,8 @@ export async function searchDrugWithAI(name) {
 
     if (dualResult) {
       const rawText = dualResult._text || dualResult.content?.[0]?.text || ''
-      const match = rawText.match(/\{[\s\S]*\}/)
-      if (match) {
-        const parsed = safeParseJSON(match[0])
+      const parsed = parseJSONResponse(rawText)
+      if (parsed) {
         const normalized = normalizeAtlasResponse(parsed, term)
         return { ...normalized, _sources: dualResult._sources ?? normalized._sources }
       }
@@ -216,12 +206,11 @@ export async function searchDrugWithAI(name) {
     console.warn('[atlas] Dual engine failed, falling back to direct API:', e.message)
   }
 
-  // Fallback: búsqueda directa sin motor dual (misma lógica que diseases.js)
+  // Fallback: búsqueda directa sin motor dual con reintento JSON
   try {
-    const text = await sendMessage({ history: [], userText: buildAtlasPrompt(term, localContext) })
-    const match = text.match(/\{[\s\S]*\}/)
-    if (match) {
-      const parsed = safeParseJSON(match[0])
+    const claudeFn = (p, _t) => sendMessage({ history: [], userText: p })
+    const { d: parsed } = await askClaudeJSON(claudeFn, buildAtlasPrompt(term, localContext), 2000)
+    if (parsed) {
       const normalized = normalizeAtlasResponse(parsed, term)
       return { ...normalized, _sources: ['vademecum'] }
     }

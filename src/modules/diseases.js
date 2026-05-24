@@ -1,6 +1,6 @@
 import { sendMessage, searchDualEngine } from '../services/anthropicService'
 import { DISEASES } from '../data/diseases'
-import { jsonrepair } from 'jsonrepair'
+import { safeJSON, parseJSONResponse, normalizeEnfResponse, askClaudeJSON } from '../lib/jsonUtils'
 
 function buildDiseasePrompt(name) {
   return `Eres un clínico veterinario experto. El usuario buscó: "${name}".
@@ -48,16 +48,10 @@ Si no pasa los filtros o no es una enfermedad reconocida: {"status": "not-found"
 Si no puedes estructurar el protocolo completo: {"status": "bad-format", "rawText": "información disponible en texto libre"}`
 }
 
-function safeParseJSON(str) {
-  try { return JSON.parse(str) } catch { /* fall through a jsonrepair */ }
-  return JSON.parse(jsonrepair(str))
-}
-
 export async function searchDiseaseWithAI(name) {
   const messages = [{ role: 'user', content: buildDiseasePrompt(name) }]
 
   try {
-    // Motor dual: RAG (Plumb's) + Tool Calling (Merck) — el proxy decide qué fuentes usar
     const dualResult = await searchDualEngine({
       query: name,
       mode: 'disease',
@@ -68,24 +62,24 @@ export async function searchDiseaseWithAI(name) {
 
     if (dualResult) {
       const rawText = dualResult._text || dualResult.content?.[0]?.text || ''
-      const match   = rawText.match(/\{[\s\S]*\}/)
-      if (!match) return { status: 'bad-format', rawText }
-      const parsed  = safeParseJSON(match[0])
-      const norm    = normalizeDiseaseResponse(parsed)
-      // Añadir fuentes al resultado
-      return { ...norm, _sources: dualResult._sources ?? [] }
+      const parsed = parseJSONResponse(rawText)
+      if (parsed) {
+        const norm = normalizeDiseaseResponse(normalizeEnfResponse(parsed))
+        return { ...norm, _sources: dualResult._sources ?? [] }
+      }
     }
   } catch (e) {
     console.warn('[diseases] Dual engine failed, falling back:', e.message)
   }
 
-  // Fallback: búsqueda simple
+  // Fallback: búsqueda simple con reintento JSON
   try {
-    const text   = await sendMessage({ history: [], userText: buildDiseasePrompt(name) })
-    const match  = text.match(/\{[\s\S]*\}/)
-    if (!match) return { status: 'bad-format', rawText: text }
-    const parsed = safeParseJSON(match[0])
-    return normalizeDiseaseResponse(parsed)
+    const claudeFn = (p, _t) => sendMessage({ history: [], userText: p })
+    const { d: parsed } = await askClaudeJSON(claudeFn, buildDiseasePrompt(name), 2000)
+    if (parsed) {
+      return normalizeDiseaseResponse(normalizeEnfResponse(parsed))
+    }
+    return { status: 'bad-format', rawText: 'La IA no devolvió datos estructurados válidos.' }
   } catch (e) {
     return { status: 'error', mensaje: e.message || 'Error al consultar el protocolo.' }
   }
@@ -93,6 +87,15 @@ export async function searchDiseaseWithAI(name) {
 
 export function normalizeDiseaseResponse(data) {
   if (!data || typeof data !== 'object') return { status: 'bad-format', rawText: '' }
+  if (data.status === 'ok') return data
+  if (data.status === 'not-found') return data
+  if (Array.isArray(data.protocolo) && !Array.isArray(data.fases)) {
+    data.fases = data.protocolo.map(p => ({
+      titulo: p.fase || 'Fase de tratamiento',
+      objetivo: p.objetivo || '',
+      farmacos: Array.isArray(p.farmacos) ? p.farmacos : [],
+    }))
+  }
   if (!data.status) {
     if (data.nombre && Array.isArray(data.fases)) return { ...data, status: 'ok' }
     return { status: 'bad-format', rawText: JSON.stringify(data, null, 2) }
