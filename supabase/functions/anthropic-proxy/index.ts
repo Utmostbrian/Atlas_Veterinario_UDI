@@ -538,7 +538,9 @@ async function handleDualEngine(
       required: ['query'],
     },
   }]
-  const requestTools = vademecumContext.trim() ? [] : tools
+  const requestTools = clinicalTask === 'atlas_drug'
+    ? []
+    : (vademecumContext.trim() ? [] : tools)
 
   // ── Primera llamada a Claude (con herramientas disponibles) ───────────────
   const firstCtrl    = new AbortController()
