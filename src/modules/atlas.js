@@ -1,8 +1,6 @@
 import { jsonrepair } from 'jsonrepair'
 import { DRUGS, CATEGORY_MAP } from '../data/drugs'
-import { searchDualEngine } from '../services/anthropicService'
-
-const ATLAS_MODEL = 'claude-sonnet-4-6'
+import { searchDualEngine, sendMessage } from '../services/anthropicService'
 
 function buildAtlasPrompt(name, localContext) {
   return `Eres un farmacologo veterinario experto. El usuario buscó: "${name}".
@@ -197,8 +195,7 @@ export async function searchDrugWithAI(name) {
       mode: 'drug',
       clinicalTask: 'atlas_drug',
       messages,
-      maxTokens: 900,
-      model: ATLAS_MODEL,
+      maxTokens: 2000,
     })
 
     if (dualResult) {
@@ -211,10 +208,23 @@ export async function searchDrugWithAI(name) {
       }
     }
   } catch (e) {
-    console.warn('[atlas] Dual engine failed, falling back:', e.message)
+    console.warn('[atlas] Dual engine failed, falling back to direct API:', e.message)
   }
 
-  return buildLocalFallback(term)
+  // Fallback: búsqueda directa sin motor dual (misma lógica que diseases.js)
+  try {
+    const text = await sendMessage({ history: [], userText: buildAtlasPrompt(term, localContext) })
+    const match = text.match(/\{[\s\S]*\}/)
+    if (match) {
+      const parsed = safeParseJSON(match[0])
+      const normalized = normalizeAtlasResponse(parsed, term)
+      return { ...normalized, _sources: ['vademecum'] }
+    }
+    return buildLocalFallback(term)
+  } catch (e) {
+    console.warn('[atlas] Direct API also failed:', e.message)
+    return buildLocalFallback(term)
+  }
 }
 
 export async function validateDrugWithAI(name) {
