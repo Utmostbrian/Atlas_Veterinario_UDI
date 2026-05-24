@@ -52,7 +52,9 @@ function getProxyUrl() {
 }
 
 // ── Timeout wrapper para fetch ──────────────────────────────────────────────
-const FETCH_TIMEOUT = 90000
+// 35s = ligeramente mayor que DUAL_ENGINE_TIMEOUT del proxy (27s).
+// Suficiente margen para que el proxy responda o devuelva 504 limpio.
+const FETCH_TIMEOUT = 35000
 
 function withTimeout(signal) {
   const ctrl = new AbortController()
@@ -104,11 +106,13 @@ async function fetchViaProxy(body, signal) {
       if (response.status === 401) {
         throw new Error('Sesión expirada. Inicia sesión de nuevo.')
       }
-      if (response.status === 429 || response.status === 529 || response.status === 503) {
+      if (response.status === 429 || response.status === 529 || response.status === 503 || response.status === 504) {
         lastError = new Error(
           response.status === 429
             ? `Modelo ${model} con límite alcanzado`
-            : `Modelo ${model} no disponible (${response.status})`
+            : response.status === 504
+              ? `Modelo ${model} excedió el tiempo de espera del proxy`
+              : `Modelo ${model} no disponible (${response.status})`
         )
         continue
       }

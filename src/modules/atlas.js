@@ -1,5 +1,5 @@
 import { DRUGS, CATEGORY_MAP } from '../data/drugs'
-import { sendMessage } from '../services/anthropicService'
+import { sendMessage, searchDualEngine } from '../services/anthropicService'
 import { parseJSONResponse, askClaudeJSON } from '../lib/jsonUtils'
 
 function buildAtlasPrompt(name) {
@@ -125,7 +125,6 @@ function normalizeAtlasResponse(data, name) {
     interacciones: data.interacciones || '',
     supresion: data.supresion ?? null,
     avisoClinico: data.avisoClinico || 'Validado con Plumb\'s Veterinary Drug Handbook, 10.ª edicion.',
-    _sources: ['vademecum'],
   }
 }
 
@@ -135,16 +134,42 @@ export async function searchDrugWithAI(name) {
     return { encontrado: false, mensaje: 'El termino debe tener al menos 3 caracteres.', _sources: ['catalogo_local'] }
   }
 
+  const messages = [{ role: 'user', content: buildAtlasPrompt(term) }]
+
+  // 1. Intento RAG: chunks de Plumb's + Claude (traducción al español)
+  try {
+    const dualResult = await searchDualEngine({
+      query: term,
+      mode: 'drug',
+      clinicalTask: 'atlas_drug',
+      messages,
+      maxTokens: 1200,
+    })
+    if (dualResult) {
+      const rawText = dualResult._text || dualResult.content?.[0]?.text || ''
+      const parsed = parseJSONResponse(rawText)
+      if (parsed) {
+        const norm = normalizeAtlasResponse(parsed, term)
+        return { ...norm, _sources: dualResult._sources ?? ['vademecum'] }
+      }
+    }
+  } catch (e) {
+    console.warn('[atlas] Dual engine failed, falling back:', e.message)
+  }
+
+  // 2. Fallback: Claude directo sin RAG (modo estándar del proxy)
   try {
     const claudeFn = (p, _t) => sendMessage({ history: [], userText: p })
-    const { d: parsed } = await askClaudeJSON(claudeFn, buildAtlasPrompt(term), 2000)
+    const { d: parsed } = await askClaudeJSON(claudeFn, buildAtlasPrompt(term), 1200)
     if (parsed) {
-      return normalizeAtlasResponse(parsed, term)
+      const norm = normalizeAtlasResponse(parsed, term)
+      return { ...norm, _sources: ['ia_directa'] }
     }
   } catch (e) {
     console.warn('[atlas] AI search failed:', e.message)
   }
 
+  // 3. Último recurso: catálogo local
   return buildLocalFallback(term)
 }
 

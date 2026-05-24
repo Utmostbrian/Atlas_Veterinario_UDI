@@ -22,7 +22,7 @@ const MAX_HISTORY_TURNS = 20
 const MAX_BODY_BYTES    = 2_000_000
 const MAX_SINGLE_MSG    = 500_000
 const ANTHROPIC_TIMEOUT = 25_000
-const DUAL_ENGINE_TIMEOUT = 18_000   // RAG + Claude; fallar antes del timeout externo
+const DUAL_ENGINE_TIMEOUT = 27_000   // RAG + Claude; cerca del límite de edge ~30s
 const SSE_HEARTBEAT_MS  = 15_000
 
 const ALLOWED_MODELS = new Set([
@@ -360,76 +360,6 @@ async function loadVademecumContext(
     .join('\n\n---\n\n')
 }
 
-function sentenceFrom(text: string, maxChars: number): string {
-  return text
-    .replace(/\s+/g, ' ')
-    .slice(0, maxChars)
-    .replace(/\s+\S*$/, '')
-    .trim()
-}
-
-function sectionItems(context: string, section: string, limit = 4): string[] {
-  const idx = context.toLowerCase().indexOf(section.toLowerCase())
-  if (idx < 0) return []
-  const slice = context.slice(idx + section.length, idx + section.length + 900)
-  return slice
-    .split(/(?:▶|■|;|\.\s+)/)
-    .map(item => sentenceFrom(item, 220))
-    .filter(item => item.length > 25)
-    .slice(0, limit)
-}
-
-function buildExtractiveAtlasJson(query: string, context: string, sources: string[]) {
-  const firstLine = context.split('\n').find(line => line.trim() && !line.startsWith('[Consulta:')) ?? query
-  const foundName = firstLine
-    .replace(/^\[[^\]]+\]\s*/, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 90) || query
-
-  const doses = sectionItems(context, 'Doses', 6)
-  const contraindications = sectionItems(context, 'Contraindications/Precautions/Warnings', 5)
-  const adverse = sectionItems(context, 'Adverse Effects', 5)
-  const interactions = sectionItems(context, 'Drug Interactions', 4)
-  const indications = sectionItems(context, 'Uses/Indications', 5)
-  const mechanism = sectionItems(context, 'Pharmacology/Actions', 2).join(' ')
-
-  return {
-    encontrado: true,
-    nombre: foundName,
-    nombreCorregido: null,
-    nombreCientifico: foundName,
-    categoria: 'Farmaco veterinario validado contra Plumb\'s',
-    tags: ['Plumb\'s 10th ed.', 'validacion clinica'],
-    descripcion: sentenceFrom(context, 420) || 'Informacion recuperada desde Plumb\'s Veterinary Drug Handbook 10th ed.',
-    historia: null,
-    mecanismo: mechanism || 'No especificado en los fragmentos recuperados.',
-    indicaciones: indications.length ? indications : ['Ver fragmentos recuperados de Plumb\'s para indicaciones especificas.'],
-    contraindicaciones: contraindications,
-    efectosAdversos: adverse,
-    dosis: doses.length
-      ? doses.map(dose => ({
-          especie: 'Ver texto Plumb\'s',
-          dosis,
-          via: 'Ver texto Plumb\'s',
-          frecuencia: 'Ver texto Plumb\'s',
-          duracion: 'Segun indicacion clinica',
-        }))
-      : [],
-    interacciones: interactions.join(' ') || 'No se recuperaron interacciones especificas en los fragmentos locales.',
-    supresion: null,
-    avisoClinico: 'Informacion extractiva validada contra Plumb\'s Veterinary Drug Handbook 10th ed. Confirmar dosis, especie, via y periodo de retiro antes de uso clinico.',
-    validacionClinica: {
-      estado: context.trim() ? 'revisar' : 'insuficiente',
-      fuentePrimaria: 'Plumb\'s Veterinary Drug Handbook 10th ed.',
-      coincidencia: context.toLowerCase().includes(query.toLowerCase()) ? 'exacta' : 'probable',
-      hallazgos: ['Respuesta generada desde fragmentos locales de Plumb\'s para evitar timeout de IA en tiempo real.'],
-      advertenciasCriticas: contraindications.slice(0, 3),
-    },
-    _sources: sources,
-  }
-}
-
 function buildDualEngineSystem(mode: 'drug' | 'disease', vademecumContext: string, clinicalTask: string): string {
   const textTasks = new Set(['dose_validation', 'interactions', 'drug_compare'])
   const base = textTasks.has(clinicalTask)
@@ -445,7 +375,7 @@ function buildDualEngineSystem(mode: 'drug' | 'disease', vademecumContext: strin
 Responde SIEMPRE en español, sin excepción. Las fuentes que consultarás (Vademécum Plumb's, Merck Veterinary Manual) están en inglés. Debes traducir y adaptar toda esa información al español antes de incluirla en el JSON de respuesta. El usuario final solo lee español.`
 
   const context = vademecumContext.trim()
-    ? `\n\n── FUENTE PRIMARIA: Vademécum Plumb's Veterinary Drug Handbook (traducir al español) ──\n${vademecumContext.slice(0, 2600)}\n── FIN DEL CONTEXTO VADEMÉCUM ──`
+    ? `\n\n── FUENTE PRIMARIA: Vademécum Plumb's Veterinary Drug Handbook (traducir al español) ──\n${vademecumContext.slice(0, 1500)}\n── FIN DEL CONTEXTO VADEMÉCUM ──`
     : `\n\nFUENTE PRIMARIA: Plumb's Veterinary Drug Handbook\nNo se recuperaron fragmentos locales suficientes de Plumb's para esta consulta. Debes indicar evidencia insuficiente si la tarea exige validacion clinica directa.\nFIN DEL CONTEXTO VADEMECUM`
 
   const toolGuide = `
@@ -478,7 +408,7 @@ async function handleDualEngine(
   const messages    = (body.messages as Array<unknown> ?? []).slice(-MAX_HISTORY_TURNS)
   const requestedTokens = Number(body.max_tokens ?? 1600)
   const maxTokens = clinicalTask === 'atlas_drug'
-    ? Math.min(requestedTokens, 900)
+    ? Math.min(requestedTokens, 1200)   // JSON atlas necesita ~800-1100 tokens
     : Math.min(requestedTokens, 3000)
 
   const usedSources: string[] = []
@@ -506,17 +436,6 @@ async function handleDualEngine(
     } catch {
       // La tabla aún no existe o la función no fue creada → continuar sin RAG
     }
-  }
-
-  if (clinicalTask === 'atlas_drug' && vademecumContext.trim()) {
-    const atlasJson = buildExtractiveAtlasJson(searchQuery, vademecumContext, usedSources)
-    const text = JSON.stringify(atlasJson)
-    return json(req, {
-      content: [{ type: 'text', text }],
-      _sources: usedSources,
-      _text: text,
-      stop_reason: 'end_turn',
-    })
   }
 
   const systemPrompt = buildDualEngineSystem(searchMode, vademecumContext, clinicalTask)
@@ -555,8 +474,17 @@ async function handleDualEngine(
         'Content-Type':      'application/json',
         'x-api-key':         ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta':    'prompt-caching-2024-07-31',
       },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages, tools: requestTools }),
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: [
+          { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+        ],
+        messages,
+        tools: requestTools,
+      }),
     })
   } catch (e) {
     const isTimeout = e instanceof Error && e.name === 'AbortError'
@@ -616,11 +544,14 @@ async function handleDualEngine(
             'Content-Type':      'application/json',
             'x-api-key':         ANTHROPIC_KEY,
             'anthropic-version': '2023-06-01',
+            'anthropic-beta':    'prompt-caching-2024-07-31',
           },
           body: JSON.stringify({
             model,
             max_tokens: maxTokens,
-            system:     systemPrompt,
+            system: [
+              { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+            ],
             messages:   secondMessages,
             tools,
           }),
