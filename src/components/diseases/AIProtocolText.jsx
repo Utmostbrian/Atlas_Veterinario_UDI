@@ -72,7 +72,18 @@ function looksLikeJsonPayload(raw) {
   if (!text) return false
   if (/^```(?:json)?\s*(?:\[|\{)/i.test(text)) return true
   if (/^(?:\[|\{)/.test(text)) return true
-  return /"(?:status|nombre|diagnostico|signosClinicos|fases|farmacos|medidasSoporte|pronostico)"\s*:/.test(text)
+  if (/"(?:status|nombre|diagnostico|signosClinicos|fases|farmacos|medidasSoporte|pronostico|titulo|objetivo)"\s*:/i.test(text)) return true
+  // any pair of `"key": "value"` or `"key": [`, etc.
+  if (/"[A-Za-zÁÉÍÓÚáéíóúñÑ_][\w-]*"\s*:\s*(?:"|\[|\{|\d|true|false|null)/.test(text)) return true
+  return false
+}
+
+function lineLooksJsonish(line) {
+  const t = line.trim()
+  if (!t) return false
+  if (/^[\{\[\}\]]/.test(t)) return true
+  if (/^"[^"]+"\s*:/.test(t)) return true
+  return false
 }
 
 function valueToText(value) {
@@ -126,7 +137,7 @@ function parseJsonProtocolText(raw) {
     }]
   }
 
-  if (data.status && data.status !== 'ok') return null
+  if (data.status && data.status !== 'ok' && data.status !== 'text') return null
 
   const sections = []
   const diagnostico = valueToText(data.diagnostico || data.etiopatogenia)
@@ -170,24 +181,27 @@ function makeParagraph(lines) {
   return { type: 'paragraph', text: cleanInline(lines.join(' ')) }
 }
 
+function badFormatSections() {
+  return [{
+    title: DEFAULT_TITLE,
+    blocks: [{
+      type: 'notice',
+      text: 'La IA devolvio un formato tecnico incompleto. Vuelve a consultar para regenerar el protocolo en formato clinico legible.',
+    }],
+  }]
+}
+
 function parseProtocolText(raw) {
   const jsonSections = parseJsonProtocolText(raw)
   if (jsonSections) return jsonSections
 
-  if (looksLikeJsonPayload(raw)) {
-    return [{
-      title: DEFAULT_TITLE,
-      blocks: [{
-        type: 'notice',
-        text: 'La IA devolvio un formato tecnico incompleto. Vuelve a consultar para regenerar el protocolo en formato clinico legible.',
-      }],
-    }]
-  }
+  if (looksLikeJsonPayload(raw)) return badFormatSections()
 
   const lines = String(raw || '')
     .replace(/```(?:json|markdown)?/gi, '')
     .replace(/```/g, '')
     .split(/\r?\n/)
+    .filter(line => !lineLooksJsonish(line))
 
   const sections = []
   let current = { title: DEFAULT_TITLE, blocks: [] }
@@ -250,7 +264,18 @@ function parseProtocolText(raw) {
 
   flushSection()
 
-  return sections.filter(section => section.blocks.length)
+  const clean = sections
+    .map(section => ({
+      ...section,
+      blocks: section.blocks.filter(block => {
+        if (block.type !== 'paragraph') return true
+        return !looksLikeJsonPayload(block.text)
+      }),
+    }))
+    .filter(section => section.blocks.length)
+
+  if (!clean.length) return badFormatSections()
+  return clean
 }
 
 function renderBlock(block, index) {

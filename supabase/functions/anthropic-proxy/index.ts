@@ -448,7 +448,9 @@ async function handleDualEngine(
   const requestedTokens = Number(body.max_tokens ?? 1600)
   const maxTokens = clinicalTask === 'atlas_drug'
     ? Math.min(Math.max(requestedTokens, 3000), 3500)   // JSON atlas: Sonnet con contexto Plumb's es prolijo; subir holgura
-    : Math.min(requestedTokens, 3000)
+    : clinicalTask === 'disease_protocol'
+      ? Math.min(Math.max(requestedTokens, 4000), 5000) // JSON protocolo clinico: multiples fases con farmacos detallados
+      : Math.min(requestedTokens, 3000)
 
   const usedSources: string[] = []
 

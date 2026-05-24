@@ -223,9 +223,12 @@ function buildMessages(history, userText, imageData) {
  * @param {{ history: Array<{role:string,content:string}>, userText: string, imageData?: {base64:string,mediaType:string}, onChunk?: (chunk:string, full:string)=>void, signal?: AbortSignal }} params
  * @returns {Promise<string>} Texto completo de la respuesta del asistente
  */
-export async function sendMessage({ history, userText, imageData, onChunk, signal }) {
+export async function sendMessage({ history, userText, imageData, onChunk, signal, maxTokens }) {
   const messages = buildMessages(history, userText, imageData)
-  const body = { max_tokens: MAX_TOKENS, system: SYSTEM_PROMPT, messages, stream: !!onChunk }
+  const tokens = Number.isFinite(maxTokens) && maxTokens > 0
+    ? Math.min(Math.max(maxTokens, 256), 8192)
+    : MAX_TOKENS
+  const body = { max_tokens: tokens, system: SYSTEM_PROMPT, messages, stream: !!onChunk }
   const response = await fetchViaProxy(body, signal)
   if (onChunk) return handleStreaming(response, onChunk)
   const data = await response.json()

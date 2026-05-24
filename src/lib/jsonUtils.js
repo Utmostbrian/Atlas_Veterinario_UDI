@@ -1,3 +1,73 @@
+function tryParseRelaxed(s) {
+  try { return JSON.parse(s) } catch { /* noop */ }
+  try { return JSON.parse(s.replace(/,\s*([}\]])/g, '$1')) } catch { /* noop */ }
+  return null
+}
+
+// Repairs a truncated JSON string by walking its structure, cutting back to the
+// last safe boundary (right after a complete element/value, or before a dangling
+// comma), then closing any open braces/brackets in the correct order. Returns
+// the repaired JSON string, or the original if no safe cut is possible.
+export function repairTruncatedJSON(input) {
+  const s = String(input || '')
+  if (!s) return s
+
+  let inString = false
+  let escape = false
+  const opens = []
+  let safeCut = -1
+
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (escape) { escape = false; continue }
+    if (inString) {
+      if (c === '\\') escape = true
+      else if (c === '"') inString = false
+      continue
+    }
+    if (c === '"') { inString = true; continue }
+    if (c === '{' || c === '[') { opens.push(c); continue }
+    if (c === '}' || c === ']') {
+      opens.pop()
+      // After closing an inner container, this is a safe cut boundary.
+      if (opens.length >= 1) safeCut = i + 1
+      continue
+    }
+    if (c === ',' && opens.length >= 1) {
+      safeCut = i // cut BEFORE the comma — previous element was complete
+      continue
+    }
+  }
+
+  if (!inString && opens.length === 0) return s
+  if (safeCut === -1) return s
+
+  let result = s.slice(0, safeCut)
+
+  // Recompute open stack on the truncated result (string state too).
+  const stack = []
+  let str = false, esc = false
+  for (let i = 0; i < result.length; i++) {
+    const c = result[i]
+    if (esc) { esc = false; continue }
+    if (str) {
+      if (c === '\\') esc = true
+      else if (c === '"') str = false
+      continue
+    }
+    if (c === '"') { str = true; continue }
+    if (c === '{' || c === '[') stack.push(c)
+    else if (c === '}' || c === ']') stack.pop()
+  }
+
+  result = result.replace(/[\s,]+$/, '')
+
+  for (let i = stack.length - 1; i >= 0; i--) {
+    result += stack[i] === '{' ? '}' : ']'
+  }
+  return result
+}
+
 export function safeJSON(raw) {
   if (!raw || typeof raw !== 'string') return null
   let s = raw.trim()
@@ -11,23 +81,37 @@ export function safeJSON(raw) {
   const start = s.indexOf(openChar)
   if (start === -1) return null
   s = s.slice(start)
-  let depth = 0, end = -1
+  let depth = 0, end = -1, inString = false, escape = false
   for (let k = 0; k < s.length; k++) {
-    if (s[k] === openChar) depth++
-    else if (s[k] === closeChar) { depth--; if (depth === 0) { end = k; break } }
+    const ch = s[k]
+    if (escape) { escape = false; continue }
+    if (inString) {
+      if (ch === '\\') escape = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') { inString = true; continue }
+    if (ch === openChar) depth++
+    else if (ch === closeChar) { depth--; if (depth === 0) { end = k; break } }
   }
-  if (end === -1) {
-    const last = s.lastIndexOf(closeChar)
-    if (last === -1) return null
-    s = s.slice(0, last + 1)
-  } else {
-    s = s.slice(0, end + 1)
+
+  if (end !== -1) {
+    const candidate = s.slice(0, end + 1)
+    const parsed = tryParseRelaxed(candidate)
+    if (parsed) return parsed
   }
-  try { return JSON.parse(s) }
-  catch (e) {
-    try { return JSON.parse(s.replace(/,\s*([}\]])/g, '$1')) }
-    catch (e2) { return null }
+
+  // Truncation path: attempt structural repair on the entire tail.
+  const repaired = repairTruncatedJSON(s)
+  const parsed = tryParseRelaxed(repaired)
+  if (parsed) return parsed
+
+  // Last-resort: cut to last close char and try.
+  const last = s.lastIndexOf(closeChar)
+  if (last !== -1) {
+    return tryParseRelaxed(s.slice(0, last + 1))
   }
+  return null
 }
 
 export function parseJSONResponse(raw) {
@@ -84,7 +168,7 @@ export async function askClaudeJSON(fn, prompt, tokens) {
   let d = parseJSONResponse(raw)
   if (d) return { d, raw }
   const followUp = prompt + '\n\nIMPORTANTE: Responde SOLO con JSON válido, EXACTO y sin texto adicional ni bloque de código. Si tu primera respuesta no fue JSON válido, corrígela ahora.'
-  raw = await fn(followUp, Math.min(1000, tokens))
+  raw = await fn(followUp, Math.max(1500, Math.floor((tokens || 1500) * 0.75)))
   d = parseJSONResponse(raw)
   return { d, raw }
 }
