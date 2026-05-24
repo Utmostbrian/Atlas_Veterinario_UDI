@@ -1,4 +1,5 @@
 import { CATEGORY_MAP, DRUGS } from '../data/drugs'
+import { jsonrepair } from 'jsonrepair'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-haiku-4-5-20251001'
@@ -94,7 +95,11 @@ Schema exacto:
 function extractJson(text) {
   const match = String(text || '').match(/\{[\s\S]*\}/)
   if (!match) return null
-  return JSON.parse(match[0])
+  try {
+    return JSON.parse(match[0])
+  } catch {
+    return JSON.parse(jsonrepair(match[0]))
+  }
 }
 
 export async function searchDrugWithAI(name) {
@@ -123,6 +128,7 @@ export async function searchDrugWithAI(name) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1200,
+        temperature: 0,
         system: 'Eres un farmacologo veterinario experto. Respondes exclusivamente JSON valido en espanol.',
         messages: [{ role: 'user', content: buildPrompt(validation.value, localContext) }],
       }),
@@ -143,7 +149,12 @@ export async function searchDrugWithAI(name) {
   }
 
   const text = data?.content?.find?.(b => b.type === 'text')?.text || ''
-  const parsed = extractJson(text)
+  let parsed
+  try {
+    parsed = extractJson(text)
+  } catch {
+    throw new Error('La IA devolvio datos clinicos incompletos. Reintenta la busqueda.')
+  }
   if (!parsed) throw new Error('La IA no devolvio JSON valido.')
   return parsed
 }
