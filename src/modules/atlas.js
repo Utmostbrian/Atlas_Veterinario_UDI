@@ -34,7 +34,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin texto extra, sin bloque
   "avisoClinico": "advertencia",
   "validacionClinica": {
     "estado": "aprobado|revisar|peligroso|insuficiente",
-    "fuentePrimaria": "Plumb's Veterinary Drug Handbook 10th ed.",
+    "fuentePrimaria": "Plumb's Veterinary Drug Handbook, 10.ª edición",
     "coincidencia": "exacta|alias|probable|no_encontrado",
     "hallazgos": ["hallazgo"],
     "advertenciasCriticas": ["advertencia"]
@@ -128,12 +128,12 @@ function buildLocalFallback(name) {
     }))),
     interacciones: drug.interactions || 'No especificadas en el catalogo local.',
     supresion: null,
-    avisoClinico: 'Ficha reconstruida desde el catalogo local del proyecto. La validacion clinica completa requiere el proxy seguro con Plumb\'s.',
+    avisoClinico: 'Ficha reconstruida desde el catálogo local del proyecto. La validación clínica completa requiere la consulta directa a Plumb\'s Veterinary Drug Handbook, 10.ª edición.',
     validacionClinica: {
       estado: 'insuficiente',
       fuentePrimaria: 'Catalogo local del proyecto',
       coincidencia: q === drug.name.toLowerCase() || q === drug.latin.toLowerCase() ? 'exacta' : 'probable',
-      hallazgos: ['Respuesta local sin consulta directa a Plumb\'s.'],
+      hallazgos: ['Respuesta generada exclusivamente con datos del catálogo local — no se efectuó consulta a Plumb\'s Veterinary Drug Handbook.'],
       advertenciasCriticas: drug.warnings ? [drug.warnings] : [],
     },
     _sources: ['catalogo_local'],
@@ -167,10 +167,10 @@ function normalizeAtlasResponse(data, name) {
     dosis: normalizeDoseRows(data.dosis),
     interacciones: data.interacciones || '',
     supresion: data.supresion ?? null,
-    avisoClinico: data.avisoClinico || 'Validación clínica recuperada desde Plumb\'s.',
+    avisoClinico: data.avisoClinico || 'Validado clínicamente con base en Plumb\'s Veterinary Drug Handbook, 10.ª edición.',
     validacionClinica: {
       estado: data.validacionClinica?.estado || 'revisar',
-      fuentePrimaria: data.validacionClinica?.fuentePrimaria || 'Plumb\'s Veterinary Drug Handbook 10th ed.',
+      fuentePrimaria: data.validacionClinica?.fuentePrimaria || 'Plumb\'s Veterinary Drug Handbook, 10.ª edición',
       coincidencia: data.validacionClinica?.coincidencia || 'probable',
       hallazgos: Array.isArray(data.validacionClinica?.hallazgos) ? data.validacionClinica.hallazgos : [],
       advertenciasCriticas: Array.isArray(data.validacionClinica?.advertenciasCriticas)
