@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { CloseIcon, AlertCircleIcon, SparklesIcon } from '../../Icons/Icons'
+import AIProtocolText from './AIProtocolText'
 
 export default function AIDiseaseResult({ query, aiData, loading, error, onClose }) {
   const panelRef = useRef(null)
@@ -109,6 +110,15 @@ export default function AIDiseaseResult({ query, aiData, loading, error, onClose
             </div>
           </>
 
+        ) : aiData?.status === 'text' ? (
+          <>
+            <AIProtocolText text={aiData.protocoloTexto || aiData.rawText} />
+            <div className="wbox">
+              <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
+              <span>Protocolo generado por IA. Confirmar dosis y decisiones clínicas con un veterinario profesional.</span>
+            </div>
+          </>
+
         ) : aiData?.status === 'not-found' ? (
           <div className="abox rr">
             <p style={{ fontSize: '.86rem' }}>
@@ -117,9 +127,12 @@ export default function AIDiseaseResult({ query, aiData, loading, error, onClose
           </div>
 
         ) : aiData?.status === 'bad-format' ? (
-          <div className="abox o">
-            <p style={{ fontSize: '.86rem' }}>La IA no pudo estructurar el protocolo. Intenta de nuevo o reformula el término.</p>
-          </div>
+          <>
+            <div className="abox o">
+              <p style={{ fontSize: '.86rem' }}>La IA no devolvió un protocolo suficientemente claro. Intenta de nuevo o agrega especie.</p>
+            </div>
+            {aiData.rawText && <AIProtocolText text={aiData.rawText} />}
+          </>
 
         ) : (
           <div className="abox rr">

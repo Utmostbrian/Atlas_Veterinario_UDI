@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { DISEASES } from '../../data/diseases'
 import { SearchIcon, ActivityIcon, SparklesIcon, CloseIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
-import { searchDiseaseWithAI, buildLocalFallback } from '../../modules/diseases'
+import { searchDiseaseWithAI } from '../../modules/diseases'
 import { useAuth } from '../../context/AuthContext'
 import AIDiseaseResult from './AIDiseaseResult'
+import AIProtocolText from './AIProtocolText'
 import {
   validateAISearchInput, consumeClientRateLimit,
   getCachedAIResult, setCachedAIResult, findCatalogSuggestion,
@@ -87,7 +88,7 @@ export default function DiseaseProtocols({ onLoginRequired }) {
     try {
       const result = await searchDiseaseWithAI(term)
       setAiData(result)
-      if (result?.status === 'ok') {
+      if (result?.status === 'ok' || result?.status === 'text') {
         setCachedAIResult('disease', term, result)
         logAiConsultation(term, `Búsqueda IA enfermedad: ${result.nombre || term}`)
       }
@@ -144,7 +145,12 @@ export default function DiseaseProtocols({ onLoginRequired }) {
       {filtered.length > 0 ? (
         <div className="egrid">
           {filtered.map(d => (
-            <DiseaseCard key={d.id} disease={d} />
+            <DiseaseCard
+              key={d.id}
+              disease={d}
+              isLoggedIn={!!user}
+              onLoginRequired={onLoginRequired}
+            />
           ))}
         </div>
       ) : (
@@ -241,7 +247,7 @@ export default function DiseaseProtocols({ onLoginRequired }) {
   )
 }
 
-function DiseaseCard({ disease }) {
+function DiseaseCard({ disease, isLoggedIn, onLoginRequired }) {
   const [expanded,  setExpanded]  = useState(false)
   const [aiData,    setAiData]    = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -253,12 +259,21 @@ function DiseaseCard({ disease }) {
       setAiData(null)
       return
     }
+    if (!isLoggedIn) {
+      if (onLoginRequired) onLoginRequired()
+      return
+    }
     setExpanded(true)
     setAiLoading(true)
     setAiData(null)
-    const result = await searchDiseaseWithAI(disease.name)
-    setAiData(result)
-    setAiLoading(false)
+    try {
+      const result = await searchDiseaseWithAI(disease.name)
+      setAiData(result)
+    } catch (e) {
+      setAiData({ status: 'error', mensaje: e.message || 'Error al consultar el protocolo.' })
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -292,7 +307,7 @@ function DiseaseCard({ disease }) {
             <div className="ailat">{disease.species}</div>
             <div className="aitags">
               <span className="aitag">{disease.severity}</span>
-              {aiData?.status === 'ok' && <span className="aitag ia" style={{ display:'inline-flex', alignItems:'center', gap:3 }}><SparklesIcon size={10} /> IA</span>}
+              {(aiData?.status === 'ok' || aiData?.status === 'text') && <span className="aitag ia" style={{ display:'inline-flex', alignItems:'center', gap:3 }}><SparklesIcon size={10} /> IA</span>}
             </div>
           </div>
 
@@ -384,6 +399,26 @@ function DiseaseCard({ disease }) {
                 </div>
               </>
 
+            ) : aiData?.status === 'text' ? (
+              <>
+                <AIProtocolText text={aiData.protocoloTexto || aiData.rawText} />
+                {aiData?._sources?.length > 0 && (
+                  <div style={{ fontSize: '.78rem', color: 'var(--muted,#6b7280)', borderTop: '1px solid var(--border,#e5e7eb)', paddingTop: 10, marginTop: 4 }}>
+                    <strong style={{ display: 'block', marginBottom: 4 }}>Fuentes consultadas:</strong>
+                    {aiData._sources.includes('vademecum') && (
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}><BookOpenIcon size={13} /> Plumb&apos;s Veterinary Drug Handbook, 10.ª ed.</div>
+                    )}
+                    {aiData._sources.includes('merck') && (
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}><GlobeIcon size={13} /> Merck Veterinary Manual (merckvetmanual.com)</div>
+                    )}
+                  </div>
+                )}
+                <div className="wbox">
+                  <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
+                  <span>Este protocolo fue generado por IA. Confirmar dosis y decisiones clínicas con un veterinario profesional.</span>
+                </div>
+              </>
+
             ) : aiData?.status === 'not-found' ? (
               <>
                 <div className="abox rr" style={{ marginBottom: 12 }}>
@@ -400,9 +435,9 @@ function DiseaseCard({ disease }) {
             ) : aiData?.status === 'bad-format' ? (
               <>
                 <div className="abox o" style={{ marginBottom: 14 }}>
-                  <p style={{ fontSize: '.84rem' }}>No se pudo estructurar el protocolo de IA. Mostrando datos del catálogo local.</p>
+                  <p style={{ fontSize: '.84rem' }}>La IA no devolvió un protocolo suficientemente claro. Intenta reformular la enfermedad o agregar especie.</p>
                 </div>
-                <LocalFallback disease={disease} />
+                {aiData.rawText && <AIProtocolText text={aiData.rawText} />}
               </>
 
             ) : aiData?.status === 'error' ? (
@@ -412,48 +447,12 @@ function DiseaseCard({ disease }) {
                     {aiData.mensaje || 'Error al conectar con la IA.'}
                   </p>
                 </div>
-                <LocalFallback disease={disease} />
               </>
 
             ) : null}
           </div>
         </div>
       )}
-    </>
-  )
-}
-
-function LocalFallback({ disease }) {
-  const fallback = buildLocalFallback(disease.name)
-  return (
-    <>
-      <p style={{ marginBottom: 12, fontSize: '.86rem', color: 'var(--soft)' }}>{disease.species}</p>
-      <p style={{ marginBottom: 16, fontSize: '.88rem' }}>{disease.description}</p>
-
-      {fallback.protocol && (
-        <div style={{ marginBottom: 14 }}>
-          <div className="crtitle">Protocolo terapéutico</div>
-          <div className="abox b" style={{ marginTop: 6 }}>
-            <p style={{ fontSize: '.85rem' }}>{fallback.protocol}</p>
-          </div>
-        </div>
-      )}
-
-      {fallback.drugs?.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div className="crtitle">Fármacos recomendados</div>
-          <div className="dtags" style={{ marginTop: 6 }}>
-            {fallback.drugs.map(drug => (
-              <span key={drug} className="tg tc2">{drug}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="wbox">
-        <AlertCircleIcon size={16} style={{ flexShrink: 0 }} />
-        <span>Este protocolo es orientativo. El diagnóstico definitivo debe realizarlo un veterinario profesional.</span>
-      </div>
     </>
   )
 }
