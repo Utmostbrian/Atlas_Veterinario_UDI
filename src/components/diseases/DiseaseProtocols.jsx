@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { DISEASES } from '../../data/diseases'
 import { SearchIcon, ActivityIcon, SparklesIcon, CloseIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
-import { searchDiseaseWithAI } from '../../modules/diseases'
+import { searchDiseaseWithAI, looksLikeJsonPayload } from '../../modules/diseases'
 import { useAuth } from '../../context/AuthContext'
 import AIDiseaseResult from './AIDiseaseResult'
 import AIProtocolText from './AIProtocolText'
@@ -16,6 +16,11 @@ import { logAiConsultation } from '../../services/auditService'
 const SEVERITY_COLOR  = { 'Muy Alta': '#CC0000', Alta: '#d97706', Media: '#003087' }
 const CATALOG_NAMES   = DISEASES.map(d => d.name)
 const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DISEASE_NAMES])]
+
+function isReadableDiseaseAIResult(result) {
+  if (result?.status !== 'text') return true
+  return !looksLikeJsonPayload(result.protocoloTexto || result.rawText)
+}
 
 export default function DiseaseProtocols({ onLoginRequired }) {
   const { user } = useAuth()
@@ -69,7 +74,7 @@ export default function DiseaseProtocols({ onLoginRequired }) {
     }
 
     const cached = getCachedAIResult('disease', term)
-    if (cached) {
+    if (cached && isReadableDiseaseAIResult(cached)) {
       setAiTerm(term)
       setAiData(cached)
       return
@@ -89,7 +94,7 @@ export default function DiseaseProtocols({ onLoginRequired }) {
       const result = await searchDiseaseWithAI(term)
       setAiData(result)
       if (result?.status === 'ok' || result?.status === 'text') {
-        setCachedAIResult('disease', term, result)
+        if (isReadableDiseaseAIResult(result)) setCachedAIResult('disease', term, result)
         logAiConsultation(term, `Búsqueda IA enfermedad: ${result.nombre || term}`)
       }
     } catch (e) {

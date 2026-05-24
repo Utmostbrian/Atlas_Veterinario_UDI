@@ -60,6 +60,14 @@ REGLAS:
 7. Si una dosis depende de especie, edad, peso o gravedad, dilo explicitamente y recomienda confirmacion profesional.`
 }
 
+export function looksLikeJsonPayload(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return false
+  if (/^```(?:json)?\s*(?:\[|\{)/i.test(text)) return true
+  if (/^(?:\[|\{)/.test(text)) return true
+  return /"(?:status|nombre|diagnostico|signosClinicos|fases|farmacos|medidasSoporte|pronostico)"\s*:/.test(text)
+}
+
 function aiTextProtocol(name, rawText, sources = []) {
   const text = String(rawText || '').trim()
   if (text.length < 20) {
@@ -72,6 +80,18 @@ function aiTextProtocol(name, rawText, sources = []) {
     protocoloTexto: text,
     _sources: sources.length ? sources : ['ia_directa'],
   }
+}
+
+async function aiNarrativeProtocol(name) {
+  const narrative = await sendMessage({ history: [], userText: buildDiseaseNarrativePrompt(name) })
+  return aiTextProtocol(name, narrative, ['ia_directa'])
+}
+
+async function aiTextOrNarrativeProtocol(name, rawText, sources = []) {
+  if (rawText && !looksLikeJsonPayload(rawText)) {
+    return aiTextProtocol(name, rawText, sources)
+  }
+  return aiNarrativeProtocol(name)
 }
 
 export async function searchDiseaseWithAI(name) {
@@ -88,7 +108,7 @@ export async function searchDiseaseWithAI(name) {
       mode: 'disease',
       clinicalTask: 'disease_protocol',
       messages,
-      maxTokens: 2000,
+      maxTokens: 3000,
     })
 
     if (dualResult) {
@@ -98,12 +118,14 @@ export async function searchDiseaseWithAI(name) {
       if (parsed) {
         const norm = normalizeDiseaseResponse(normalizeEnfResponse(parsed))
         if (norm.status === 'bad-format' && norm.rawText) {
-          return aiTextProtocol(term, norm.rawText, dualResult._sources ?? [])
+          return aiTextOrNarrativeProtocol(term, norm.rawText, dualResult._sources ?? [])
         }
         return { ...norm, _sources: dualResult._sources ?? [] }
       }
 
-      return aiTextProtocol(term, rawText, dualResult._sources ?? [])
+      if (rawText && !looksLikeJsonPayload(rawText)) {
+        return aiTextProtocol(term, rawText, dualResult._sources ?? [])
+      }
     }
   } catch (e) {
     console.warn('[diseases] Dual engine failed, falling back:', e.message)
@@ -112,17 +134,17 @@ export async function searchDiseaseWithAI(name) {
   // Fallback IA: primero intenta JSON simple; si no sale, muestra informe narrativo IA.
   try {
     const claudeFn = (p, _t) => sendMessage({ history: [], userText: p })
-    const { d: parsed, raw } = await askClaudeJSON(claudeFn, buildDiseasePrompt(term), 2000)
+    const { d: parsed, raw } = await askClaudeJSON(claudeFn, buildDiseasePrompt(term), 3000)
 
     if (parsed) {
       const norm = normalizeDiseaseResponse(normalizeEnfResponse(parsed))
       if (norm.status === 'bad-format' && norm.rawText) {
-        return aiTextProtocol(term, norm.rawText, ['ia_directa'])
+        return aiTextOrNarrativeProtocol(term, norm.rawText, ['ia_directa'])
       }
       return { ...norm, _sources: ['ia_directa'] }
     }
 
-    const narrative = raw && raw.trim().length > 80
+    const narrative = raw && raw.trim().length > 80 && !looksLikeJsonPayload(raw)
       ? raw
       : await sendMessage({ history: [], userText: buildDiseaseNarrativePrompt(term) })
 
