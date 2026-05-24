@@ -52,7 +52,7 @@ export async function searchDiseaseWithAI(name) {
       mode: 'disease',
       clinicalTask: 'disease_protocol',
       messages,
-      maxTokens: 4000,
+      maxTokens: 2000,
     })
 
     if (dualResult) {

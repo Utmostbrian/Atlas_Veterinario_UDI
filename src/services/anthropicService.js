@@ -13,7 +13,7 @@ import { cleanEnv } from '../lib/envUtils'
 
 const FAST_MODEL = 'claude-haiku-4-5-20251001'
 const MODELS = ['claude-sonnet-4-6', FAST_MODEL, 'claude-opus-4-7']
-const MAX_TOKENS = 4000
+const MAX_TOKENS = 1500
 const ALLOW_DIRECT_BROWSER_ACCESS = import.meta.env.DEV
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.
@@ -50,13 +50,33 @@ function getProxyUrl() {
   return null
 }
 
+// ── Timeout wrapper para fetch ──────────────────────────────────────────────
+const FETCH_TIMEOUT = 90000
+
+function withTimeout(signal) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT)
+  const combined = signal
+    ? combineSignals(signal, ctrl.signal)
+    : ctrl.signal
+  return { signal: combined, cleanup: () => clearTimeout(timer) }
+}
+
+function combineSignals(...signals) {
+  const ctrl = new AbortController()
+  for (const s of signals) {
+    if (s.aborted) { ctrl.abort(); break }
+    s.addEventListener('abort', () => ctrl.abort(), { once: true })
+  }
+  return ctrl.signal
+}
+
 // ── Llamada al proxy con fallback a modelos múltiples ────────────────────────
 async function fetchViaProxy(body, signal) {
   const proxyUrl = getProxyUrl()
   const token = await getSessionToken()
 
   if (!proxyUrl || !token) {
-    // Modo desarrollo solamente: llamada directa (solo si hay VITE_ANTHROPIC_API_KEY)
     if (!ALLOW_DIRECT_BROWSER_ACCESS) {
       throw new Error('Se requiere sesion activa y proxy seguro para usar la IA en produccion.')
     }
@@ -67,38 +87,46 @@ async function fetchViaProxy(body, signal) {
   for (const model of MODELS) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
 
-    const response = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ ...body, model }),
-      signal,
-    })
+    const { signal: fetchSignal, cleanup } = withTimeout(signal)
+    try {
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ...body, model }),
+        signal: fetchSignal,
+      })
+      cleanup()
 
-    // 401 es global (sesión muerta), no tiene sentido probar otro modelo
-    if (response.status === 401) {
-      throw new Error('Sesión expirada. Inicia sesión de nuevo.')
+      if (response.status === 401) {
+        throw new Error('Sesión expirada. Inicia sesión de nuevo.')
+      }
+      if (response.status === 429 || response.status === 529 || response.status === 503) {
+        lastError = new Error(
+          response.status === 429
+            ? `Modelo ${model} con límite alcanzado`
+            : `Modelo ${model} no disponible (${response.status})`
+        )
+        continue
+      }
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        const message = typeof err?.error === 'string'
+          ? err.error
+          : err?.error?.message || err?.message || `Error HTTP ${response.status}`
+        throw new Error(message)
+      }
+      return response
+    } catch (e) {
+      cleanup()
+      if (e.name === 'AbortError') {
+        lastError = new Error(`Modelo ${model} excedió el tiempo de espera (${FETCH_TIMEOUT / 1000}s).`)
+        continue
+      }
+      throw e
     }
-    // N3: 429 / 529 / 503 son condiciones recuperables — probamos siguiente modelo.
-    // Solo si TODOS fallan se propaga el lastError al usuario.
-    if (response.status === 429 || response.status === 529 || response.status === 503) {
-      lastError = new Error(
-        response.status === 429
-          ? `Modelo ${model} con límite alcanzado`
-          : `Modelo ${model} no disponible (${response.status})`
-      )
-      continue
-    }
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      const message = typeof err?.error === 'string'
-        ? err.error
-        : err?.error?.message || err?.message || `Error HTTP ${response.status}`
-      throw new Error(message)
-    }
-    return response
   }
   throw lastError ?? new Error('Todos los modelos no están disponibles. Intenta de nuevo.')
 }
@@ -369,34 +397,45 @@ export async function searchDualEngine({ query, queries = [], mode = 'drug', cli
   const token    = await getSessionToken()
   if (!proxyUrl || !token) return null
 
-  const response = await fetch(proxyUrl, {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      dual_engine:  true,
-      search_query: query,
-      search_queries: queries,
-      search_mode:  mode,
-      clinical_task: clinicalTask,
-      messages,
-      max_tokens:   maxTokens,
-      model,
-    }),
-  })
+  const { signal, cleanup } = withTimeout()
+  try {
+    const response = await fetch(proxyUrl, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        dual_engine:  true,
+        search_query: query,
+        search_queries: queries,
+        search_mode:  mode,
+        clinical_task: clinicalTask,
+        messages,
+        max_tokens:   maxTokens,
+        model,
+      }),
+      signal,
+    })
+    cleanup()
 
-  if (response.status === 401) throw new Error('Sesión expirada. Inicia sesión de nuevo.')
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    const message = typeof err?.error === 'string'
-      ? err.error
-      : err?.error?.message || err?.message || `Error HTTP ${response.status}`
-    throw new Error(message)
+    if (response.status === 401) throw new Error('Sesión expirada. Inicia sesión de nuevo.')
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      const message = typeof err?.error === 'string'
+        ? err.error
+        : err?.error?.message || err?.message || `Error HTTP ${response.status}`
+      throw new Error(message)
+    }
+
+    return response.json()
+  } catch (e) {
+    cleanup()
+    if (e.name === 'AbortError') {
+      throw new Error(`La consulta excedió el tiempo de espera (${FETCH_TIMEOUT / 1000}s). Intenta de nuevo.`)
+    }
+    throw e
   }
-
-  return response.json()
 }
 
 export async function refineVoiceTranscript(rawText) {
