@@ -14,6 +14,7 @@ import { cleanEnv } from '../lib/envUtils'
 const FAST_MODEL = 'claude-haiku-4-5-20251001'
 const MODELS = ['claude-sonnet-4-6', FAST_MODEL, 'claude-opus-4-7']
 const MAX_TOKENS = 1500
+const ALLOW_DIRECT_BROWSER_ACCESS = import.meta.env.DEV
 
 const SYSTEM_PROMPT = `Eres el Asistente de IA del Atlas Farmacológico Veterinario de la Facultad de Veterinaria – UDI.
 Tu rol es el de un copiloto clínico veterinario experto. Respondes con precisión científica, siempre en español.
@@ -55,7 +56,10 @@ async function fetchViaProxy(body, signal) {
   const token = await getSessionToken()
 
   if (!proxyUrl || !token) {
-    // Modo desarrollo: llamada directa (solo si hay VITE_ANTHROPIC_API_KEY)
+    // Modo desarrollo solamente: llamada directa (solo si hay VITE_ANTHROPIC_API_KEY)
+    if (!ALLOW_DIRECT_BROWSER_ACCESS) {
+      throw new Error('Se requiere sesion activa y proxy seguro para usar la IA en produccion.')
+    }
     return fetchDirect(body, signal)
   }
 
