@@ -50,3 +50,12 @@ verify_jwt = true
 
 [functions.student-login]
 verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.ingest-vademecum]
+verify_jwt = false

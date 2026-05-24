@@ -137,6 +137,7 @@ npm run dev          # http://localhost:3000
 | `ALLOWED_ORIGIN` | Allowlist CORS, separado por coma. Sin esto solo permite localhost. |
 | `STUDENT_CLASS_CODE` | Código de clase para login estudiantes |
 | `STUDENT_ACCOUNT_PASSWORD` | Password de la cuenta compartida `estudiante@udi.edu.bo` |
+| `INGEST_SECRET` | Secreto para proteger la función `ingest-vademecum` usada por los scripts de ingesta |
 
 ## Deploy
 
@@ -157,11 +158,36 @@ supabase functions deploy admin-delete-user
 supabase functions deploy ingest-vademecum
 ```
 
+### GitHub Actions para Supabase
+El repositorio incluye `.github/workflows/deploy-supabase.yml` para desplegar el backend al hacer push a `main` cuando cambie `supabase/**`, o manualmente desde **Actions -> Deploy Supabase -> Run workflow**.
+
+Configura estos secrets en **GitHub -> Settings -> Secrets and variables -> Actions**:
+
+| Secret | Valor |
+|--------|-------|
+| `SUPABASE_ACCESS_TOKEN` | Personal Access Token de Supabase |
+| `SUPABASE_PROJECT_REF` | Ref del proyecto, por ejemplo `abcdefghijklmnopqrst` |
+| `SUPABASE_DB_URL` | Connection string **Session Pooler**, no la URL directa `db.<ref>.supabase.co` |
+
+`SUPABASE_DB_URL` debe salir de **Supabase Dashboard -> Project -> Connect -> Session Pooler** y tiene forma:
+
+```text
+postgresql://postgres.<project-ref>:<password-url-encoded>@<region>.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+No uses la cadena directa:
+
+```text
+postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+```
+
+GitHub/Vercel pueden fallar con esa URL directa porque resuelve a IPv6 (`2600:...`) y termina en errores como `connect: connection refused`. El workflow valida esto antes de intentar aplicar migraciones.
+
 ### Acciones manuales en Supabase Dashboard
 1. **Authentication → Sign In/Up → desactivar "Allow new users to sign up"** (evita escalación)
 2. **Crear admin manual:** `UPDATE public.profiles SET role='admin' WHERE id='<uuid>'`
 3. **Crear docente manual:** `UPDATE public.profiles SET role='docente' WHERE id='<uuid>'`
-4. **Settings → Edge Functions → Secrets:** setear los 4 secrets listados arriba
+4. **Settings → Edge Functions → Secrets:** setear los secrets listados arriba
 5. **Database → Extensions:** habilitar `pgvector`, `pg_trgm`, `pg_cron`
 
 ### Acciones manuales en GitHub
