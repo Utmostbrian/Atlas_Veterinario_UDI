@@ -320,17 +320,37 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.securityListMeta {
+  font-size: .72rem;
+  color: var(--gray);
+  margin-top: 2px;
 }
 .securityList li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   font-size: .78rem;
   padding: 6px 8px;
   background: var(--gl);
   border-radius: 6px;
+  min-width: 0;
 }
-.securityList strong { color: var(--text); font-weight: 600; }
-.securityList span   { color: var(--gray); }
+.securityList strong {
+  color: var(--text);
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.securityList span {
+  color: var(--gray);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 
 /* ─── Error banner ──────────────────────────────────────────────────── */
 .errorBanner {
@@ -371,4 +391,10 @@
   .kpiValue  { font-size: 1.25rem; }
   .heatmap   { grid-template-columns: repeat(12, 1fr); }
   .heatmap   .heatmapCell:nth-child(odd) .heatmapLabel { visibility: hidden; }
+  .securityList li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .securityList span { white-space: normal; }
 }

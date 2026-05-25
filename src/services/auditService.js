@@ -1,178 +1,153 @@
 /**
- * Servicio de Auditoría — Atlas Farmacológico Veterinario
+ * Servicio de auditoria - Atlas Farmacologico Veterinario.
  *
- * Arquitectura dual (DoD Punto 3):
- * 1. Supabase (PostgreSQL) — fuente de verdad en el servidor, inmutable por el cliente
- * 2. localStorage           — caché offline; se usa si Supabase no está disponible
- *
- * Idempotencia: cada evento lleva un event_id único para evitar duplicados
- * en reintentos (equivalente al patrón del sp_InsertAuditLog del DoD).
- *
- * A-04: cada log lleva actor_name (el estudiante real detrás de la cuenta compartida)
- * para que la auditoría sea trazable a una persona aunque el user_id sea el mismo.
+ * Fuente unica de verdad: Supabase. Los flujos administrativos no leen ni
+ * reconstruyen datos desde localStorage porque los KPIs y logs deben ser
+ * globales, verificables y exactos.
  */
 
-import { supabase } from '../lib/supabase'
 import { uid } from '../lib/uid'
+import { supabase } from '../lib/supabase'
 
-const STORAGE_KEY = 'vet_atlas_audit_log'
+export const DASHBOARD_TIMEZONE = 'America/La_Paz'
 
 export const EVENT_TYPES = {
-  DRUG_SEARCH:      'DRUG_SEARCH',
-  DOSE_CALCULATED:  'DOSE_CALCULATED',
-  DOSE_VALIDATED:   'DOSE_VALIDATED',
-  AI_CONSULTATION:  'AI_CONSULTATION',
-  PRESCRIPTION_GEN: 'PRESCRIPTION_GEN',
-  INTERACTION_CHECK:'INTERACTION_CHECK',
+  DRUG_SEARCH:                'DRUG_SEARCH',
+  DRUG_CARD_OPEN:             'DRUG_CARD_OPEN',
+  DOSE_CALCULATED:            'DOSE_CALCULATED',
+  DOSE_VALIDATED:             'DOSE_VALIDATED',
+  AI_CONSULTATION:            'AI_CONSULTATION',
+  PRESCRIPTION_GEN:           'PRESCRIPTION_GEN',
+  INTERACTION_CHECK:          'INTERACTION_CHECK',
+  PRESCRIPTION_DOSE_OVERRIDE: 'PRESCRIPTION_DOSE_OVERRIDE',
 }
 
-// ── localStorage helpers (caché offline) ────────────────────────────────────
-function readLocalLog() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
-}
-function writeLocalLog(entries) {
-  // M-04: localStorage puede lanzar QuotaExceededError en Safari privado o
-  // cuando el bucket está lleno. La auditoría nunca debe romper la app.
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 500)))
-  } catch (err) {
-    console.warn('[audit] localStorage write failed (quota?):', err?.message ?? err)
-    // Intento mitigado: dejar solo los 100 más recientes
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 100))) } catch { /* dar por perdido */ }
-  }
-}
-
-// ── Normalizar filas de Supabase al formato del componente ──────────────────
 function fromDb(row) {
   return {
     id:             row.id,
     timestamp:      row.created_at,
     eventType:      row.event_type,
-    drugName:       row.drug_name  ?? null,
-    species:        row.species    ?? null,
-    weight:         row.weight_kg  ?? null,
+    drugName:       row.drug_name ?? null,
+    species:        row.species ?? null,
+    weight:         row.weight_kg ?? null,
     doseCalculated: row.dose_calculated ?? null,
-    volMl:          row.vol_ml    ?? null,
-    route:          row.route     ?? null,
+    volMl:          row.vol_ml ?? null,
+    route:          row.route ?? null,
     query:          row.query_text ?? null,
-    summary:        row.summary   ?? null,
+    summary:        row.summary ?? null,
     actorName:      row.actor_name ?? null,
   }
 }
 
-// ── Helper: nombre del actor (estudiante con cuenta compartida) ─────────────
-function getActorName() {
-  try { return localStorage.getItem('vet_student_name') || null } catch { return null }
+function normalizeSummary(summary) {
+  return summary == null ? null : String(summary).slice(0, 200)
 }
 
-// ── Core: registrar evento ───────────────────────────────────────────────────
-export async function logEvent(eventType, payload) {
+function normalizeDose(payload) {
+  const value = payload.doseCalculated ?? payload.totalMg ?? payload.totalDose ?? null
+  return value == null ? null : String(value)
+}
+
+function normalizeMetadata(payload) {
+  const metadata = payload.metadata && typeof payload.metadata === 'object'
+    ? { ...payload.metadata }
+    : {}
+
+  if (payload.aiVerdict) metadata.aiVerdict = payload.aiVerdict
+  if (payload.source) metadata.source = payload.source
+  return metadata
+}
+
+// Actor legacy eliminado: la trazabilidad administrativa debe venir de DB/Auth.
+function getActorName() {
+  return null
+}
+
+export async function logEvent(eventType, payload = {}) {
   const eventId = `${Date.now()}-${uid().slice(0, 8)}`
 
-  // 1. Guardar en localStorage inmediatamente (experiencia sin latencia)
-  const localEntry = {
-    id:        eventId,
-    timestamp: new Date().toISOString(),
-    eventType,
-    ...payload,
-  }
-  const log = readLocalLog()
-  log.unshift(localEntry)
-  writeLocalLog(log)
-
-  // 2. Persistir en Supabase de forma asíncrona (patrón post-response, DoD 3.2)
-  //    No await: nunca bloquea al usuario (equivalente a setImmediate del DoD)
-  persistToSupabase(eventId, eventType, payload).catch((err) => {
+  try {
+    const id = await persistToSupabase(eventId, eventType, payload)
+    return {
+      id: id ?? eventId,
+      timestamp: new Date().toISOString(),
+      eventType,
+      persisted: Boolean(id),
+      ...payload,
+    }
+  } catch (err) {
     console.error('[audit] persistToSupabase failed:', err?.message ?? err)
-  })
-
-  return localEntry
+    return {
+      id: eventId,
+      timestamp: new Date().toISOString(),
+      eventType,
+      persisted: false,
+      error: err?.message ?? 'audit_persist_failed',
+      ...payload,
+    }
+  }
 }
 
-async function persistToSupabase(eventId, eventType, payload) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+async function persistToSupabase(eventId, eventType, payload = {}) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) throw userError
+  if (!user) return null
 
-  await supabase.rpc('sp_insert_audit_log', {
+  const { data, error } = await supabase.rpc('sp_insert_audit_log', {
     p_event_id:        eventId,
     p_user_id:         user.id,
     p_event_type:      eventType,
-    p_drug_name:       payload.drugName  ?? payload.drug ?? null,
-    p_species:         payload.species   ?? null,
-    p_weight_kg:       payload.weight    ?? null,
-    p_dose_calculated: payload.doseCalculated ?? payload.totalMg ?? null,
-    p_vol_ml:          payload.volMl     ?? null,
-    p_query_text:      payload.query     ?? null,
-    p_summary:         payload.summary?.slice(0, 200) ?? null,
-    p_metadata:        {},
+    p_drug_name:       payload.drugName ?? payload.drug ?? null,
+    p_species:         payload.species ?? null,
+    p_weight_kg:       payload.weight ?? null,
+    p_dose_calculated: normalizeDose(payload),
+    p_vol_ml:          payload.volMl ?? null,
+    p_query_text:      payload.query ?? null,
+    p_summary:         normalizeSummary(payload.summary),
+    p_metadata:        normalizeMetadata(payload),
     p_actor_name:      getActorName(),
   })
+
+  if (error) throw error
+  return data
 }
 
-// ── Consultar historial ──────────────────────────────────────────────────────
-// A-01: el SP valida el rol server-side; ya no enviamos p_admin_view bool desde el cliente.
 export async function getHistory({ limit = 50, offset = 0, eventType, search } = {}) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No hay sesión activa')
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) throw userError
+  if (!user) throw new Error('No hay sesion activa.')
 
-    const { data, error } = await supabase.rpc('sp_get_audit_history', {
-      p_user_id:    user.id,
-      p_limit:      limit,
-      p_offset:     offset,
-      p_event_type: eventType ?? null,
-      p_search:     search ? String(search).slice(0, 100) : null,
-    })
+  const { data, error } = await supabase.rpc('sp_get_audit_history_page', {
+    p_limit:      limit,
+    p_offset:     offset,
+    p_event_type: eventType ?? null,
+    p_search:     search ? String(search).slice(0, 100) : null,
+  })
 
-    if (error) throw error
+  if (error) throw error
 
-    const total = data?.[0]?.total_count ?? 0
-    return { total, items: (data ?? []).map(fromDb) }
-  } catch (err) {
-    console.warn('[audit] getHistory Supabase failed, using localStorage:', err?.message ?? err)
-    let log = readLocalLog()
-    if (eventType) log = log.filter(e => e.eventType === eventType)
-    if (search) {
-      const q = search.toLowerCase()
-      log = log.filter(e =>
-        e.drugName?.toLowerCase().includes(q) ||
-        e.species?.toLowerCase().includes(q)  ||
-        e.query?.toLowerCase().includes(q)
-      )
-    }
-    return { total: log.length, items: log.slice(offset, offset + limit) }
+  return {
+    total: Number(data?.total ?? 0),
+    items: (data?.items ?? []).map(fromDb),
   }
 }
 
-// ── Estadísticas (KPIs para el dashboard) ───────────────────────────────────
 export async function getStats({ days = 30 } = {}) {
-  try {
-    const { data, error } = await supabase.rpc('sp_get_dashboard_kpis', { p_days: days })
-    if (error) throw error
-    return data
-  } catch (err) {
-    console.warn('[audit] getStats Supabase failed, using localStorage:', err?.message ?? err)
-    const log = readLocalLog()
-    const today = new Date().toDateString()
-    return {
-      total:      log.length,
-      today:      log.filter(e => new Date(e.timestamp).toDateString() === today).length,
-      by_type:    Object.fromEntries(
-        Object.values(EVENT_TYPES).map(t => [t, log.filter(e => e.eventType === t).length])
-      ),
-      top_drugs:  getTopDrugsLocal(log),
-      by_hour:    [],
-      by_species: {},
-      by_role:    {},
-      by_day:     [],
-    }
-  }
+  const { data, error } = await supabase.rpc('sp_get_dashboard_kpis', {
+    p_days: days,
+    p_tz:   DASHBOARD_TIMEZONE,
+  })
+  if (error) throw error
+  return data
 }
 
-// ── Intentos de login fallidos (módulo de seguridad) ────────────────────────
 export async function getFailedLogins({ days = 7, limit = 100 } = {}) {
   try {
-    const { data, error } = await supabase.rpc('sp_get_failed_logins', { p_days: days, p_limit: limit })
+    const { data, error } = await supabase.rpc('sp_get_failed_logins', {
+      p_days:  days,
+      p_limit: limit,
+      p_tz:    DASHBOARD_TIMEZONE,
+    })
     if (error) throw error
     return data ?? { available: false, total: 0, recent: [] }
   } catch (err) {
@@ -181,60 +156,49 @@ export async function getFailedLogins({ days = 7, limit = 100 } = {}) {
   }
 }
 
-function getTopDrugsLocal(log) {
-  const freq = {}
-  log.filter(e => e.drugName).forEach(e => {
-    freq[e.drugName] = (freq[e.drugName] ?? 0) + 1
-  })
-  return Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([drug_name, total_searches]) => ({ drug_name, total_searches }))
-}
-
-// ── Exportar CSV ─────────────────────────────────────────────────────────────
 export async function exportToCsv() {
   const { items: log } = await getHistory({ limit: 10_000 })
   if (!log.length) return
 
-  const headers = ['ID', 'Fecha', 'Tipo', 'Fármaco', 'Especie', 'Peso', 'Actor', 'Dosis / Consulta']
+  const headers = ['ID', 'Fecha', 'Tipo', 'Farmaco', 'Especie', 'Peso', 'Actor', 'Dosis / Consulta']
   const rows = log.map(e => [
     e.id,
     new Date(e.timestamp).toLocaleString('es-BO'),
     e.eventType,
-    e.drugName  ?? '',
-    e.species   ?? '',
-    e.weight    ? `${e.weight} kg` : '',
+    e.drugName ?? '',
+    e.species ?? '',
+    e.weight ? `${e.weight} kg` : '',
     e.actorName ?? '',
     e.doseCalculated
       ? `${e.doseCalculated} mg (${e.volMl ?? ''} mL)`
       : (e.query?.slice(0, 80) ?? ''),
   ])
 
-  // A-01: escape embedded quotes per RFC 4180 (double-quote → two double-quotes)
-  const csv  = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
+  const csv = [headers, ...rows]
+    .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
   a.download = `historial_atlas_${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
 
-// ── Limpiar historial ────────────────────────────────────────────────────────
-// N10: el SP sp_clear_audit_logs decide server-side si borrar todo (admin)
-// o solo los del caller (resto). El cliente solo declara la intención.
 export async function clearHistory({ scope = 'own' } = {}) {
-  localStorage.removeItem(STORAGE_KEY)
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError) throw userError
     if (!user) return { ok: true, deleted: 0 }
 
     const { data, error } = await supabase.rpc('sp_clear_audit_logs', { p_scope: scope })
     if (error) {
-      // Fallback al patrón anterior si el SP aún no está desplegado
-      await supabase.from('audit_logs').delete().eq('user_id', user.id)
+      const query = supabase.from('audit_logs').delete()
+      const { error: fallbackError } = scope === 'all'
+        ? await query.neq('id', '00000000-0000-0000-0000-000000000000')
+        : await query.eq('user_id', user.id)
+      if (fallbackError) throw fallbackError
       return { ok: true, deleted: null }
     }
     return { ok: true, deleted: data }
@@ -244,9 +208,22 @@ export async function clearHistory({ scope = 'own' } = {}) {
   }
 }
 
-// ── Helpers especializados (API pública — sin cambios de firma) ──────────────
 export function logDrugSearch(drugName, species) {
-  return logEvent(EVENT_TYPES.DRUG_SEARCH, { drugName, species })
+  return logDrugCardOpen(drugName, species)
+}
+
+export function logDrugCardOpen(drugName, species) {
+  return logEvent(EVENT_TYPES.DRUG_CARD_OPEN, { drugName, species })
+}
+
+export function logDrugTextSearch(query, resultCount = null) {
+  const cleanQuery = String(query ?? '').trim().replace(/\s+/g, ' ').slice(0, 100)
+  if (cleanQuery.length < 3) return Promise.resolve(null)
+  return logEvent(EVENT_TYPES.DRUG_SEARCH, {
+    query: cleanQuery,
+    summary: `Busqueda de farmaco: ${cleanQuery}`,
+    metadata: { resultCount },
+  })
 }
 
 export function logDoseCalculation(data) {

@@ -1,34 +1,58 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { getHistory, exportToCsv, clearHistory } from '../../services/auditService'
-import { SearchIcon, FileTextIcon, CalculatorIcon, CheckSquareIcon, SparklesIcon, FileEditIcon, ZapIcon } from '../../Icons/Icons'
+import { AUDIT_EVENT_META } from '../../constants/auditEvents'
+import {
+  SearchIcon, FileTextIcon, CalculatorIcon, CheckSquareIcon, SparklesIcon,
+  FileEditIcon, ZapIcon, BookOpenIcon, WarningIcon,
+} from '../../Icons/Icons'
 import ConfirmDialog from '../ui/ConfirmDialog'
 
-const EVENT_META = {
-  DRUG_SEARCH:       { label: 'Búsqueda',        color: '#003087', Icon: SearchIcon      },
-  DOSE_CALCULATED:   { label: 'Dosis calculada',  color: '#16a34a', Icon: CalculatorIcon  },
-  DOSE_VALIDATED:    { label: 'Dosis validada',   color: '#7c3aed', Icon: CheckSquareIcon },
-  AI_CONSULTATION:   { label: 'Consulta IA',      color: '#CC0000', Icon: SparklesIcon    },
-  PRESCRIPTION_GEN:  { label: 'Receta generada',  color: '#9A3412', Icon: FileEditIcon    },
-  INTERACTION_CHECK: { label: 'Interacciones',    color: '#d97706', Icon: ZapIcon         },
+const EVENT_ICONS = {
+  DRUG_SEARCH:                SearchIcon,
+  DRUG_CARD_OPEN:             BookOpenIcon,
+  DOSE_CALCULATED:            CalculatorIcon,
+  DOSE_VALIDATED:             CheckSquareIcon,
+  AI_CONSULTATION:            SparklesIcon,
+  PRESCRIPTION_GEN:           FileEditIcon,
+  INTERACTION_CHECK:          ZapIcon,
+  PRESCRIPTION_DOSE_OVERRIDE: WarningIcon,
 }
 
+const EVENT_META = Object.fromEntries(
+  Object.entries(AUDIT_EVENT_META).map(([key, val]) => [
+    key,
+    { ...val, Icon: EVENT_ICONS[key] ?? FileTextIcon },
+  ])
+)
+
 export default function ConsultationHistory() {
+  const { isAdmin } = useAuth()
   const [items,       setItems]       = useState([])
   const [filterType,  setFilterType]  = useState('')
   const [search,      setSearch]      = useState('')
   const [page,        setPage]        = useState(0)
   const [total,       setTotal]       = useState(0)
   const [loading,     setLoading]     = useState(false)
+  const [error,       setError]       = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [clearing,    setClearing]    = useState(false)
   const LIMIT = 15
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await getHistory({ limit: LIMIT, offset: page * LIMIT, eventType: filterType || undefined, search: search || undefined })
-    setItems(res.items)
-    setTotal(res.total)
-    setLoading(false)
+    setError('')
+    try {
+      const res = await getHistory({ limit: LIMIT, offset: page * LIMIT, eventType: filterType || undefined, search: search || undefined })
+      setItems(res.items)
+      setTotal(res.total)
+    } catch (err) {
+      setItems([])
+      setTotal(0)
+      setError(err?.message ?? 'No se pudo cargar el log desde Supabase.')
+    } finally {
+      setLoading(false)
+    }
   }, [page, filterType, search])
 
   useEffect(() => { load() }, [load])
@@ -47,8 +71,7 @@ export default function ConsultationHistory() {
   }
 
   async function confirmClear() {
-    // ConsultationHistory solo es visible para admin (tab gated en App.jsx),
-    // así que scope='all' borra el historial completo.
+    if (!isAdmin) return
     setClearing(true)
     try {
       const res = await clearHistory({ scope: 'all' })
@@ -85,9 +108,11 @@ export default function ConsultationHistory() {
           <button className="btnp" onClick={exportToCsv} disabled={total === 0} style={{ width: 'auto', padding: '8px 18px' }}>
             Exportar CSV
           </button>
-          <button className="btnp btnr" onClick={handleClear} disabled={total === 0} style={{ width: 'auto', padding: '8px 18px' }}>
-            Limpiar
-          </button>
+          {isAdmin && (
+            <button className="btnp btnr" onClick={handleClear} disabled={total === 0} style={{ width: 'auto', padding: '8px 18px' }}>
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
 
@@ -116,7 +141,13 @@ export default function ConsultationHistory() {
       </div>
 
       {/* ── Table ── */}
-      {loading ? (
+      {error ? (
+        <div className="empty">
+          <FileTextIcon size={40} style={{ color: 'var(--border)', marginBottom: 10 }} />
+          <h3>No se pudo cargar el log</h3>
+          <p>{error}</p>
+        </div>
+      ) : loading ? (
         <div className="ld"><div className="sp" /><p>Cargando historial...</p></div>
       ) : items.length === 0 ? (
         <div className="empty">

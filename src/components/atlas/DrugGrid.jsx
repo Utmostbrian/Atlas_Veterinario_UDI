@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DRUGS, CATEGORIES } from '../../data/drugs'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { useAuth } from '../../context/AuthContext'
@@ -12,7 +12,7 @@ import {
   isAISearchAllowed,
 } from '../../modules/aiSearch'
 import { EXTENDED_DRUG_NAMES, DRUG_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
-import { logAiConsultation } from '../../services/auditService'
+import { logAiConsultation, logDrugTextSearch } from '../../services/auditService'
 
 const CATALOG_NAMES   = DRUGS.flatMap(d => [d.name, d.latin]).filter(Boolean)
 const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DRUG_NAMES])]
@@ -22,12 +22,14 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
   const [query,          setQuery]          = useState('')
   const [activeCategory, setActiveCategory] = useState('ALL')
   const [recentSearches, setRecentSearches] = useLocalStorage('vet_recent_searches', [])
+  const loggedSearchesRef = useRef(new Set())
 
   // Estado de búsqueda IA (empty-state)
   const [aiTerm,    setAiTerm]    = useState(null)   // término que se está consultando
   const [aiData,    setAiData]    = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError,   setAiError]   = useState(null)
+  const trimmedQuery = query.trim()
 
   function addRecent(name) {
     setRecentSearches(prev => {
@@ -54,6 +56,17 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
       return aStarts - bStarts
     })
   }, [query, activeCategory])
+
+  useEffect(() => {
+    if (!user || trimmedQuery.length < 3) return
+    const key = trimmedQuery.toLowerCase()
+    const timer = setTimeout(() => {
+      if (loggedSearchesRef.current.has(key)) return
+      loggedSearchesRef.current.add(key)
+      logDrugTextSearch(trimmedQuery, filtered.length)
+    }, 900)
+    return () => clearTimeout(timer)
+  }, [filtered.length, trimmedQuery, user])
 
   function closeAI() {
     setAiTerm(null)
@@ -122,7 +135,6 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
     }
   }
 
-  const trimmedQuery = query.trim()
   const canSearchAI  = trimmedQuery.length >= 3
 
   // Capa 1: fuzzy match contra catálogo + diccionario extendido (typo detection).

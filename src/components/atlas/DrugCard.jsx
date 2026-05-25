@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { CATEGORY_MAP } from '../../data/drugs'
-import { logDrugSearch } from '../../services/auditService'
+import { logDrugCardOpen } from '../../services/auditService'
 import { SparklesIcon, CloseIcon, WarningIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
 import { searchDrugWithAI, relatedDrugs } from '../../modules/atlas'
 
@@ -25,7 +25,7 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
       onLoginRequired()
       return
     }
-    logDrugSearch(drug.name, drug.species)
+    logDrugCardOpen(drug.name, drug.species)
     setExpanded(true)
     setAiLoading(true)
     setAiData(null)

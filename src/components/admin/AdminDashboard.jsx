@@ -7,23 +7,14 @@ import {
 } from 'recharts'
 import { useAuth } from '../../context/AuthContext'
 import { getStats, getFailedLogins } from '../../services/auditService'
+import { eventColor, eventLabel } from '../../constants/auditEvents'
 import {
   FileTextIcon, SearchIcon, SparklesIcon, CalculatorIcon, SyringeIcon,
-  CheckSquareIcon, FileEditIcon, ZapIcon,
 } from '../../Icons/Icons'
 import styles from './AdminDashboard.module.css'
 
 const ConsultationHistory = lazy(() => import('../audit/ConsultationHistory'))
 const UsersPanel          = lazy(() => import('./UsersPanel'))
-
-const EVENT_LABELS = {
-  DRUG_SEARCH:       { label: 'Búsquedas',        color: '#003087', Icon: SearchIcon },
-  DOSE_CALCULATED:   { label: 'Dosis calculadas', color: '#16a34a', Icon: CalculatorIcon },
-  DOSE_VALIDATED:    { label: 'Dosis validadas',  color: '#7c3aed', Icon: CheckSquareIcon },
-  AI_CONSULTATION:   { label: 'Consultas IA',     color: '#CC0000', Icon: SparklesIcon },
-  PRESCRIPTION_GEN:  { label: 'Recetas',          color: '#9A3412', Icon: FileEditIcon },
-  INTERACTION_CHECK: { label: 'Interacciones',    color: '#d97706', Icon: ZapIcon },
-}
 
 const ROLE_LABEL = {
   admin:   'Administrador',
@@ -159,10 +150,14 @@ export default function AdminDashboard() {
   const [tab,        setTab]        = useState('dashboard')
 
   useEffect(() => {
+    if (tab === 'users' && me?.role !== 'admin') setTab('dashboard')
+  }, [me?.role, tab])
+
+  useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
-    Promise.all([getStats({ days: period }), getFailedLogins({ days: period > 30 ? 30 : period })])
+    Promise.all([getStats({ days: period }), getFailedLogins({ days: period, limit: null })])
       .then(([s, f]) => {
         if (cancelled) return
         setKpis(s)
@@ -184,9 +179,9 @@ export default function AdminDashboard() {
     const byType = kpis?.by_type ?? {}
     return Object.entries(byType).map(([key, total]) => ({
       key,
-      label: EVENT_LABELS[key]?.label ?? key,
+      label: eventLabel(key, { plural: true }),
       total: Number(total),
-      color: EVENT_LABELS[key]?.color ?? '#475569',
+      color: eventColor(key),
     }))
   }, [kpis])
 
@@ -232,7 +227,7 @@ export default function AdminDashboard() {
     )
   }
 
-  if (tab === 'users') {
+  if (tab === 'users' && me?.role === 'admin') {
     return (
       <div className="wrap">
         <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} role={me?.role} hideControls />
@@ -275,9 +270,9 @@ export default function AdminDashboard() {
             />
             <KpiCard
               Icon={SyringeIcon}
-              label="Fármaco más buscado"
+              label="Ficha más consultada"
               value={mostSearchedDrug}
-              sub={mostSearchedCount > 0 ? `${mostSearchedCount} búsquedas` : null}
+              sub={mostSearchedCount > 0 ? `${mostSearchedCount} aperturas` : null}
               accent="#7c3aed"
             />
             <KpiCard
@@ -304,9 +299,9 @@ export default function AdminDashboard() {
           <h2 className={styles.sectionTitle}>Uso clínico</h2>
           <div className={styles.chartsGrid}>
             <ChartCard
-              title="Top 10 fármacos consultados"
+              title="Top 10 fichas de fármacos consultadas"
               subtitle={`Últimos ${kpis?.period_days ?? period} días`}
-              empty={topDrugs.length === 0 ? 'Sin búsquedas registradas en el período.' : null}
+              empty={topDrugs.length === 0 ? 'Sin fichas consultadas en el período.' : null}
             >
               <BarChart data={topDrugs} layout="vertical" margin={{ top: 6, right: 20, left: 8, bottom: 6 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
@@ -410,15 +405,14 @@ export default function AdminDashboard() {
             <div className={styles.securityCard}>
               <div className={styles.securityHead}>
                 <h3>Intentos de login fallidos</h3>
-                <span>Últimos {Math.min(period, 30)} días</span>
+                <span>Últimos {failedLog?.period_days ?? period} días</span>
               </div>
               {failedLog?.available === false ? (
                 <div className={styles.securityWarn}>
                   <strong>No disponible.</strong>
                   <p>
-                    Supabase Auth no expone <code>auth.audit_log_entries</code> al rol authenticated
-                    en este proyecto. Para habilitarlo se requiere otorgar permisos explícitos desde
-                    el dashboard de Supabase, o consultar los logs vía la Management API.
+                    No se pudo leer la tabla de intentos fallidos en Supabase. Revisa la migración
+                    de <code>login_failures</code>, permisos de la RPC y la sesión actual.
                   </p>
                   {failedLog?.reason && <small>Causa: {failedLog.reason}</small>}
                 </div>
@@ -429,14 +423,19 @@ export default function AdminDashboard() {
                     <span className={styles.securityCaption}>intentos fallidos detectados</span>
                   </div>
                   {Array.isArray(failedLog?.recent) && failedLog.recent.length > 0 && (
-                    <ul className={styles.securityList}>
-                      {failedLog.recent.slice(0, 5).map((r, i) => (
-                        <li key={i}>
-                          <strong>{r.email ?? 'desconocido'}</strong>
-                          <span>{new Date(r.created_at).toLocaleString('es-BO')}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <div className={styles.securityListMeta}>
+                        Mostrando {failedLog.recent.length.toLocaleString('es-BO')} de {(failedLog?.total ?? failedLog.recent.length).toLocaleString('es-BO')}
+                      </div>
+                      <ul className={styles.securityList}>
+                        {failedLog.recent.map((r, i) => (
+                          <li key={`${r.created_at ?? 'login'}-${r.email ?? 'unknown'}-${i}`}>
+                            <strong>{r.email ?? 'desconocido'}</strong>
+                            <span>{new Date(r.created_at).toLocaleString('es-BO')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
                 </>
               )}
@@ -488,8 +487,8 @@ function DashboardHeader({ period, onPeriodChange, tab, setTab, role, hideContro
     { value: 'dashboard', label: 'KPIs' },
     { value: 'log',       label: 'Log de eventos' },
     { value: 'users',     label: 'Usuarios' },
-  ]
-  // 'users' siempre visible para admin/docente; docente entra en modo lectura
+  ].filter(it => it.value !== 'users' || role === 'admin')
+
   return (
     <div className={styles.dashHeader}>
       <div>

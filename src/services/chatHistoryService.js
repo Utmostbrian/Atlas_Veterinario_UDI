@@ -9,7 +9,7 @@
 import { supabase } from '../lib/supabase'
 
 function getActorName() {
-  try { return localStorage.getItem('vet_student_name') || null } catch { return null }
+  return null
 }
 
 // ── Crear nueva conversación ────────────────────────────────────────────────
