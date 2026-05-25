@@ -34,7 +34,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "^2.4.5",
     "vite": "^5.4.1",
     "vitest": "^4.1.6"
   }
