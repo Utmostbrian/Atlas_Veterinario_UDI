@@ -2,10 +2,14 @@
 
 [![CI](https://github.com/Utmostbrian/Atlas_Veterinario_UDI/actions/workflows/ci.yml/badge.svg)](https://github.com/Utmostbrian/Atlas_Veterinario_UDI/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Vercel](https://img.shields.io/badge/vercel-deployed-black?logo=vercel)](https://avaudi.vercel.app)
 
 Herramienta docente de referencia farmacológica veterinaria con asistencia por IA, para la Facultad de Veterinaria — Universidad para el Desarrollo y la Innovación (UDI), Bolivia.
 
-🌐 **Producción:** https://atlas-veterinario-udi.vercel.app
+| | |
+|---|---|
+| 🌐 **Landing page** | https://avaudi.vercel.app |
+| 🚀 **Aplicación** | https://atlas-veterinario-udi.vercel.app |
 
 ---
 
@@ -238,6 +242,28 @@ El trigger `handle_new_user` siempre asigna rol `student` — promoción a admin
 | `20260519000003_vademecum_clear_fn` | Función para limpiar el vademécum |
 | `20260519000004_fix_vademecum_search` | Corrección del SP de búsqueda |
 | `20260520000001_fix_chat_messages_ambiguous_id` | Fix de ambigüedad SQL en `sp_get_chat_messages` |
+| `20260525014643_failed_logins_show_all` | Vista de login failures sin restricción de usuario para el panel admin |
+| `20260525015954_repair_dashboard_supabase_source` | Reparación de la fuente de datos del dashboard en Supabase |
+| `20260525021323_dashboard_integrity_reset` | Reset de integridad y datos de auditoría del dashboard |
+| `20260525022731_harden_security_invoker_views` | Refuerzo de seguridad: vistas con `SECURITY INVOKER` para respetar RLS |
+
+## Últimas mejoras
+
+### Generador de recetas — validación estricta client-side
+Todos los campos del generador de recetas ahora tienen validaciones de formato sin llamar a la API de IA:
+- **Nombres** (animal, propietario, veterinario): solo letras, sin números ni emojis
+- **Peso**: obligatorio; validado contra el rango de la especie seleccionada del catálogo
+- **Edad**: límite por unidad — días ≤ 3 650, meses ≤ 120, años ≤ 50
+- **Teléfono**: solo dígitos, `+`, `-`, paréntesis
+- **Diagnóstico**: debe contener texto real (no solo números)
+- **Fármaco**: el nombre debe contener letras; dosis y frecuencia deben incluir valor numérico
+- **Matrícula veterinaria**: debe contener al menos un dígito (ej: `MV-1234`)
+
+### Footer móvil corregido
+`.fbot` ahora apila las dos líneas de copyright en columna centrada en pantallas `< 768 px`.
+
+### Búsquedas recientes del Atlas
+`DrugCard` registra la búsqueda en el historial lateral al **abrir cualquier carta del catálogo**, no solo al usar el botón "Consultar con IA".
 
 ## Estructura del proyecto
 
