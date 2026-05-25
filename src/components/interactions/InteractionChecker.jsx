@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useAuth } from '../../context/AuthContext'
 import { checkInteractions } from '../../services/anthropicService'
 import { logInteractionCheck } from '../../services/auditService'
 import { ZapIcon, SparklesIcon, AlertCircleIcon } from '../../Icons/Icons'
@@ -133,11 +135,13 @@ function isDrugName(name) {
 }
 
 export default function InteractionChecker() {
-  const [input,      setInput]      = useState('')
-  const [drugs,      setDrugs]      = useState([])
-  const [result,     setResult]     = useState('')
+  const { user } = useAuth()
+  const memoryScope = user?.id ?? 'anon'
+  const [input,      setInput]      = useLocalStorage(`vet_memory_${memoryScope}_interactions_input`, '')
+  const [drugs,      setDrugs]      = useLocalStorage(`vet_memory_${memoryScope}_interactions_drugs`, [])
+  const [result,     setResult]     = useLocalStorage(`vet_memory_${memoryScope}_interactions_result`, '')
+  const [error,      setError]      = useLocalStorage(`vet_memory_${memoryScope}_interactions_error`, '')
   const [loading,    setLoading]    = useState(false)
-  const [error,      setError]      = useState('')
   const [inputError, setInputError] = useState('')
 
   function addDrug() {
@@ -183,6 +187,14 @@ export default function InteractionChecker() {
     if (e.key === 'Enter') { e.preventDefault(); addDrug() }
   }
 
+  function handleClearMemory() {
+    setInput('')
+    setDrugs([])
+    setResult('')
+    setError('')
+    setInputError('')
+  }
+
 
   return (
     <div className="wrap">
@@ -190,7 +202,10 @@ export default function InteractionChecker() {
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ZapIcon size={20} style={{ color: 'var(--blue)' }} /> Verificador de Interacciones
         </span>
-        <span className="scnt">Análisis con IA</span>
+        <div className="memory-actions">
+          <span className="scnt">Análisis con IA</span>
+          <button type="button" className="memory-clear-btn" onClick={handleClearMemory}>Limpiar</button>
+        </div>
       </div>
 
       <div className="cgrid">

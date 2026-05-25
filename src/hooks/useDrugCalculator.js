@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useMemo, useEffect } from 'react'
 import { DRUGS_DATABASE } from '../data/drugsDatabase'
+import { useLocalStorage } from './useLocalStorage'
 
 const ALL_SPECIES = ['Perro', 'Gato', 'Bovino', 'Equino', 'Ovino', 'Porcino', 'Ave']
 const ALL_ROUTES  = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario']
@@ -36,16 +37,16 @@ export function fmtNum(n) {
 }
 
 export function useDrugCalculator() {
-  const [drugInput,     setDrugInputState]    = useState('')
-  const [species,       setSpeciesState]      = useState('Perro')
-  const [weight,        setWeight]            = useState('')
-  const [dose,          setDose]              = useState('')
-  const [conc,          setConc]              = useState('')
-  const [unit,          setUnit]              = useState('mg/mL')
-  const [route,         setRouteState]        = useState('VO (oral)')
-  const [result,        setResult]            = useState(null)
-  const [history,       setHistory]           = useState([])
-  const [aiDrugProfile, setAiDrugProfileState] = useState(null)
+  const [drugInput,     setDrugInputState]    = useLocalStorage('vet_memory_dose_drug_input', '')
+  const [species,       setSpeciesState]      = useLocalStorage('vet_memory_dose_species', 'Perro')
+  const [weight,        setWeight]            = useLocalStorage('vet_memory_dose_weight', '')
+  const [dose,          setDose]              = useLocalStorage('vet_memory_dose_dose', '')
+  const [conc,          setConc]              = useLocalStorage('vet_memory_dose_conc', '')
+  const [unit,          setUnitState]         = useLocalStorage('vet_memory_dose_unit', 'mg/mL')
+  const [route,         setRouteState]        = useLocalStorage('vet_memory_dose_route', 'VO (oral)')
+  const [result,        setResult]            = useLocalStorage('vet_memory_dose_result', null)
+  const [history,       setHistory]           = useLocalStorage('vet_memory_dose_history', [])
+  const [aiDrugProfile, setAiDrugProfileState] = useLocalStorage('vet_memory_dose_ai_profile', null)
 
   const matchedDrugName = useMemo(() => {
     const key = drugInput.trim()
@@ -169,6 +170,7 @@ export function useDrugCalculator() {
   }
 
   function setSpecies(value) { setSpeciesState(value); setResult(null) }
+  function setUnit(value)    { setUnitState(value);    setResult(null) }
   function setRoute(value)   { setRouteState(value);   setResult(null) }
   function handleWeight(value) { setWeight(value); setResult(null) }
   function handleDose(value)   { setDose(value);   setResult(null) }
@@ -232,6 +234,19 @@ export function useDrugCalculator() {
     return entry
   }
 
+  function resetMemory() {
+    setDrugInputState('')
+    setAiDrugProfileState(null)
+    setSpeciesState('Perro')
+    setWeight('')
+    setDose('')
+    setConc('')
+    setUnitState('mg/mL')
+    setRouteState('VO (oral)')
+    setResult(null)
+    setHistory([])
+  }
+
   return {
     drugInput,  setDrugInput,
     species,    setSpecies,
@@ -259,5 +274,6 @@ export function useDrugCalculator() {
     calculate,
     pickConcentration,
     isTotalDose,
+    resetMemory,
   }
 }

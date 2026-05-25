@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { savePrescription } from '../../services/prescriptionService'
 import { getAnimals } from '../../services/catalogService'
 import { CheckSquareIcon, FileEditIcon, FileTextIcon, SyringeIcon } from '../../Icons/Icons'
@@ -36,6 +37,20 @@ const EMPTY_DRUG = () => ({
   duration: '',
   notes: '',
 })
+
+const INITIAL_DRUGS = [EMPTY_DRUG()]
+
+const INITIAL_PATIENT = {
+  name: '',
+  species: '',
+  speciesOther: '',
+  breed: '',
+  weight: '',
+  ageValue: '',
+  ageUnit: 'anos',
+  owner: '',
+  ownerPhone: '',
+}
 
 function parseMgPerKg(value) {
   const numeric = inputNumber(value)
@@ -126,23 +141,14 @@ export default function Prescription() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const previewRef = useRef(null)
+  const memoryScope = user?.id ?? 'anon'
 
-  const [patient, setPatient] = useState({
-    name: '',
-    species: '',
-    speciesOther: '',
-    breed: '',
-    weight: '',
-    ageValue: '',
-    ageUnit: 'anos',
-    owner: '',
-    ownerPhone: '',
-  })
-  const [drugs, setDrugs] = useState([EMPTY_DRUG()])
-  const [diagnosis, setDiagnosis] = useState('')
-  const [vetName, setVetName] = useState('')
-  const [vetReg, setVetReg] = useState('')
-  const [generated, setGenerated] = useState(false)
+  const [patient, setPatient] = useLocalStorage(`vet_memory_${memoryScope}_prescription_patient`, INITIAL_PATIENT)
+  const [drugs, setDrugs] = useLocalStorage(`vet_memory_${memoryScope}_prescription_drugs`, INITIAL_DRUGS)
+  const [diagnosis, setDiagnosis] = useLocalStorage(`vet_memory_${memoryScope}_prescription_diagnosis`, '')
+  const [vetName, setVetName] = useLocalStorage(`vet_memory_${memoryScope}_prescription_vet_name`, '')
+  const [vetReg, setVetReg] = useLocalStorage(`vet_memory_${memoryScope}_prescription_vet_reg`, '')
+  const [generated, setGenerated] = useLocalStorage(`vet_memory_${memoryScope}_prescription_generated`, false)
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null)
@@ -344,6 +350,17 @@ export default function Prescription() {
     }
   }
 
+  function handleClearMemory() {
+    setPatient(INITIAL_PATIENT)
+    setDrugs([EMPTY_DRUG()])
+    setDiagnosis('')
+    setVetName('')
+    setVetReg('')
+    setGenerated(false)
+    setErrors({})
+    setSaveStatus(null)
+  }
+
   const today = new Date().toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' })
   const validDrugsForPreview = drugs.filter((drug) => drug.name.trim())
 
@@ -364,17 +381,20 @@ export default function Prescription() {
             {user && <span style={{ marginLeft: 6, color: 'var(--blue)' }}>La receta se guardara en tu historial.</span>}
           </p>
         </div>
-        {user && (
-          <button
-            type="button"
-            className="hist-btn"
-            onClick={() => navigate('/dashboard/recetas/historial')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
-          >
-            <FileTextIcon size={15} />
-            Historial
-          </button>
-        )}
+        <div className="memory-actions">
+          <button type="button" className="memory-clear-btn" onClick={handleClearMemory}>Limpiar</button>
+          {user && (
+            <button
+              type="button"
+              className="hist-btn"
+              onClick={() => navigate('/dashboard/recetas/historial')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
+            >
+              <FileTextIcon size={15} />
+              Historial
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="receta-form" style={{ marginBottom: 24 }}>

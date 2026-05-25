@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useDrugCalculator, UNITS } from '../../hooks/useDrugCalculator'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { validateDose, fetchDrugProfileWithAI } from '../../services/anthropicService'
 import { logDoseCalculation, logDoseValidation } from '../../services/auditService'
 import { CalculatorIcon, SparklesIcon, WarningIcon } from '../../Icons/Icons'
@@ -11,12 +12,12 @@ export default function DosageCalculator({ onLoginRequired }) {
 
   // Estado para el "Buscar con IA" (obtiene el perfil clínico del fármaco)
   const [profileLoading, setProfileLoading] = useState(false)
-  const [profileError,   setProfileError]   = useState('')
+  const [profileError,   setProfileError]   = useLocalStorage('vet_memory_dose_profile_error', '')
 
   // Estado para la validación post-cálculo con IA
-  const [aiResult,  setAiResult]  = useState('')
+  const [aiResult,  setAiResult]  = useLocalStorage('vet_memory_dose_ai_result', '')
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiError,   setAiError]   = useState('')
+  const [aiError,   setAiError]   = useLocalStorage('vet_memory_dose_ai_error', '')
 
   // ── Modo IA: fármaco escrito, no en BD, sin perfil cargado aún ───────────
   const needsAiLookup = calc.drugInput.trim().length >= 3 && !calc.matchedDrug
@@ -34,6 +35,13 @@ export default function DosageCalculator({ onLoginRequired }) {
     } catch {
       setProfileError('Error inesperado en el cálculo. Verifica los datos ingresados.')
     }
+  }
+
+  function handleClearMemory() {
+    calc.resetMemory()
+    setProfileError('')
+    setAiResult('')
+    setAiError('')
   }
 
   async function handleFetchAiProfile() {
@@ -122,9 +130,12 @@ export default function DosageCalculator({ onLoginRequired }) {
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalculatorIcon size={24} style={{ color: 'var(--blue)' }} /> Calculadora de Dosis
         </span>
-        <span className="scnt">
-          Base de datos clínica · Fármacos no registrados: la IA carga el perfil clínico
-        </span>
+        <div className="memory-actions">
+          <span className="scnt">
+            Base de datos clínica · Fármacos no registrados: la IA carga el perfil clínico
+          </span>
+          <button type="button" className="memory-clear-btn" onClick={handleClearMemory}>Limpiar</button>
+        </div>
       </div>
 
       <div className="cgrid">

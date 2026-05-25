@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getPrescriptions } from '../../services/prescriptionService'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useAuth } from '../../context/AuthContext'
 import { FileTextIcon, SearchIcon } from '../../Icons/Icons'
 
 const PAGE_SIZE = 20
@@ -155,11 +157,13 @@ function printPrescription(row) {
 }
 
 export default function PrescriptionHistory() {
+  const { user } = useAuth()
+  const memoryScope = user?.id ?? 'anon'
   const [items, setItems] = useState([])
   const [total, setTotal] = useState(0)
-  const [search, setSearch] = useState('')
-  const [date, setDate] = useState('')
-  const [page, setPage] = useState(0)
+  const [search, setSearch] = useLocalStorage(`vet_memory_${memoryScope}_rx_history_search`, '')
+  const [date, setDate] = useLocalStorage(`vet_memory_${memoryScope}_rx_history_date`, '')
+  const [page, setPage] = useLocalStorage(`vet_memory_${memoryScope}_rx_history_page`, 0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
@@ -194,6 +198,13 @@ export default function PrescriptionHistory() {
     return items.filter((item) => toDateInputValue(item.created_at) === date)
   }, [items, date])
 
+  function handleClearMemory() {
+    setSearch('')
+    setDate('')
+    setPage(0)
+    setSelected(null)
+  }
+
   return (
     <div className="wrap hist-page-wrap">
       <div className="hist-hdr">
@@ -204,6 +215,7 @@ export default function PrescriptionHistory() {
           </h2>
           <p>Recetas generadas por estudiantes, medicos y administradores.</p>
         </div>
+        <button type="button" className="memory-clear-btn" onClick={handleClearMemory}>Limpiar</button>
       </div>
 
       <div className="hist-filters">

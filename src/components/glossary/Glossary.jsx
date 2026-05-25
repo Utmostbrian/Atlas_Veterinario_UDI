@@ -1,13 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { GLOSSARY } from '../../data/glossary'
 import { SearchIcon, BookIcon } from '../../Icons/Icons'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 
 export default function Glossary() {
-  const [query,   setQuery]   = useState('')
-  const [letter,  setLetter]  = useState(null)
-  const [openTerm, setOpenTerm] = useState(null)
+  const [query,   setQuery]   = useLocalStorage('vet_memory_glossary_query', '')
+  const [letter,  setLetter]  = useLocalStorage('vet_memory_glossary_letter', null)
+  const [openTerm, setOpenTerm] = useLocalStorage('vet_memory_glossary_open_term', null)
 
   const availableLetters = useMemo(
     () => new Set(GLOSSARY.map(g => g.term[0].toUpperCase())),
@@ -27,13 +28,22 @@ export default function Glossary() {
     setOpenTerm(prev => prev === term ? null : term)
   }
 
+  function handleClearMemory() {
+    setQuery('')
+    setLetter(null)
+    setOpenTerm(null)
+  }
+
   return (
     <div className="wrap">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BookIcon size={20} style={{ color: 'var(--blue)' }} /> Glosario Farmacológico
         </span>
-        <span className="scnt">{filtered.length} términos</span>
+        <div className="memory-actions">
+          <span className="scnt">{filtered.length} términos</span>
+          <button type="button" className="memory-clear-btn" onClick={handleClearMemory}>Limpiar</button>
+        </div>
       </div>
 
       {/* Search */}

@@ -3,21 +3,24 @@ import { CATEGORY_MAP } from '../../data/drugs'
 import { logDrugCardOpen } from '../../services/auditService'
 import { SparklesIcon, CloseIcon, WarningIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
 import { searchDrugWithAI, relatedDrugs } from '../../modules/atlas'
+import { getCachedAIResult, setCachedAIResult } from '../../modules/aiSearch'
 
 const STRIPE_CLASS = { AB: 'ab', AP: 'ap', AI: 'ai', AN: 'an', AF: 'af', HO: 'ho' }
 
-export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired }) {
-  const [expanded, setExpanded] = useState(false)
+export default function DrugCard({ drug, expanded: controlledExpanded, onExpandedChange, onChatOpen, onAskAI, onLoginRequired }) {
+  const [internalExpanded, setInternalExpanded] = useState(false)
   const [aiData, setAiData] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const panelRef = useRef(null)
+  const expanded = controlledExpanded ?? internalExpanded
 
   const cat = CATEGORY_MAP[drug.category] || {}
   const stripe = STRIPE_CLASS[drug.category] || 'ab'
 
   async function handleExpand() {
     if (expanded) {
-      setExpanded(false)
+      setInternalExpanded(false)
+      onExpandedChange?.(false)
       setAiData(null)
       return
     }
@@ -28,12 +31,25 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
     // Registrar en búsquedas recientes al abrir la carta (no solo al click de IA)
     if (onAskAI) onAskAI()
     logDrugCardOpen(drug.name, drug.species)
-    setExpanded(true)
+    setInternalExpanded(true)
+    onExpandedChange?.(true)
+
+    const cached = getCachedAIResult('drug', drug.name)
+    if (cached) {
+      setAiData(cached)
+      setAiLoading(false)
+      return
+    }
+
     setAiLoading(true)
     setAiData(null)
-    const result = await searchDrugWithAI(drug.name)
-    setAiData(result)
-    setAiLoading(false)
+    try {
+      const result = await searchDrugWithAI(drug.name)
+      setAiData(result)
+      if (result?.encontrado) setCachedAIResult('drug', drug.name, result)
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -41,6 +57,12 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
       setTimeout(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100)
     }
   }, [expanded])
+
+  useEffect(() => {
+    if (!expanded || aiData || aiLoading) return
+    const cached = getCachedAIResult('drug', drug.name)
+    if (cached) setAiData(cached)
+  }, [expanded, aiData, aiLoading, drug.name])
 
   function handleAskAI(e) {
     e.stopPropagation()
@@ -79,7 +101,7 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
         <div ref={panelRef} className="aip" style={{ gridColumn: '1 / -1' }}>
           {/* Header — siempre datos locales para respuesta inmediata */}
           <div className="aiph">
-            <button className="aiclose" onClick={() => { setExpanded(false); setAiData(null) }} aria-label="Cerrar"><CloseIcon size={14} /></button>
+            <button className="aiclose" onClick={() => { setInternalExpanded(false); onExpandedChange?.(false); setAiData(null) }} aria-label="Cerrar"><CloseIcon size={14} /></button>
             <div className="ainame">{drug.name}</div>
             <div className="ailat">{drug.latin}</div>
             <div className="aitags">

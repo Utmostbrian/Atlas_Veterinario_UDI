@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { FlaskIcon, WarningIcon } from '../../Icons/Icons'
 
 function calcDilution({ c1, c2, v2 }) {
@@ -20,15 +20,15 @@ function calcDripRate({ vol, time, factor }) {
 }
 
 export default function DilutionCalculator() {
-  const [c1, setC1] = useState('')
-  const [c2, setC2] = useState('')
-  const [v2, setV2] = useState('')
-  const [dilResult, setDilResult] = useState(null)
+  const [c1, setC1] = useLocalStorage('vet_memory_dilution_c1', '')
+  const [c2, setC2] = useLocalStorage('vet_memory_dilution_c2', '')
+  const [v2, setV2] = useLocalStorage('vet_memory_dilution_v2', '')
+  const [dilResult, setDilResult] = useLocalStorage('vet_memory_dilution_result', null)
 
-  const [vol,    setVol]    = useState('')
-  const [time,   setTime]   = useState('')
-  const [factor, setFactor] = useState('20')
-  const [dripResult, setDripResult] = useState(null)
+  const [vol,    setVol]    = useLocalStorage('vet_memory_drip_vol', '')
+  const [time,   setTime]   = useLocalStorage('vet_memory_drip_time', '')
+  const [factor, setFactor] = useLocalStorage('vet_memory_drip_factor', '20')
+  const [dripResult, setDripResult] = useLocalStorage('vet_memory_drip_result', null)
 
   function handleDilution() {
     setDilResult(calcDilution({ c1: parseFloat(c1), c2: parseFloat(c2), v2: parseFloat(v2) }))
@@ -38,13 +38,27 @@ export default function DilutionCalculator() {
     setDripResult(calcDripRate({ vol: parseFloat(vol), time: parseFloat(time), factor: parseFloat(factor) }))
   }
 
+  function handleClearMemory() {
+    setC1('')
+    setC2('')
+    setV2('')
+    setDilResult(null)
+    setVol('')
+    setTime('')
+    setFactor('20')
+    setDripResult(null)
+  }
+
   return (
     <div className="wrap">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <FlaskIcon size={20} style={{ color: 'var(--blue)' }} /> Dilución y Goteo IV
         </span>
-        <span className="scnt">Calculadoras clínicas</span>
+        <div className="memory-actions">
+          <span className="scnt">Calculadoras clínicas</span>
+          <button type="button" className="memory-clear-btn" onClick={handleClearMemory}>Limpiar</button>
+        </div>
       </div>
 
       <div className="cgrid">

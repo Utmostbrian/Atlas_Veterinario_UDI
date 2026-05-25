@@ -19,16 +19,17 @@ const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DRUG_NAMES])
 
 export default function DrugGrid({ onChatOpen, onLoginRequired }) {
   const { user } = useAuth()
-  const [query,          setQuery]          = useState('')
-  const [activeCategory, setActiveCategory] = useState('ALL')
+  const [query,          setQuery]          = useLocalStorage('vet_memory_atlas_query', '')
+  const [activeCategory, setActiveCategory] = useLocalStorage('vet_memory_atlas_category', 'ALL')
   const [recentSearches, setRecentSearches] = useLocalStorage('vet_recent_searches', [])
+  const [expandedDrugId, setExpandedDrugId] = useLocalStorage('vet_memory_atlas_expanded_drug', null)
   const loggedSearchesRef = useRef(new Set())
 
   // Estado de búsqueda IA (empty-state)
-  const [aiTerm,    setAiTerm]    = useState(null)   // término que se está consultando
-  const [aiData,    setAiData]    = useState(null)
+  const [aiTerm,    setAiTerm]    = useLocalStorage('vet_memory_atlas_ai_term', null)
+  const [aiData,    setAiData]    = useLocalStorage('vet_memory_atlas_ai_data', null)
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiError,   setAiError]   = useState(null)
+  const [aiError,   setAiError]   = useLocalStorage('vet_memory_atlas_ai_error', null)
   const trimmedQuery = query.trim()
 
   function addRecent(name) {
@@ -246,6 +247,8 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
                 <DrugCard
                   key={drug.id}
                   drug={drug}
+                  expanded={expandedDrugId === drug.id}
+                  onExpandedChange={(open) => setExpandedDrugId(open ? drug.id : null)}
                   onChatOpen={onChatOpen}
                   onAskAI={() => addRecent(drug.name)}
                   onLoginRequired={onLoginRequired}

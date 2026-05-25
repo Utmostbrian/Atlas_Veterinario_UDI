@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { DISEASES } from '../../data/diseases'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { SearchIcon, ActivityIcon, SparklesIcon, CloseIcon, AlertCircleIcon, GlobeIcon, BookOpenIcon } from '../../Icons/Icons'
 import { searchDiseaseWithAI, looksLikeJsonPayload } from '../../modules/diseases'
 import { useAuth } from '../../context/AuthContext'
@@ -24,13 +25,14 @@ function isReadableDiseaseAIResult(result) {
 
 export default function DiseaseProtocols({ onLoginRequired }) {
   const { user } = useAuth()
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useLocalStorage('vet_memory_diseases_query', '')
+  const [expandedDiseaseId, setExpandedDiseaseId] = useLocalStorage('vet_memory_diseases_expanded', null)
 
   // Estado de búsqueda IA (empty-state)
-  const [aiTerm,    setAiTerm]    = useState(null)
-  const [aiData,    setAiData]    = useState(null)
+  const [aiTerm,    setAiTerm]    = useLocalStorage('vet_memory_diseases_ai_term', null)
+  const [aiData,    setAiData]    = useLocalStorage('vet_memory_diseases_ai_data', null)
+  const [aiError,   setAiError]   = useLocalStorage('vet_memory_diseases_ai_error', null)
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiError,   setAiError]   = useState(null)
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()
@@ -153,6 +155,8 @@ export default function DiseaseProtocols({ onLoginRequired }) {
             <DiseaseCard
               key={d.id}
               disease={d}
+              expanded={expandedDiseaseId === d.id}
+              onExpandedChange={(open) => setExpandedDiseaseId(open ? d.id : null)}
               isLoggedIn={!!user}
               onLoginRequired={onLoginRequired}
             />
@@ -252,15 +256,17 @@ export default function DiseaseProtocols({ onLoginRequired }) {
   )
 }
 
-function DiseaseCard({ disease, isLoggedIn, onLoginRequired }) {
-  const [expanded,  setExpanded]  = useState(false)
+function DiseaseCard({ disease, expanded: controlledExpanded, onExpandedChange, isLoggedIn, onLoginRequired }) {
+  const [internalExpanded, setInternalExpanded] = useState(false)
   const [aiData,    setAiData]    = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const panelRef = useRef(null)
+  const expanded = controlledExpanded ?? internalExpanded
 
   async function handleExpand() {
     if (expanded) {
-      setExpanded(false)
+      setInternalExpanded(false)
+      onExpandedChange?.(false)
       setAiData(null)
       return
     }
@@ -269,12 +275,24 @@ function DiseaseCard({ disease, isLoggedIn, onLoginRequired }) {
       return
     }
     logDiseaseProtocolView(disease.name, disease.species)
-    setExpanded(true)
+    setInternalExpanded(true)
+    onExpandedChange?.(true)
+
+    const cached = getCachedAIResult('disease', disease.name)
+    if (cached && isReadableDiseaseAIResult(cached)) {
+      setAiData(cached)
+      setAiLoading(false)
+      return
+    }
+
     setAiLoading(true)
     setAiData(null)
     try {
       const result = await searchDiseaseWithAI(disease.name)
       setAiData(result)
+      if ((result?.status === 'ok' || result?.status === 'text') && isReadableDiseaseAIResult(result)) {
+        setCachedAIResult('disease', disease.name, result)
+      }
     } catch (e) {
       setAiData({ status: 'error', mensaje: e.message || 'Error al consultar el protocolo.' })
     } finally {
@@ -287,6 +305,12 @@ function DiseaseCard({ disease, isLoggedIn, onLoginRequired }) {
       setTimeout(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100)
     }
   }, [expanded])
+
+  useEffect(() => {
+    if (!expanded || aiData || aiLoading) return
+    const cached = getCachedAIResult('disease', disease.name)
+    if (cached && isReadableDiseaseAIResult(cached)) setAiData(cached)
+  }, [expanded, aiData, aiLoading, disease.name])
 
   return (
     <>
@@ -308,7 +332,7 @@ function DiseaseCard({ disease, isLoggedIn, onLoginRequired }) {
       {expanded && (
         <div ref={panelRef} className="aip" style={{ gridColumn: '1 / -1' }}>
           <div className="aiph">
-            <button className="aiclose" onClick={() => { setExpanded(false); setAiData(null) }} aria-label="Cerrar"><CloseIcon size={14} /></button>
+            <button className="aiclose" onClick={() => { setInternalExpanded(false); onExpandedChange?.(false); setAiData(null) }} aria-label="Cerrar"><CloseIcon size={14} /></button>
             <div className="ainame">{disease.name}</div>
             <div className="ailat">{disease.species}</div>
             <div className="aitags">
