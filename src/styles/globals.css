@@ -1118,7 +1118,8 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
   .wrap  { padding: 16px; }
   .tabinner { padding: 0 12px; }
   .tbtn  { padding: 11px 12px; font-size: .76rem; }
-  .fbody { grid-template-columns: 1fr; padding: 24px 16px; }
+  .fbody { grid-template-columns: 1fr; padding: 24px 16px; gap: 18px; }
+  .fbot  { flex-direction: column; align-items: center; text-align: center; gap: 5px; padding: 14px 16px; }
   .a2col,.frow,.receta-2col,.receta-3col { grid-template-columns: 1fr; }
   .hist-tbl th:nth-child(3),.hist-tbl td:nth-child(3),
   .hist-tbl th:nth-child(4),.hist-tbl td:nth-child(4) { display: none; }

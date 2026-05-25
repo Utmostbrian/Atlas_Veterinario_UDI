@@ -25,6 +25,8 @@ export default function DrugCard({ drug, onChatOpen, onAskAI, onLoginRequired })
       onLoginRequired()
       return
     }
+    // Registrar en búsquedas recientes al abrir la carta (no solo al click de IA)
+    if (onAskAI) onAskAI()
     logDrugCardOpen(drug.name, drug.species)
     setExpanded(true)
     setAiLoading(true)
