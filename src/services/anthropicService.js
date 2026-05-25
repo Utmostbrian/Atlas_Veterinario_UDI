@@ -274,6 +274,12 @@ Responde con: [SEGURA] / [REVISAR] / [PELIGROSA] y justificación. No uses emoji
   return data.content?.[0]?.text ?? ''
 }
 
+function cleanInteractionText(text) {
+  if (!text) return ''
+  // Strip fenced code blocks (```json ... ``` or ``` ... ```)
+  return text.replace(/`{3}[a-z]*\r?\n?[\s\S]*?`{3}/g, '').replace(/\n{3,}/g, '\n\n').trim()
+}
+
 export async function checkInteractions(drugs) {
   const drugList = drugs.join(', ')
   const prompt = `Analiza las interacciones farmacológicas entre: ${drugList}.
@@ -284,7 +290,8 @@ Para cada par o combinación:
 - Mecanismo farmacocinético o farmacodinámico
 - Recomendación clínica
 
-Indica cuáles combinaciones son seguras para uso veterinario conjunto.`
+Indica cuáles combinaciones son seguras para uso veterinario conjunto.
+Responde en markdown limpio con ## encabezados y listas. No uses JSON ni bloques de código.`
 
   try {
     const dualResult = await searchDualEngine({
@@ -295,14 +302,14 @@ Indica cuáles combinaciones son seguras para uso veterinario conjunto.`
       messages: [{ role: 'user', content: prompt }],
       maxTokens: 1400,
     })
-    if (dualResult?._text) return dualResult._text
+    if (dualResult?._text) return cleanInteractionText(dualResult._text)
   } catch (e) {
     console.warn('[checkInteractions] Dual engine failed, falling back:', e.message)
   }
 
   const response = await fetchViaProxy({ max_tokens: 1000, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: prompt }] })
   const data = await response.json()
-  return data.content?.[0]?.text ?? ''
+  return cleanInteractionText(data.content?.[0]?.text ?? '')
 }
 
 export async function fetchDrugProfileWithAI(drug) {
