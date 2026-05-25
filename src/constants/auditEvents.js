@@ -1,4 +1,9 @@
 export const AUDIT_EVENT_META = {
+  AUTH_LOGIN: {
+    label: 'Inicio de sesión',
+    plural: 'Inicios de sesión',
+    color: '#64748b',
+  },
   DRUG_SEARCH: {
     label: 'Busqueda real',
     plural: 'Busquedas reales',
@@ -8,6 +13,11 @@ export const AUDIT_EVENT_META = {
     label: 'Ficha consultada',
     plural: 'Fichas consultadas',
     color: '#0891b2',
+  },
+  DISEASE_PROTOCOL_VIEW: {
+    label: 'Protocolo consultado',
+    plural: 'Protocolos consultados',
+    color: '#0f766e',
   },
   DOSE_CALCULATED: {
     label: 'Dosis calculada',

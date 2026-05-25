@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
         await supabase.rpc('sp_insert_audit_log', {
           p_event_id:    `STUDENT_LOGIN-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
           p_user_id:     data.user.id,
-          p_event_type:  'AI_CONSULTATION', // reutilizamos el enum (no hay LOGIN type)
+          p_event_type:  'AUTH_LOGIN',
           p_summary:     `Login estudiante: ${name.trim()}`,
           p_ip_address:  ip,
           p_metadata:    { kind: 'student_login', name: name.trim() },

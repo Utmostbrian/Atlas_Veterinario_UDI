@@ -4,7 +4,6 @@ import { useChat } from '../../hooks/useChat'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '../../hooks/useSpeechSynthesis'
 import { createSentenceBuffer } from '../../utils/sentenceBuffer'
-import { listConversations } from '../../services/chatHistoryService'
 import { refineVoiceTranscript } from '../../services/anthropicService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
@@ -170,22 +169,34 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   // Refresca el listado cuando cambia la conversación activa (nueva creada)
   useEffect(() => { setHistoryRefresh((v) => v + 1) }, [conversationId])
 
-  // Auto-restaurar la conversación más reciente al autenticarse (o montar el componente)
-  const autoRestoredRef = useRef(false)
-  useEffect(() => {
-    if (!isAuthenticated || autoRestoredRef.current || conversationId || messages.length > 0) return
-    autoRestoredRef.current = true
-    listConversations({ limit: 1 })
-      .then((rows) => { if (rows.length > 0) loadConversation(rows[0].id) })
-      .catch((e) => console.error('[autoRestore] No se pudo restaurar conversación:', e?.message, e))
-  }, [isAuthenticated, conversationId, messages.length, loadConversation])
-
   const bottomRef  = useRef(null)
+  const messagesWrapRef = useRef(null)
   const inputRef   = useRef(null)
   const fileRef    = useRef(null)
   const videoRef   = useRef(null)
   const streamRef  = useRef(null)
   const sendingRef = useRef(false) // M-08: prevents double-send race before loading state propagates
+
+  const wasOpenRef = useRef(false)
+  const wasAuthenticatedRef = useRef(isAuthenticated)
+  useEffect(() => {
+    const openedNow = open && !wasOpenRef.current
+    const authenticatedNow = open && isAuthenticated && !wasAuthenticatedRef.current
+
+    if (isAuthenticated && (openedNow || authenticatedNow)) {
+      stop()
+      newConversation()
+      setText('')
+      setImageData(null)
+      setHistoryOpen(false)
+      sentenceBufRef.current?.reset()
+      sentenceBufRef.current = null
+      tts.stop()
+    }
+
+    wasOpenRef.current = open
+    wasAuthenticatedRef.current = isAuthenticated
+  }, [open, isAuthenticated, newConversation, stop, tts])
 
   // ── Modo conversación tipo llamada ────────────────────────────────────────
   // Loop: escuchar → enviar a IA → hablar respuesta → re-escuchar.
@@ -513,7 +524,12 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
   }, [stt, loading, tts.isSpeaking, tts.queueLength])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = messagesWrapRef.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+      bottomRef.current?.scrollIntoView({ behavior: messages.length > 2 ? 'smooth' : 'auto' })
+    })
   }, [messages, loading])
 
   useEffect(() => {
@@ -735,7 +751,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
             ) : (
               /* ── Chat normal: con sesión ── */
               <>
-                <div className={styles.messages}>
+                <div className={styles.messages} ref={messagesWrapRef}>
                   {chatError && (
                     <div style={{
                       margin: '12px 14px', padding: '10px 13px',

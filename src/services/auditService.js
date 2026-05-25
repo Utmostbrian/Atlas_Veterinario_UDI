@@ -12,8 +12,10 @@ import { supabase } from '../lib/supabase'
 export const DASHBOARD_TIMEZONE = 'America/La_Paz'
 
 export const EVENT_TYPES = {
+  AUTH_LOGIN:                 'AUTH_LOGIN',
   DRUG_SEARCH:                'DRUG_SEARCH',
   DRUG_CARD_OPEN:             'DRUG_CARD_OPEN',
+  DISEASE_PROTOCOL_VIEW:      'DISEASE_PROTOCOL_VIEW',
   DOSE_CALCULATED:            'DOSE_CALCULATED',
   DOSE_VALIDATED:             'DOSE_VALIDATED',
   AI_CONSULTATION:            'AI_CONSULTATION',
@@ -223,6 +225,14 @@ export function logDrugTextSearch(query, resultCount = null) {
     query: cleanQuery,
     summary: `Busqueda de farmaco: ${cleanQuery}`,
     metadata: { resultCount },
+  })
+}
+
+export function logDiseaseProtocolView(diseaseName, species) {
+  return logEvent(EVENT_TYPES.DISEASE_PROTOCOL_VIEW, {
+    query: diseaseName,
+    species,
+    summary: `Protocolo consultado: ${diseaseName}`,
   })
 }
 

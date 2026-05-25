@@ -79,6 +79,20 @@ function ChartCard({ title, subtitle, children, height = 300, empty, raw = false
   )
 }
 
+function parseLocalDay(value) {
+  const [y, m, d] = String(value ?? '').slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+
+function formatLocalDay(value, options) {
+  const date = parseLocalDay(value)
+  if (!date) return '—'
+  return date.toLocaleDateString('es-BO', options)
+}
+
+const axisMax = (dataMax) => Math.max(1, Number(dataMax) || 1)
+
 function HourHeatmap({ data }) {
   const map = new Map(
     (data ?? [])
@@ -205,7 +219,8 @@ export default function AdminDashboard() {
 
   const dayData = useMemo(() => {
     return (kpis?.by_day ?? []).map(d => ({
-      day: new Date(d.day).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' }),
+      day: formatLocalDay(d.day, { day: '2-digit', month: '2-digit' }),
+      full: formatLocalDay(d.day, { day: '2-digit', month: 'short' }),
       total: Number(d.events_count),
     }))
   }, [kpis])
@@ -215,6 +230,10 @@ export default function AdminDashboard() {
   const drugSearches     = Number(kpis?.by_type?.DRUG_SEARCH ?? 0)
   const mostSearchedDrug = topDrugs[0]?.name ?? '—'
   const mostSearchedCount = topDrugs[0]?.total ?? 0
+  const periodRange = dayData.length > 0
+    ? `${dayData[0].full} - ${dayData[dayData.length - 1].full}`
+    : `Últimos ${kpis?.period_days ?? period} días`
+  const periodSub = `${periodRange} · ${kpis?.timezone ?? 'America/La_Paz'}`
 
   if (tab === 'log') {
     return (
@@ -260,37 +279,42 @@ export default function AdminDashboard() {
               Icon={FileTextIcon}
               label={`Total (últimos ${kpis?.period_days ?? period} días)`}
               value={(kpis?.total ?? 0).toLocaleString('es-BO')}
+              sub={periodSub}
               accent="#003087"
             />
             <KpiCard
               Icon={FileTextIcon}
               label="Eventos hoy"
               value={(kpis?.today ?? 0).toLocaleString('es-BO')}
+              sub={`Hoy · ${kpis?.timezone ?? 'America/La_Paz'}`}
               accent="#16a34a"
             />
             <KpiCard
               Icon={SyringeIcon}
               label="Ficha más consultada"
               value={mostSearchedDrug}
-              sub={mostSearchedCount > 0 ? `${mostSearchedCount} aperturas` : null}
+              sub={mostSearchedCount > 0 ? `${mostSearchedCount} aperturas · ${periodRange}` : periodSub}
               accent="#7c3aed"
             />
             <KpiCard
               Icon={SparklesIcon}
               label="Consultas IA"
               value={aiConsultations.toLocaleString('es-BO')}
+              sub={periodSub}
               accent="#CC0000"
             />
             <KpiCard
               Icon={CalculatorIcon}
               label="Cálculos de dosis"
               value={doseCalcCount.toLocaleString('es-BO')}
+              sub={periodSub}
               accent="#16a34a"
             />
             <KpiCard
               Icon={SearchIcon}
               label="Búsquedas de fármacos"
               value={drugSearches.toLocaleString('es-BO')}
+              sub={periodSub}
               accent="#d97706"
             />
           </section>
@@ -300,12 +324,12 @@ export default function AdminDashboard() {
           <div className={styles.chartsGrid}>
             <ChartCard
               title="Top 10 fichas de fármacos consultadas"
-              subtitle={`Últimos ${kpis?.period_days ?? period} días`}
+              subtitle={periodSub}
               empty={topDrugs.length === 0 ? 'Sin fichas consultadas en el período.' : null}
             >
               <BarChart data={topDrugs} layout="vertical" margin={{ top: 6, right: 20, left: 8, bottom: 6 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
-                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, axisMax]} tickCount={5} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
                 <Tooltip cursor={{ fill: 'rgba(204,0,0,.06)' }} contentStyle={tooltipStyle} />
                 <Bar dataKey="total" fill="#CC0000" radius={[0, 4, 4, 0]} maxBarSize={22} />
@@ -314,7 +338,7 @@ export default function AdminDashboard() {
 
             <ChartCard
               title="Distribución por especie"
-              subtitle="Consultas con especie identificada"
+              subtitle={`Especies normalizadas · ${periodSub}`}
               empty={speciesData.length === 0 ? 'Sin especie registrada en el período.' : null}
               height={420}
             >
@@ -347,13 +371,13 @@ export default function AdminDashboard() {
 
             <ChartCard
               title="Frecuencia por tipo de evento"
-              subtitle="Distribución entre módulos"
+              subtitle={periodSub}
               empty={eventTypeData.length === 0 ? 'Aún no hay eventos.' : null}
             >
               <BarChart data={eventTypeData} margin={{ top: 6, right: 16, left: 0, bottom: 36 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} angle={-22} textAnchor="end" interval={0} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, axisMax]} tickCount={5} />
                 <Tooltip cursor={{ fill: 'rgba(0,48,135,.05)' }} contentStyle={tooltipStyle} />
                 <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={48}>
                   {eventTypeData.map(e => <Cell key={e.key} fill={e.color} />)}
@@ -367,7 +391,7 @@ export default function AdminDashboard() {
           <div className={styles.chartsGrid}>
             <ChartCard
               title="Consultas por rol de usuario"
-              subtitle="Quién genera la mayor parte del tráfico"
+              subtitle={periodSub}
               empty={roleData.length === 0 ? 'Sin datos de rol todavía.' : null}
               height={420}
             >
@@ -447,13 +471,13 @@ export default function AdminDashboard() {
           <div className={styles.chartsGrid}>
             <ChartCard
               title="Volumen diario"
-              subtitle={`Eventos por día — últimos ${kpis?.period_days ?? period} días`}
+              subtitle={`Eventos por día · ${periodSub}`}
               empty={dayData.every(d => d.total === 0) ? 'Sin actividad en el período.' : null}
             >
               <LineChart data={dayData} margin={{ top: 6, right: 12, left: 0, bottom: 6 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, axisMax]} tickCount={5} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Line
                   type="monotone"
@@ -468,7 +492,7 @@ export default function AdminDashboard() {
 
             <ChartCard
               title="Actividad por hora del día"
-              subtitle="Heatmap de picos de uso (hora local)"
+              subtitle={`Hora local · ${kpis?.timezone ?? 'America/La_Paz'}`}
               height={180}
               raw
               empty={(kpis?.by_hour ?? []).length === 0 ? 'Sin actividad horaria todavía.' : null}

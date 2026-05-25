@@ -11,7 +11,7 @@ import {
   isAISearchAllowed,
 } from '../../modules/aiSearch'
 import { EXTENDED_DISEASE_NAMES, DISEASE_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
-import { logAiConsultation } from '../../services/auditService'
+import { logAiConsultation, logDiseaseProtocolView } from '../../services/auditService'
 
 const SEVERITY_COLOR  = { 'Muy Alta': '#CC0000', Alta: '#d97706', Media: '#003087' }
 const CATALOG_NAMES   = DISEASES.map(d => d.name)
@@ -268,6 +268,7 @@ function DiseaseCard({ disease, isLoggedIn, onLoginRequired }) {
       if (onLoginRequired) onLoginRequired()
       return
     }
+    logDiseaseProtocolView(disease.name, disease.species)
     setExpanded(true)
     setAiLoading(true)
     setAiData(null)

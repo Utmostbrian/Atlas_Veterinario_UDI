@@ -4,13 +4,15 @@ import { getHistory, exportToCsv, clearHistory } from '../../services/auditServi
 import { AUDIT_EVENT_META } from '../../constants/auditEvents'
 import {
   SearchIcon, FileTextIcon, CalculatorIcon, CheckSquareIcon, SparklesIcon,
-  FileEditIcon, ZapIcon, BookOpenIcon, WarningIcon,
+  FileEditIcon, ZapIcon, BookOpenIcon, WarningIcon, ActivityIcon,
 } from '../../Icons/Icons'
 import ConfirmDialog from '../ui/ConfirmDialog'
 
 const EVENT_ICONS = {
   DRUG_SEARCH:                SearchIcon,
+  AUTH_LOGIN:                 FileTextIcon,
   DRUG_CARD_OPEN:             BookOpenIcon,
+  DISEASE_PROTOCOL_VIEW:      ActivityIcon,
   DOSE_CALCULATED:            CalculatorIcon,
   DOSE_VALIDATED:             CheckSquareIcon,
   AI_CONSULTATION:            SparklesIcon,
