@@ -17,5 +17,6 @@ export const TABS = [
   { id: 'enf',    label: 'Protocolos',          Icon: ActivityIcon,   roles: ['admin', 'docente', 'student'] },
   { id: 'glos',   label: 'Glosario',            Icon: BookIcon,       roles: ['admin', 'docente', 'student'] },
   { id: 'receta', label: 'Recetas',             Icon: FileEditIcon,   roles: ['admin', 'docente', 'student'] },
+  { id: 'dashboard/recetas/historial', label: 'Historial Recetas', Icon: FileTextIcon, roles: ['admin', 'docente', 'student'] },
   { id: 'audit',  label: 'Dashboard',            Icon: FileTextIcon,   roles: ['admin', 'docente']            },
 ]

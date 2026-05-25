@@ -29,6 +29,7 @@ export async function savePrescription({ patient, drugs, diagnosis, vetName, vet
     p_patient_breed:  patient.breed   || null,
     p_patient_weight: patient.weight  ? parseFloat(patient.weight) : null,
     p_patient_age:    patient.age     || null,
+    p_patient_species_other: patient.speciesOther || null,
     p_owner_name:     patient.owner   || null,
     p_owner_phone:    patient.ownerPhone || null,
     p_diagnosis:      diagnosis       || null,

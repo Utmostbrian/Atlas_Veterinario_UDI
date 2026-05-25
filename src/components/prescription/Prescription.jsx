@@ -1,384 +1,327 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { savePrescription } from '../../services/prescriptionService'
-import { getAnimals, searchAnimalsLocal } from '../../services/catalogService'
-import { DRUGS_DATABASE } from '../../data/drugsDatabase'
-import { FileEditIcon, SyringeIcon, CheckSquareIcon } from '../../Icons/Icons'
+import { getAnimals } from '../../services/catalogService'
+import { CheckSquareIcon, FileEditIcon, FileTextIcon, SyringeIcon } from '../../Icons/Icons'
 import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
+import {
+  AGE_UNITS,
+  ATLAS_DRUG_NAMES,
+  SPECIES_OPTIONS,
+  findDrugMatch,
+  getSpeciesOption,
+  inputNumber,
+  mapPrescriptionErrors,
+  prescriptionSchema,
+} from './prescriptionValidation'
 
-const ROUTES = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario', 'Intravaginal']
-const AGE_UNITS = ['días', 'meses', 'años']
+const ROUTES = [
+  'VO (oral)',
+  'IM (intramuscular)',
+  'IV (intravenosa)',
+  'SC (subcutanea)',
+  'Topico',
+  'Intramamario',
+  'Intravaginal',
+  'Pour-on (bovino)',
+]
 
-// Regex de validación — sin IA, puro cliente.
-const ALPHA_NAME = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\-'.]+$/   // nombres propios
-const PHONE_RE   = /^[\d\s+\-().]{6,25}$/                // teléfonos internacionales
-const HAS_LETTER = /[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]/              // contiene al menos una letra
-const HAS_DIGIT  = /\d/                                   // contiene al menos un dígito
+const EMPTY_DRUG = () => ({
+  name: '',
+  quantity: '',
+  dose: '',
+  route: '',
+  freq: '',
+  duration: '',
+  notes: '',
+})
 
-// EMPTY_DRUG: el campo route arranca vacío para que la cascada
-// fármaco→vía pueda imponer la primera opción válida.
-const EMPTY_DRUG = () => ({ name: '', dose: '', route: '', freq: '', duration: '', notes: '' })
+function parseMgPerKg(value) {
+  const numeric = inputNumber(value)
+  if (numeric != null) return numeric
 
-// Parseo de dosis ingresada por el usuario: extrae mg/kg si está expresado así.
-// "5 mg/kg" → 5 | "0.2 mg/kg c/12h" → 0.2 | "1 comprimido" → null
-function parseMgPerKg(doseStr) {
-  if (!doseStr) return null
-  const m = String(doseStr).match(/(\d+(?:[.,]\d+)?)\s*mg\s*\/\s*kg/i)
-  if (!m) return null
-  return parseFloat(m[1].replace(',', '.'))
+  const match = String(value || '').match(/(\d+(?:[.,]\d+)?)\s*mg\s*\/\s*kg/i)
+  if (!match) return null
+  return inputNumber(match[1])
 }
 
-// Devuelve la entrada de DRUGS_DATABASE por coincidencia case-insensitive
-// del nombre (acepta "Amoxicilina 500 mg" → match "Amoxicilina").
 function matchDrugRules(drugInput) {
-  if (!drugInput) return null
-  const q = drugInput.trim().toLowerCase()
-  if (!q) return null
-  const keys = Object.keys(DRUGS_DATABASE)
-  const exact = keys.find(k => k.toLowerCase() === q)
-  if (exact) return { key: exact, rules: DRUGS_DATABASE[exact] }
-  const partial = keys.find(k => q.startsWith(k.toLowerCase()) || q.includes(k.toLowerCase()))
-  if (partial) return { key: partial, rules: DRUGS_DATABASE[partial] }
-  return null
+  return findDrugMatch(drugInput)
+}
+
+function doseUnitFor(drugName) {
+  return matchDrugRules(drugName)?.rules?.doseUnit || 'mg/kg'
+}
+
+function displayDose(drug) {
+  const value = inputNumber(drug.dose)
+  if (value == null) return drug.dose
+  return `${value} ${doseUnitFor(drug.name)}`
+}
+
+function displayFrequency(drug) {
+  const value = inputNumber(drug.freq)
+  return value == null ? drug.freq : `cada ${value} h`
+}
+
+function displayDuration(drug) {
+  const value = inputNumber(drug.duration)
+  return value == null ? drug.duration : `${value} dias`
+}
+
+function displaySpecies(patient) {
+  if (patient.species === 'Otros' && patient.speciesOther?.trim()) {
+    return `Otros (${patient.speciesOther.trim()})`
+  }
+  return patient.species
+}
+
+function printElement(element, title = 'Receta Veterinaria UDI') {
+  if (!element) return
+
+  const printHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --blue:#CC0000; --dark:#1a1a2e; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'EB Garamond',serif; background:#fff; padding:32px; color:var(--text); }
+    strong { font-weight:700; }
+    button { display:none !important; }
+    @media print { body { padding:16px; } }
+  </style>
+</head>
+<body>
+  ${element.innerHTML}
+  <script>
+    window.addEventListener('load', function() {
+      window.print();
+      setTimeout(function() { window.close(); }, 1000);
+    });
+  </script>
+</body>
+</html>`
+
+  const blob = new Blob([printHtml], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  const win = window.open(url, '_blank', 'width=860,height=900')
+
+  if (!win) {
+    const a = document.createElement('a')
+    a.href = url
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    a.click()
+  }
+
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 export default function Prescription() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const previewRef = useRef(null)
-  const speciesWrapRef = useRef(null)
 
-  // patient.species = common_name (lo que ve el usuario, ej. "Vaca")
-  // selectedAnimal = fila completa del catálogo (incluye standard_species y rango de peso)
-  const [patient,   setPatient]   = useState({ name: '', species: '', breed: '', weight: '', ageValue: '', ageUnit: 'años', owner: '', ownerPhone: '' })
-  const [drugs,     setDrugs]     = useState([EMPTY_DRUG()])
+  const [patient, setPatient] = useState({
+    name: '',
+    species: '',
+    speciesOther: '',
+    breed: '',
+    weight: '',
+    ageValue: '',
+    ageUnit: 'anos',
+    owner: '',
+    ownerPhone: '',
+  })
+  const [drugs, setDrugs] = useState([EMPTY_DRUG()])
   const [diagnosis, setDiagnosis] = useState('')
-  const [vetName,   setVetName]   = useState('')
-  const [vetReg,    setVetReg]    = useState('')
+  const [vetName, setVetName] = useState('')
+  const [vetReg, setVetReg] = useState('')
   const [generated, setGenerated] = useState(false)
-  const [errors,    setErrors]    = useState({})
-  const [saving,    setSaving]    = useState(false)
-  const [saveStatus, setSaveStatus] = useState(null) // 'saved' | 'error' | null
+  const [errors, setErrors] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState(null)
 
-  // Catálogo de animales — carga única al montar, búsqueda local.
-  const [animals,          setAnimals]          = useState([])
-  const [selectedAnimal,   setSelectedAnimal]   = useState(null)
-  const [speciesOpen,      setSpeciesOpen]      = useState(false)
-  const [speciesHighlight, setSpeciesHighlight] = useState(0)
-  const [catalogError,     setCatalogError]     = useState(null)
+  const [animals, setAnimals] = useState([])
+  const [catalogError, setCatalogError] = useState(null)
 
   useEffect(() => {
     let alive = true
     getAnimals()
-      .then(rows => { if (alive) setAnimals(rows) })
-      .catch(err => { if (alive) setCatalogError(err.message) })
+      .then((rows) => {
+        if (alive) setAnimals(rows)
+      })
+      .catch((err) => {
+        if (alive) setCatalogError(err.message)
+      })
     return () => { alive = false }
   }, [])
 
-  // Cierra el dropdown al hacer click fuera
   useEffect(() => {
-    if (!speciesOpen) return
-    const onClick = (ev) => {
-      if (speciesWrapRef.current && !speciesWrapRef.current.contains(ev.target)) {
-        setSpeciesOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [speciesOpen])
-
-  // Sugerencias filtradas (memoizadas)
-  const speciesSuggestions = useMemo(() => {
-    if (!animals.length) return []
-    return searchAnimalsLocal(animals, patient.species, 8)
-  }, [animals, patient.species])
-
-  // Standard species derivado del seleccionado (clave clínica)
-  const stdSpecies = selectedAnimal?.standard_species || null
-
-  // Pre-llenar datos del veterinario desde el perfil de usuario.
-  // Sólo dependemos de user — vetName/vetReg quedan fuera intencionalmente para
-  // evitar re-disparar cuando el usuario edite los campos manualmente.
-  useEffect(() => {
-    if (user?.name && !vetName)          setVetName(user.name)
-    if (user?.licenseNumber && !vetReg)  setVetReg(user.licenseNumber)
+    if (user?.name && !vetName) setVetName(user.name)
+    if (user?.licenseNumber && !vetReg) setVetReg(user.licenseNumber)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  // Limpia el status de guardado después de 4 segundos
   useEffect(() => {
-    if (!saveStatus) return
-    const t = setTimeout(() => setSaveStatus(null), 4000)
-    return () => clearTimeout(t)
+    if (!saveStatus) return undefined
+    const timer = setTimeout(() => setSaveStatus(null), 4000)
+    return () => clearTimeout(timer)
   }, [saveStatus])
 
+  const speciesOption = useMemo(() => getSpeciesOption(patient.species), [patient.species])
+  const selectedAnimal = useMemo(() => {
+    if (!patient.species) return null
+    const target = patient.species.toLowerCase()
+    return animals.find((row) => row.common_name?.toLowerCase() === target) || null
+  }, [animals, patient.species])
+  const stdSpecies = speciesOption?.clinicalSpecies || selectedAnimal?.standard_species || null
+
+  function clearError(key) {
+    setErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
   function updatePatient(field, value) {
-    setPatient(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors(prev => { const e = { ...prev }; delete e[field]; return e })
-  }
+    const nextValue = field === 'ownerPhone' ? value.replace(/\D/g, '') : value
 
-  // Selecciona un animal del dropdown: setea common_name y guarda la fila completa.
-  function pickAnimal(row) {
-    setSelectedAnimal(row)
-    setPatient(prev => ({ ...prev, species: row.common_name }))
-    setSpeciesOpen(false)
-    setErrors(prev => { const e = { ...prev }; delete e.species; delete e.weight; return e })
-  }
+    setPatient((prev) => ({
+      ...prev,
+      [field]: nextValue,
+      ...(field === 'species' && nextValue !== 'Otros' ? { speciesOther: '' } : null),
+    }))
 
-  // Edita el input de especie: si no hay match exacto, invalida la selección.
-  function onSpeciesChange(value) {
-    setPatient(prev => ({ ...prev, species: value }))
-    setSpeciesOpen(true)
-    setSpeciesHighlight(0)
-    // Invalida la selección previa si el texto ya no coincide
-    if (selectedAnimal && selectedAnimal.common_name.toLowerCase() !== value.trim().toLowerCase()) {
-      setSelectedAnimal(null)
+    clearError(field === 'ageValue' ? 'age' : field)
+    if (field === 'species') {
+      clearError('speciesOther')
+      clearError('weight')
     }
-    if (errors.species) setErrors(prev => { const e = { ...prev }; delete e.species; return e })
   }
 
-  function onSpeciesKeyDown(ev) {
-    if (!speciesOpen) return
-    if (ev.key === 'ArrowDown') {
-      ev.preventDefault()
-      setSpeciesHighlight(i => Math.min(i + 1, speciesSuggestions.length - 1))
-    } else if (ev.key === 'ArrowUp') {
-      ev.preventDefault()
-      setSpeciesHighlight(i => Math.max(i - 1, 0))
-    } else if (ev.key === 'Enter') {
-      if (speciesSuggestions[speciesHighlight]) {
-        ev.preventDefault()
-        pickAnimal(speciesSuggestions[speciesHighlight])
-      }
-    } else if (ev.key === 'Escape') {
-      setSpeciesOpen(false)
-    }
+  function allowedRoutesFor(drugName) {
+    const match = matchDrugRules(drugName)
+    if (!match || !Array.isArray(match.rules.allowedRoutes)) return ROUTES
+    return match.rules.allowedRoutes
   }
 
   function updateDrug(idx, field, value) {
-    setDrugs(prev => prev.map((d, i) => i === idx ? { ...d, [field]: value } : d))
-    const key = `drug_${idx}_${field}`
-    if (errors[key]) setErrors(prev => { const e = { ...prev }; delete e[key]; return e })
+    setDrugs((prev) => prev.map((drug, i) => {
+      if (i !== idx) return drug
+      const next = { ...drug, [field]: value }
+      if (field === 'name') {
+        const allowedRoutes = allowedRoutesFor(value)
+        if (next.route && !allowedRoutes.includes(next.route)) next.route = ''
+      }
+      return next
+    }))
+
+    clearError(`drug_${idx}_${field}`)
+    if (field === 'name') clearError(`drug_${idx}_route`)
   }
 
   function addDrug() {
-    setDrugs(prev => [...prev, EMPTY_DRUG()])
+    setDrugs((prev) => [...prev, EMPTY_DRUG()])
   }
 
   function removeDrug(idx) {
     if (drugs.length <= 1) return
-    setDrugs(prev => prev.filter((_, i) => i !== idx))
-    // Limpiar errores de ese medicamento
-    setErrors(prev => {
-      const cleaned = { ...prev }
-      Object.keys(cleaned).forEach(k => { if (k.startsWith(`drug_${idx}_`)) delete cleaned[k] })
-      return cleaned
+    setDrugs((prev) => prev.filter((_, i) => i !== idx))
+    setErrors((prev) => {
+      const next = { ...prev }
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith(`drug_${idx}_`)) delete next[key]
+      })
+      return next
     })
   }
 
   function validate() {
-    const e = {}
+    const result = prescriptionSchema.safeParse({ patient, drugs, diagnosis, vetName, vetReg })
+    const nextErrors = result.success ? {} : mapPrescriptionErrors(result.error)
 
-    // ── Veterinario ────────────────────────────────────────────────────────────
-    if (!vetName.trim()) {
-      e.vetName = 'El nombre del veterinario es obligatorio.'
-    } else if (!ALPHA_NAME.test(vetName.trim())) {
-      e.vetName = 'Solo letras, espacios, puntos o guiones (sin números ni símbolos).'
-    } else if (vetName.trim().length < 4) {
-      e.vetName = 'El nombre es muy corto (mín. 4 caracteres).'
-    }
-
-    if (!vetReg.trim()) {
-      e.vetReg = 'El N° de registro/matrícula es obligatorio.'
-    } else if (!HAS_DIGIT.test(vetReg.trim())) {
-      e.vetReg = 'La matrícula debe contener al menos un número (ej: MV-1234).'
-    } else if (vetReg.trim().length < 3) {
-      e.vetReg = 'Matrícula demasiado corta.'
-    }
-
-    // ── Especie (catálogo obligatorio — no texto libre) ────────────────────────
-    if (!patient.species.trim()) {
-      e.species = 'La especie es obligatoria.'
-    } else if (!selectedAnimal) {
-      e.species = 'Especie no reconocida. Selecciona una opción del catálogo.'
-    }
-
-    // ── Nombre del animal (opcional; si se ingresa, solo letras) ──────────────
-    if (patient.name.trim()) {
-      if (!ALPHA_NAME.test(patient.name.trim()))
-        e.name = 'El nombre del animal solo puede contener letras, espacios o guiones.'
-      else if (patient.name.trim().length > 80)
-        e.name = 'Nombre demasiado largo (máx. 80 caracteres).'
-    }
-
-    // ── Raza (opcional; si se ingresa, solo letras) ────────────────────────────
-    if (patient.breed.trim()) {
-      if (!ALPHA_NAME.test(patient.breed.trim()))
-        e.breed = 'La raza solo puede contener letras, espacios o guiones.'
-      else if (patient.breed.trim().length > 60)
-        e.breed = 'Raza demasiado larga (máx. 60 caracteres).'
-    }
-
-    // ── Peso (obligatorio) ────────────────────────────────────────────────────
-    if (!patient.weight || patient.weight === '') {
-      e.weight = 'El peso del paciente es obligatorio.'
-    } else {
-      const w = parseFloat(patient.weight)
-      if (isNaN(w) || w <= 0) {
-        e.weight = 'El peso debe ser un número mayor a 0.'
-      } else if (selectedAnimal) {
-        const min = parseFloat(selectedAnimal.weight_range_min)
-        const max = parseFloat(selectedAnimal.weight_range_max)
-        if (w < min || w > max)
-          e.weight = `Peso fuera de rango para ${selectedAnimal.common_name} (${min}–${max} kg).`
-      }
-    }
-
-    // ── Edad (opcional; si se ingresa, rango razonable por unidad) ────────────
-    if (patient.ageValue !== '' && patient.ageValue != null && patient.ageValue !== undefined) {
-      const a = parseFloat(patient.ageValue)
-      if (isNaN(a) || a <= 0) {
-        e.age = 'La edad debe ser un número mayor a 0.'
-      } else {
-        const maxAge = patient.ageUnit === 'días' ? 3650
-                     : patient.ageUnit === 'meses' ? 120
-                     : 50
-        if (a > maxAge)
-          e.age = `Edad fuera de rango para "${patient.ageUnit}" (máx. ${maxAge}).`
-      }
-    }
-
-    // ── Propietario (opcional; si se ingresa, debe tener letras) ──────────────
-    if (patient.owner.trim()) {
-      if (!HAS_LETTER.test(patient.owner))
-        e.owner = 'El nombre del propietario debe contener letras.'
-      else if (patient.owner.trim().length > 80)
-        e.owner = 'Nombre demasiado largo (máx. 80 caracteres).'
-    }
-
-    // ── Teléfono (opcional; si se ingresa, solo dígitos y símbolos válidos) ───
-    if (patient.ownerPhone.trim() && !PHONE_RE.test(patient.ownerPhone.trim())) {
-      e.ownerPhone = 'Teléfono inválido. Use dígitos, +, -, paréntesis (6–25 caracteres).'
-    }
-
-    // ── Diagnóstico (opcional; si se ingresa, debe tener texto real) ──────────
-    if (diagnosis.trim()) {
-      if (!HAS_LETTER.test(diagnosis))
-        e.diagnosis = 'El diagnóstico debe contener texto descriptivo, no solo números.'
-      else if (diagnosis.trim().length < 5)
-        e.diagnosis = 'El diagnóstico es muy corto (mín. 5 caracteres).'
-    }
-
-    // ── Medicamentos ──────────────────────────────────────────────────────────
-    const validDrugs = drugs.filter(d => d.name.trim())
-    if (validDrugs.length === 0) {
-      e.drugs_global = 'Agrega al menos un medicamento con nombre.'
-    }
-
-    drugs.forEach((d, idx) => {
-      if (!d.name.trim()) return
-
-      // Nombre del fármaco: debe contener letras (no números ni símbolos solos)
-      if (!HAS_LETTER.test(d.name))
-        e['drug_' + idx + '_name'] = 'El nombre del fármaco debe contener letras.'
-
-      // Dosis: obligatoria y debe incluir un número
-      if (!d.dose.trim()) {
-        e['drug_' + idx + '_dose'] = 'Ingresa la dosis.'
-      } else if (!HAS_DIGIT.test(d.dose)) {
-        e['drug_' + idx + '_dose'] = 'La dosis debe incluir un valor numérico (ej: 5 mg/kg, 1 comprimido).'
-      }
-
-      // Frecuencia: obligatoria; debe tener número o término clínico reconocido
-      if (!d.freq.trim()) {
-        e['drug_' + idx + '_freq'] = 'Ingresa la frecuencia.'
-      } else if (!HAS_DIGIT.test(d.freq) && !/\b(SID|BID|TID|QID|PRN|STAT|cada|diario|diaria|semanal|quincenal)\b/i.test(d.freq)) {
-        e['drug_' + idx + '_freq'] = 'Incluye un número o término clínico (c/12h, SID, BID, cada 8h…).'
-      }
-
-      // Duración: obligatoria; debe tener número o palabra reconocida
-      if (!d.duration.trim()) {
-        e['drug_' + idx + '_duration'] = 'Ingresa la duración.'
-      } else if (!HAS_DIGIT.test(d.duration) && !/\b(una|dos|tres|cuatro|cinco|seis|siete|indefinid|cr[oó]n)/i.test(d.duration)) {
-        e['drug_' + idx + '_duration'] = 'Incluye un valor numérico (ej: 7 días, 2 semanas).'
-      }
-
-      // Cascada fármaco→vía
-      const match = matchDrugRules(d.name)
-      if (match && d.route && Array.isArray(match.rules.allowedRoutes)
-          && !match.rules.allowedRoutes.includes(d.route)) {
-        e['drug_' + idx + '_route'] = `Vía no permitida para ${match.key}.`
+    drugs.forEach((drug, idx) => {
+      const routes = allowedRoutesFor(drug.name)
+      if (drug.route && !routes.includes(drug.route)) {
+        nextErrors[`drug_${idx}_route`] = 'Via no permitida para este farmaco.'
       }
     })
 
-    setErrors(e)
-    return Object.keys(e).length === 0
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
   }
 
-  // Calcula advertencia mg/kg para una droga concreta dado el peso y la especie estándar.
-  // No bloquea; devuelve un objeto {message} cuando hay que mostrar warning.
   function doseWarning(drug) {
     if (!stdSpecies || !drug?.name?.trim() || !drug?.dose?.trim()) return null
-    const w = parseFloat(patient.weight)
-    if (!w || w <= 0) return null
     const match = matchDrugRules(drug.name)
     if (!match) return null
+
     const range = match.rules.dosageRange?.[stdSpecies]
     if (!range || range.min == null || range.max == null) {
-      // El fármaco no tiene rango clínico para esa especie estándar
       const allowed = Object.keys(match.rules.dosageRange || {}).join(', ')
-      return { type: 'info', message: `${match.key} no tiene rango clínico para ${stdSpecies}${allowed ? ` (usa: ${allowed})` : ''}.` }
+      return {
+        type: 'info',
+        message: `${match.key} no tiene rango clinico para ${stdSpecies}${allowed ? ` (usa: ${allowed})` : ''}.`,
+      }
     }
-    const mgkg = parseMgPerKg(drug.dose)
-    if (mgkg == null) return null
-    if (mgkg > range.max) {
-      return { type: 'warn', message: `Dosis ${mgkg} mg/kg supera el máximo (${range.max} mg/kg) para ${match.key} en ${stdSpecies}.` }
+
+    const dose = parseMgPerKg(drug.dose)
+    if (dose == null) return null
+    if (dose > range.max) {
+      return { type: 'warn', message: `Dosis ${dose} ${doseUnitFor(drug.name)} supera el maximo (${range.max}) para ${match.key} en ${stdSpecies}.` }
     }
-    if (mgkg < range.min) {
-      return { type: 'info', message: `Dosis ${mgkg} mg/kg por debajo del mínimo (${range.min} mg/kg) para ${match.key} en ${stdSpecies}.` }
+    if (dose < range.min) {
+      return { type: 'info', message: `Dosis ${dose} ${doseUnitFor(drug.name)} por debajo del minimo (${range.min}) para ${match.key} en ${stdSpecies}.` }
     }
     return null
-  }
-
-  // Devuelve la lista de vías permitidas para el fármaco; si no hay match,
-  // devuelve el set completo.
-  function allowedRoutesFor(drugName) {
-    const match = matchDrugRules(drugName)
-    if (!match || !Array.isArray(match.rules.allowedRoutes)) return ROUTES
-    return ROUTES.filter(r => match.rules.allowedRoutes.includes(r))
   }
 
   async function handleGenerate() {
     if (!validate()) return
 
     setGenerated(true)
-
-    // Solo guardar en Supabase si hay sesión activa
     if (!user) return
 
-    // Enriquecer drugs con mg_per_kg + max_allowed_mgkg para que el SP
-    // pueda detectar override y registrar PRESCRIPTION_DOSE_OVERRIDE.
-    const enrichedDrugs = drugs
-      .filter(d => d.name.trim())
-      .map(d => {
-        const enriched = { ...d }
-        const match = matchDrugRules(d.name)
-        const mgkg = parseMgPerKg(d.dose)
-        if (mgkg != null) enriched.mg_per_kg = mgkg
-        if (match && stdSpecies) {
-          const range = match.rules.dosageRange?.[stdSpecies]
-          if (range?.max != null) enriched.max_allowed_mgkg = range.max
-        }
-        return enriched
-      })
+    const enrichedDrugs = drugs.map((drug) => {
+      const match = matchDrugRules(drug.name)
+      const doseValue = inputNumber(drug.dose)
+      const doseUnit = doseUnitFor(drug.name)
+      const enriched = {
+        name: match?.key || drug.name.trim(),
+        quantity: inputNumber(drug.quantity),
+        dose: displayDose(drug),
+        dose_value: doseValue,
+        dose_unit: doseUnit,
+        route: drug.route,
+        freq: displayFrequency(drug),
+        frequency_hours: inputNumber(drug.freq),
+        duration: displayDuration(drug),
+        duration_days: inputNumber(drug.duration),
+        notes: drug.notes?.trim() || '',
+      }
 
-    // Edad consolidada en un único string para la columna patient_age (TEXT)
-    const ageString = patient.ageValue
-      ? `${patient.ageValue} ${patient.ageUnit}`
-      : ''
+      if (doseUnit === 'mg/kg' && doseValue != null) enriched.mg_per_kg = doseValue
+      if (match && stdSpecies && doseUnit === 'mg/kg') {
+        const range = match.rules.dosageRange?.[stdSpecies]
+        if (range?.max != null) enriched.max_allowed_mgkg = range.max
+      }
 
+      return enriched
+    })
+
+    const ageString = patient.ageValue ? `${patient.ageValue} ${patient.ageUnit}` : ''
     const patientForSave = {
       ...patient,
-      species: selectedAnimal?.common_name || patient.species,
+      species: patient.species,
+      speciesOther: patient.species === 'Otros' ? patient.speciesOther.trim() : null,
       age: ageString,
     }
 
@@ -401,152 +344,126 @@ export default function Prescription() {
     }
   }
 
-  function handlePrint() {
-    const el = previewRef.current
-    if (!el) return
-
-    // M-08: document.write está deprecated y bloqueado bajo COEP/COOP estrictos.
-    // Usamos blob URL como fuente del popup; si el browser lo bloquea, abrimos
-    // como link (fallback A-03). Sin document.write en ningún caso.
-    const printHtml = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>Receta Veterinaria · UDI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
-  <style>
-    :root { --blue:#CC0000; --dark:#1a1a2e; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'EB Garamond',serif; background:#fff; padding:32px; color:var(--text); }
-    strong { font-weight:700; }
-    button { display:none !important; }
-    @media print { body { padding:16px; } }
-  </style>
-</head>
-<body>
-  ${el.innerHTML}
-  <script>
-    window.addEventListener('load', function() {
-      window.print();
-      setTimeout(function() { window.close(); }, 1000);
-    });
-  </script>
-</body>
-</html>`
-
-    const blob = new Blob([printHtml], { type: 'text/html' })
-    const url  = URL.createObjectURL(blob)
-
-    // N4: window.open con noopener en el tercer arg fuerza retorno null en
-    // navegadores modernos, lo que activaba el fallback siempre y abría
-    // dos pestañas. Quitamos noopener; el doc del print no comparte origen
-    // con la SPA (es un blob:), así que el riesgo de window.opener es mínimo.
-    const win = window.open(url, '_blank', 'width=860,height=900')
-    if (!win) {
-      // Popup bloqueado → fallback como link
-      const a = document.createElement('a')
-      a.href   = url
-      a.target = '_blank'
-      a.rel    = 'noopener noreferrer'
-      a.click()
-    }
-    // Limpieza diferida: el navegador necesita el blob mientras imprime
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
-  }
-
   const today = new Date().toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' })
-  const validDrugsForPreview = drugs.filter(d => d.name.trim())
+  const validDrugsForPreview = drugs.filter((drug) => drug.name.trim())
 
   return (
     <div className="wrap">
-      <div style={{ marginBottom: 22 }}>
-        <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: '1.35rem', color: 'var(--dark)', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <FileEditIcon size={22} style={{ color: 'var(--blue)' }} />
-          Generador de Recetas Veterinarias
-        </h2>
-        <p style={{ fontSize: '.83rem', color: 'var(--soft)' }}>
-          Completa los datos y genera una receta profesional lista para imprimir.
-          {user && <span style={{ marginLeft: 6, color: 'var(--blue)' }}>· La receta se guardará en tu historial.</span>}
-        </p>
+      <datalist id="atlas-drug-list">
+        {ATLAS_DRUG_NAMES.map((name) => <option key={name} value={name} />)}
+      </datalist>
+
+      <div className="hist-hdr" style={{ marginBottom: 22 }}>
+        <div>
+          <h2>
+            <FileEditIcon size={22} style={{ color: 'var(--blue)' }} />
+            Generador de Recetas Veterinarias
+          </h2>
+          <p>
+            Completa los datos y genera una receta profesional lista para imprimir.
+            {user && <span style={{ marginLeft: 6, color: 'var(--blue)' }}>La receta se guardara en tu historial.</span>}
+          </p>
+        </div>
+        {user && (
+          <button
+            type="button"
+            className="hist-btn"
+            onClick={() => navigate('/dashboard/recetas/historial')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
+          >
+            <FileTextIcon size={15} />
+            Historial
+          </button>
+        )}
       </div>
 
-      {/* ── Formulario ── */}
       <div className="receta-form" style={{ marginBottom: 24 }}>
         <div className="receta-hdr">
           <div className="receta-hdr-text">
             <h3>Datos del Paciente</h3>
-            <p>Facultad de Veterinaria · UDI</p>
+            <p>Facultad de Veterinaria - UDI</p>
           </div>
         </div>
 
         <div className="receta-body">
-
-          {/* Paciente */}
           <div className="receta-section">
             <div className="receta-section-title">Paciente</div>
+
             <div className="receta-2col">
               <div className="fgrp">
                 <label className="flbl">Nombre del animal</label>
-                <input className={`fc${errors.name ? ' fc--err' : ''}`} value={patient.name}
-                  onChange={e => updatePatient('name', e.target.value)} placeholder="Ej: Luna" />
+                <input
+                  className={`fc${errors.name ? ' fc--err' : ''}`}
+                  value={patient.name}
+                  onChange={(event) => updatePatient('name', event.target.value)}
+                  placeholder="Ej: Luna"
+                />
                 {errors.name && <p className="fc-err-msg">{errors.name}</p>}
               </div>
-              <div className="fgrp" ref={speciesWrapRef} style={{ position: 'relative' }}>
+
+              <div className="fgrp">
                 <label className="flbl">Especie <span style={{ color: 'var(--blue)' }}>*</span></label>
-                <input
+                <select
                   className={`fc${errors.species ? ' fc--err' : ''}`}
-                  type="text"
                   value={patient.species}
-                  onChange={e => onSpeciesChange(e.target.value)}
-                  onFocus={() => setSpeciesOpen(true)}
-                  onKeyDown={onSpeciesKeyDown}
-                  placeholder="Ej: Vaca, Perro, Oveja…"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                {speciesOpen && speciesSuggestions.length > 0 && (
-                  <ul className="fc-autocomplete-list" role="listbox">
-                    {speciesSuggestions.map((row, i) => (
-                      <li
-                        key={row.id}
-                        role="option"
-                        aria-selected={i === speciesHighlight}
-                        className={`fc-autocomplete-item${i === speciesHighlight ? ' is-active' : ''}`}
-                        onMouseDown={(ev) => { ev.preventDefault(); pickAnimal(row) }}
-                        onMouseEnter={() => setSpeciesHighlight(i)}
-                      >
-                        <span style={{ fontWeight: 600 }}>{row.common_name}</span>
-                        <span style={{ color: 'var(--soft)', fontSize: '.75rem', marginLeft: 6 }}>
-                          → {row.standard_species} · {row.weight_range_min}–{row.weight_range_max} kg
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  onChange={(event) => updatePatient('species', event.target.value)}
+                >
+                  <option value="">Selecciona...</option>
+                  {SPECIES_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
                 {errors.species && <p className="fc-err-msg">{errors.species}</p>}
-                {!errors.species && selectedAnimal && (
+                {!errors.species && speciesOption && (
                   <p className="fc-hint-msg">
-                    Especie clínica: <strong>{selectedAnimal.standard_species}</strong> · rango {selectedAnimal.weight_range_min}–{selectedAnimal.weight_range_max} kg
+                    Rango esperado: <strong>{speciesOption.minKg}-{speciesOption.maxKg} kg</strong>
+                    {stdSpecies && ` - clave clinica: ${stdSpecies}`}
                   </p>
                 )}
                 {catalogError && <p className="fc-err-msg">{catalogError}</p>}
               </div>
             </div>
+
+            {patient.species === 'Otros' && (
+              <div className="fgrp">
+                <label className="flbl">Especifique la especie <span style={{ color: 'var(--blue)' }}>*</span></label>
+                <input
+                  className={`fc${errors.speciesOther ? ' fc--err' : ''}`}
+                  value={patient.speciesOther}
+                  onChange={(event) => updatePatient('speciesOther', event.target.value)}
+                  placeholder="Ej: Conejo, cobayo, pez ornamental"
+                />
+                {errors.speciesOther && <p className="fc-err-msg">{errors.speciesOther}</p>}
+              </div>
+            )}
+
             <div className="receta-3col">
               <div className="fgrp">
                 <label className="flbl">Raza</label>
-                <input className={`fc${errors.breed ? ' fc--err' : ''}`} value={patient.breed}
-                  onChange={e => updatePatient('breed', e.target.value)} placeholder="Ej: Golden" />
+                <input
+                  className={`fc${errors.breed ? ' fc--err' : ''}`}
+                  value={patient.breed}
+                  onChange={(event) => updatePatient('breed', event.target.value)}
+                  placeholder="Ej: Golden"
+                />
                 {errors.breed && <p className="fc-err-msg">{errors.breed}</p>}
               </div>
+
               <div className="fgrp">
-                <label className="flbl">Peso (kg)</label>
-                <input className={`fc${errors.weight ? ' fc--err' : ''}`}
-                  type="number" min="0.01" step="0.1" value={patient.weight}
-                  onChange={e => updatePatient('weight', e.target.value)} placeholder="28" />
+                <label className="flbl">Peso (kg) <span style={{ color: 'var(--blue)' }}>*</span></label>
+                <input
+                  className={`fc${errors.weight ? ' fc--err' : ''}`}
+                  type="number"
+                  min={speciesOption?.minKg ?? 0.1}
+                  max={speciesOption?.maxKg ?? 1000}
+                  step="0.1"
+                  value={patient.weight}
+                  onChange={(event) => updatePatient('weight', event.target.value)}
+                  placeholder="28"
+                />
                 {errors.weight && <p className="fc-err-msg">{errors.weight}</p>}
               </div>
+
               <div className="fgrp">
                 <label className="flbl">Edad</label>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -556,146 +473,202 @@ export default function Prescription() {
                     min="0"
                     step="0.5"
                     value={patient.ageValue}
-                    onChange={e => updatePatient('ageValue', e.target.value)}
+                    onChange={(event) => updatePatient('ageValue', event.target.value)}
                     placeholder="3"
                     style={{ flex: '1 1 0' }}
                   />
                   <select
                     className="fc"
                     value={patient.ageUnit}
-                    onChange={e => updatePatient('ageUnit', e.target.value)}
+                    onChange={(event) => updatePatient('ageUnit', event.target.value)}
                     style={{ flex: '0 0 110px' }}
                   >
-                    {AGE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                    {AGE_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
                   </select>
                 </div>
                 {errors.age && <p className="fc-err-msg">{errors.age}</p>}
               </div>
             </div>
+
             <div className="receta-2col">
               <div className="fgrp">
                 <label className="flbl">Propietario</label>
-                <input className={`fc${errors.owner ? ' fc--err' : ''}`} value={patient.owner}
-                  onChange={e => updatePatient('owner', e.target.value)} placeholder="Nombre del dueño" />
+                <input
+                  className={`fc${errors.owner ? ' fc--err' : ''}`}
+                  value={patient.owner}
+                  onChange={(event) => updatePatient('owner', event.target.value)}
+                  placeholder="Nombre del propietario"
+                />
                 {errors.owner && <p className="fc-err-msg">{errors.owner}</p>}
               </div>
+
               <div className="fgrp">
-                <label className="flbl">Teléfono</label>
-                <input className={`fc${errors.ownerPhone ? ' fc--err' : ''}`} value={patient.ownerPhone}
-                  onChange={e => updatePatient('ownerPhone', e.target.value)} placeholder="+591 7..." />
+                <label className="flbl">Telefono</label>
+                <input
+                  className={`fc${errors.ownerPhone ? ' fc--err' : ''}`}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={patient.ownerPhone}
+                  onChange={(event) => updatePatient('ownerPhone', event.target.value)}
+                  placeholder="Ej: 70000000"
+                />
                 {errors.ownerPhone && <p className="fc-err-msg">{errors.ownerPhone}</p>}
               </div>
             </div>
           </div>
 
-          {/* Diagnóstico */}
           <div className="receta-section">
-            <div className="receta-section-title">Diagnóstico / Indicación</div>
-            <textarea className={`fc${errors.diagnosis ? ' fc--err' : ''}`} rows={2} value={diagnosis}
-              onChange={e => { setDiagnosis(e.target.value); if (errors.diagnosis) setErrors(p => { const c = { ...p }; delete c.diagnosis; return c }) }}
-              placeholder="Diagnóstico clínico o indicación terapéutica..."
-              style={{ resize: 'vertical' }} />
+            <div className="receta-section-title">Diagnostico / Indicacion</div>
+            <textarea
+              className={`fc${errors.diagnosis ? ' fc--err' : ''}`}
+              rows={2}
+              value={diagnosis}
+              onChange={(event) => {
+                setDiagnosis(event.target.value)
+                clearError('diagnosis')
+              }}
+              placeholder="Diagnostico clinico o indicacion terapeutica..."
+              style={{ resize: 'vertical' }}
+            />
             {errors.diagnosis && <p className="fc-err-msg">{errors.diagnosis}</p>}
           </div>
 
-          {/* Medicamentos */}
           <div className="receta-section">
             <div className="receta-section-title">
               <SyringeIcon size={15} style={{ color: 'var(--blue)', marginRight: 2 }} />
               Medicamentos Prescritos <span style={{ color: 'var(--blue)' }}>*</span>
             </div>
-            {errors.drugs_global && (
-              <p className="fc-err-msg" style={{ marginBottom: 8 }}>{errors.drugs_global}</p>
-            )}
-            {drugs.map((d, idx) => (
-              <div key={idx} className="rx-item" style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '.8rem', fontWeight: 700, color: 'var(--soft)', marginBottom: 9 }}>
-                  <span>Medicamento {idx + 1}</span>
-                  {drugs.length > 1 && (
-                    <button className="rx-remove" onClick={() => removeDrug(idx)}>×</button>
-                  )}
-                </div>
-                <div className="receta-2col">
-                  <div className="fgrp">
-                    <label className="flbl">Fármaco <span style={{ color: 'var(--blue)' }}>*</span></label>
-                    <input
-                      className={`fc${(errors.drugs_global || errors['drug_' + idx + '_name']) ? ' fc--err' : ''}`}
-                      value={d.name} onChange={e => updateDrug(idx, 'name', e.target.value)}
-                      placeholder="Ej: Amoxicilina 500 mg" />
-                    {errors['drug_' + idx + '_name'] && (
-                      <p className="fc-err-msg">{errors['drug_' + idx + '_name']}</p>
+            {errors.drugs_global && <p className="fc-err-msg" style={{ marginBottom: 8 }}>{errors.drugs_global}</p>}
+
+            {drugs.map((drug, idx) => {
+              const routesForDrug = allowedRoutesFor(drug.name)
+              const match = matchDrugRules(drug.name)
+              const unit = doseUnitFor(drug.name)
+              const warning = doseWarning(drug)
+
+              return (
+                <div key={idx} className="rx-item" style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '.8rem', fontWeight: 700, color: 'var(--soft)', marginBottom: 9 }}>
+                    <span>Medicamento {idx + 1}</span>
+                    {drugs.length > 1 && (
+                      <button type="button" className="rx-remove" onClick={() => removeDrug(idx)} aria-label={`Eliminar medicamento ${idx + 1}`}>
+                        x
+                      </button>
                     )}
                   </div>
-                  <div className="fgrp">
-                    <label className="flbl">
-                      Dosis {d.name.trim() && <span style={{ color: 'var(--blue)' }}>*</span>}
-                    </label>
-                    <input className={`fc${errors[`drug_${idx}_dose`] ? ' fc--err' : ''}`}
-                      value={d.dose} onChange={e => updateDrug(idx, 'dose', e.target.value)}
-                      placeholder="Ej: 5 mg/kg o 1 comprimido" />
-                    {errors[`drug_${idx}_dose`] && <p className="fc-err-msg">{errors[`drug_${idx}_dose`]}</p>}
-                    {(() => {
-                      const w = doseWarning(d)
-                      if (!w) return null
-                      const cls = w.type === 'warn' ? 'fc-warn-msg' : 'fc-hint-msg'
-                      return <p className={cls}>{w.message}</p>
-                    })()}
+
+                  <div className="receta-2col">
+                    <div className="fgrp">
+                      <label className="flbl">Farmaco <span style={{ color: 'var(--blue)' }}>*</span></label>
+                      <input
+                        className={`fc${errors[`drug_${idx}_name`] ? ' fc--err' : ''}`}
+                        list="atlas-drug-list"
+                        value={drug.name}
+                        onChange={(event) => updateDrug(idx, 'name', event.target.value)}
+                        placeholder="Buscar en Atlas Farmacologico"
+                        autoComplete="off"
+                      />
+                      {errors[`drug_${idx}_name`] && <p className="fc-err-msg">{errors[`drug_${idx}_name`]}</p>}
+                      {!errors[`drug_${idx}_name`] && match && (
+                        <p className="fc-hint-msg">Farmaco validado: <strong>{match.key}</strong></p>
+                      )}
+                    </div>
+
+                    <div className="fgrp">
+                      <label className="flbl">Cantidad <span style={{ color: 'var(--blue)' }}>*</span></label>
+                      <input
+                        className={`fc${errors[`drug_${idx}_quantity`] ? ' fc--err' : ''}`}
+                        type="number"
+                        min="0.001"
+                        step="0.001"
+                        value={drug.quantity}
+                        onChange={(event) => updateDrug(idx, 'quantity', event.target.value)}
+                        placeholder="Ej: 10"
+                      />
+                      {errors[`drug_${idx}_quantity`] && <p className="fc-err-msg">{errors[`drug_${idx}_quantity`]}</p>}
+                    </div>
+                  </div>
+
+                  <div className="receta-3col">
+                    <div className="fgrp">
+                      <label className="flbl">Dosis ({unit}) <span style={{ color: 'var(--blue)' }}>*</span></label>
+                      <input
+                        className={`fc${errors[`drug_${idx}_dose`] ? ' fc--err' : ''}`}
+                        type="number"
+                        min="0.0001"
+                        step="0.0001"
+                        value={drug.dose}
+                        onChange={(event) => updateDrug(idx, 'dose', event.target.value)}
+                        placeholder="Ej: 5"
+                      />
+                      {errors[`drug_${idx}_dose`] && <p className="fc-err-msg">{errors[`drug_${idx}_dose`]}</p>}
+                      {warning && <p className={warning.type === 'warn' ? 'fc-warn-msg' : 'fc-hint-msg'}>{warning.message}</p>}
+                    </div>
+
+                    <div className="fgrp">
+                      <label className="flbl">Via <span style={{ color: 'var(--blue)' }}>*</span></label>
+                      <select
+                        className={`fc${errors[`drug_${idx}_route`] ? ' fc--err' : ''}`}
+                        value={drug.route}
+                        onChange={(event) => updateDrug(idx, 'route', event.target.value)}
+                      >
+                        <option value="">Selecciona...</option>
+                        {routesForDrug.map((route) => <option key={route} value={route}>{route}</option>)}
+                      </select>
+                      {errors[`drug_${idx}_route`] && <p className="fc-err-msg">{errors[`drug_${idx}_route`]}</p>}
+                      {!errors[`drug_${idx}_route`] && match && routesForDrug.length < ROUTES.length && (
+                        <p className="fc-hint-msg">Vias filtradas para {match.key}.</p>
+                      )}
+                    </div>
+
+                    <div className="fgrp">
+                      <label className="flbl">Frecuencia (cada N horas) <span style={{ color: 'var(--blue)' }}>*</span></label>
+                      <input
+                        className={`fc${errors[`drug_${idx}_freq`] ? ' fc--err' : ''}`}
+                        type="number"
+                        min="1"
+                        max="168"
+                        step="1"
+                        value={drug.freq}
+                        onChange={(event) => updateDrug(idx, 'freq', event.target.value)}
+                        placeholder="Ej: 12"
+                      />
+                      {errors[`drug_${idx}_freq`] && <p className="fc-err-msg">{errors[`drug_${idx}_freq`]}</p>}
+                    </div>
+                  </div>
+
+                  <div className="receta-2col">
+                    <div className="fgrp">
+                      <label className="flbl">Duracion (dias) <span style={{ color: 'var(--blue)' }}>*</span></label>
+                      <input
+                        className={`fc${errors[`drug_${idx}_duration`] ? ' fc--err' : ''}`}
+                        type="number"
+                        min="1"
+                        max="365"
+                        step="1"
+                        value={drug.duration}
+                        onChange={(event) => updateDrug(idx, 'duration', event.target.value)}
+                        placeholder="Ej: 7"
+                      />
+                      {errors[`drug_${idx}_duration`] && <p className="fc-err-msg">{errors[`drug_${idx}_duration`]}</p>}
+                    </div>
+
+                    <div className="fgrp">
+                      <label className="flbl">Notas / Instrucciones</label>
+                      <input
+                        className="fc"
+                        value={drug.notes}
+                        onChange={(event) => updateDrug(idx, 'notes', event.target.value)}
+                        placeholder="Ej: Administrar con alimento"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="receta-3col">
-                  <div className="fgrp">
-                    <label className="flbl">Vía</label>
-                    {(() => {
-                      const routesForDrug = allowedRoutesFor(d.name)
-                      const match = matchDrugRules(d.name)
-                      return (
-                        <>
-                          <select
-                            className={`fc${errors[`drug_${idx}_route`] ? ' fc--err' : ''}`}
-                            value={d.route}
-                            onChange={e => updateDrug(idx, 'route', e.target.value)}
-                          >
-                            <option value="">Selecciona…</option>
-                            {routesForDrug.map(r => <option key={r}>{r}</option>)}
-                          </select>
-                          {errors[`drug_${idx}_route`] && (
-                            <p className="fc-err-msg">{errors[`drug_${idx}_route`]}</p>
-                          )}
-                          {!errors[`drug_${idx}_route`] && match && routesForDrug.length < ROUTES.length && (
-                            <p className="fc-hint-msg">Vías filtradas para {match.key}.</p>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </div>
-                  <div className="fgrp">
-                    <label className="flbl">
-                      Frecuencia {d.name.trim() && <span style={{ color: 'var(--blue)' }}>*</span>}
-                    </label>
-                    <input className={`fc${errors[`drug_${idx}_freq`] ? ' fc--err' : ''}`}
-                      value={d.freq} onChange={e => updateDrug(idx, 'freq', e.target.value)}
-                      placeholder="c/12 h" />
-                    {errors[`drug_${idx}_freq`] && <p className="fc-err-msg">{errors[`drug_${idx}_freq`]}</p>}
-                  </div>
-                  <div className="fgrp">
-                    <label className="flbl">
-                      Duración {d.name.trim() && <span style={{ color: 'var(--blue)' }}>*</span>}
-                    </label>
-                    <input className={`fc${errors[`drug_${idx}_duration`] ? ' fc--err' : ''}`}
-                      value={d.duration} onChange={e => updateDrug(idx, 'duration', e.target.value)}
-                      placeholder="7 días" />
-                    {errors[`drug_${idx}_duration`] && <p className="fc-err-msg">{errors[`drug_${idx}_duration`]}</p>}
-                  </div>
-                </div>
-                <div className="fgrp">
-                  <label className="flbl">Notas / Instrucciones</label>
-                  <input className="fc" value={d.notes}
-                    onChange={e => updateDrug(idx, 'notes', e.target.value)}
-                    placeholder="Ej: Administrar con alimento" />
-                </div>
-              </div>
-            ))}
+              )
+            })}
+
             <button
+              type="button"
               onClick={addDrug}
               style={{ width: '100%', padding: '9px', border: '1px dashed var(--border)', borderRadius: 'var(--rs)', color: 'var(--soft)', fontSize: '.82rem', background: 'none', cursor: 'pointer', marginTop: 4, transition: '.2s', fontFamily: "'Source Sans 3',sans-serif" }}
             >
@@ -703,29 +676,41 @@ export default function Prescription() {
             </button>
           </div>
 
-          {/* Veterinario */}
           <div className="receta-section">
             <div className="receta-section-title">Datos del Veterinario</div>
             <div className="receta-2col">
               <div className="fgrp">
                 <label className="flbl">Nombre completo <span style={{ color: 'var(--blue)' }}>*</span></label>
-                <input className={`fc${errors.vetName ? ' fc--err' : ''}`}
-                  value={vetName} onChange={e => { setVetName(e.target.value); if (errors.vetName) setErrors(p => ({ ...p, vetName: undefined })) }}
-                  placeholder="Dr. / Dra." />
+                <input
+                  className={`fc${errors.vetName ? ' fc--err' : ''}`}
+                  value={vetName}
+                  onChange={(event) => {
+                    setVetName(event.target.value)
+                    clearError('vetName')
+                  }}
+                  placeholder="Dr. / Dra."
+                />
                 {errors.vetName && <p className="fc-err-msg">{errors.vetName}</p>}
               </div>
+
               <div className="fgrp">
-                <label className="flbl">N° Registro / Matrícula <span style={{ color: 'var(--blue)' }}>*</span></label>
-                <input className={`fc${errors.vetReg ? ' fc--err' : ''}`}
-                  value={vetReg} onChange={e => { setVetReg(e.target.value); if (errors.vetReg) setErrors(p => ({ ...p, vetReg: undefined })) }}
-                  placeholder="MV-12345" />
+                <label className="flbl">Registro / Matricula <span style={{ color: 'var(--blue)' }}>*</span></label>
+                <input
+                  className={`fc${errors.vetReg ? ' fc--err' : ''}`}
+                  value={vetReg}
+                  onChange={(event) => {
+                    setVetReg(event.target.value)
+                    clearError('vetReg')
+                  }}
+                  placeholder="MV-12345"
+                />
                 {errors.vetReg && <p className="fc-err-msg">{errors.vetReg}</p>}
               </div>
             </div>
           </div>
 
-          {/* Botón Generar */}
           <button
+            type="button"
             className="btnp"
             onClick={handleGenerate}
             disabled={saving}
@@ -744,109 +729,92 @@ export default function Prescription() {
             )}
           </button>
 
-          {/* Status de guardado */}
           {saveStatus === 'saved' && (
             <div style={{ marginTop: 10, padding: '8px 14px', background: 'rgba(22,163,74,.12)', borderRadius: 8, fontSize: '.83rem', color: '#15803d', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
               Receta guardada en tu historial.
             </div>
           )}
           {saveStatus === 'error' && (
             <div style={{ marginTop: 10, padding: '8px 14px', background: 'rgba(220,38,38,.10)', borderRadius: 8, fontSize: '.83rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
               No se pudo guardar en el servidor. La receta se muestra correctamente.
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Vista previa e impresión ── */}
       {generated && validDrugsForPreview.length > 0 && (
         <div>
           <div ref={previewRef} className="receta-preview show" style={{ fontFamily: "'EB Garamond',serif" }}>
-
-            {/* Encabezado */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, paddingBottom: 16, borderBottom: '2px solid var(--blue)' }}>
               <img src={udiLogo} alt="UDI" style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }} />
               <div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>Facultad de Veterinaria · UDI</div>
-                <div style={{ fontSize: 12, color: 'var(--soft)' }}>Universidad para el Desarrollo y la Innovación · Santa Cruz</div>
+                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>Facultad de Veterinaria - UDI</div>
+                <div style={{ fontSize: 12, color: 'var(--soft)' }}>Universidad para el Desarrollo y la Innovacion - Santa Cruz</div>
               </div>
             </div>
 
             <h2 style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', color: 'var(--dark)', marginBottom: 4, letterSpacing: '.04em', fontFamily: "'Playfair Display',serif" }}>
-              RECETA MÉDICO-VETERINARIA
+              RECETA MEDICO-VETERINARIA
             </h2>
             <div style={{ fontSize: 12, color: 'var(--soft)', textAlign: 'right', marginBottom: 16 }}>Fecha: {today}</div>
 
-            {/* Paciente */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--blue)', marginBottom: 6, paddingBottom: 3, borderBottom: '1px solid var(--gl)' }}>PACIENTE</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 13, color: 'var(--text)' }}>
-                {patient.name    && <span><strong>Nombre:</strong> {patient.name}</span>}
-                <span><strong>Especie:</strong> {patient.species}</span>
-                {patient.breed   && <span><strong>Raza:</strong> {patient.breed}</span>}
-                {patient.weight  && <span><strong>Peso:</strong> {patient.weight} kg</span>}
+                {patient.name && <span><strong>Nombre:</strong> {patient.name}</span>}
+                <span><strong>Especie:</strong> {displaySpecies(patient)}</span>
+                {patient.breed && <span><strong>Raza:</strong> {patient.breed}</span>}
+                {patient.weight && <span><strong>Peso:</strong> {patient.weight} kg</span>}
                 {patient.ageValue && <span><strong>Edad:</strong> {patient.ageValue} {patient.ageUnit}</span>}
-                {patient.owner   && <span><strong>Propietario:</strong> {patient.owner}</span>}
+                {patient.owner && <span><strong>Propietario:</strong> {patient.owner}</span>}
                 {patient.ownerPhone && <span><strong>Tel.:</strong> {patient.ownerPhone}</span>}
               </div>
             </div>
 
-            {/* Diagnóstico */}
             {diagnosis.trim() && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--blue)', marginBottom: 6, paddingBottom: 3, borderBottom: '1px solid var(--gl)' }}>DIAGNÓSTICO</div>
+                <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--blue)', marginBottom: 6, paddingBottom: 3, borderBottom: '1px solid var(--gl)' }}>DIAGNOSTICO</div>
                 <p style={{ fontSize: 13, color: 'var(--text)' }}>{diagnosis}</p>
               </div>
             )}
 
-            {/* Prescripción */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--blue)', marginBottom: 6, paddingBottom: 3, borderBottom: '1px solid var(--gl)' }}>&#8478; PRESCRIPCIÓN</div>
-              {validDrugsForPreview.map((d, i) => (
-                <div key={i} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{i + 1}. {d.name}</div>
+              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--blue)', marginBottom: 6, paddingBottom: 3, borderBottom: '1px solid var(--gl)' }}>&#8478; PRESCRIPCION</div>
+              {validDrugsForPreview.map((drug, idx) => (
+                <div key={`${drug.name}-${idx}`} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{idx + 1}. {matchDrugRules(drug.name)?.key || drug.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text)', paddingLeft: 12, marginTop: 2 }}>
-                    Dosis: {d.dose}
-                    {d.route    && ` | Vía: ${d.route}`}
-                    {d.freq     && ` | ${d.freq}`}
-                    {d.duration && ` | Duración: ${d.duration}`}
+                    Cantidad: {drug.quantity}
+                    {drug.dose && ` | Dosis: ${displayDose(drug)}`}
+                    {drug.route && ` | Via: ${drug.route}`}
+                    {drug.freq && ` | ${displayFrequency(drug)}`}
+                    {drug.duration && ` | Duracion: ${displayDuration(drug)}`}
                   </div>
-                  {d.notes.trim() && (
-                    <div style={{ fontSize: 11, color: 'var(--soft)', paddingLeft: 12, fontStyle: 'italic' }}>* {d.notes}</div>
+                  {drug.notes.trim() && (
+                    <div style={{ fontSize: 11, color: 'var(--soft)', paddingLeft: 12, fontStyle: 'italic' }}>* {drug.notes}</div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Firma */}
             <div style={{ marginTop: 28, textAlign: 'center' }}>
               <div style={{ borderTop: '1px solid var(--dark)', width: 200, margin: '0 auto 8px' }} />
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{vetName}</div>
-              <div style={{ fontSize: 12, color: 'var(--soft)' }}>Médico Veterinario · Reg. Prof.: {vetReg}</div>
+              <div style={{ fontSize: 12, color: 'var(--soft)' }}>Medico Veterinario - Reg. Prof.: {vetReg}</div>
             </div>
 
             <div style={{ marginTop: 20, fontSize: 10, color: 'var(--soft)', textAlign: 'center', borderTop: '1px solid var(--gl)', paddingTop: 10 }}>
-              Receta válida por 30 días · Facultad de Veterinaria UDI · {today}
+              Receta valida por 30 dias - Facultad de Veterinaria UDI - {today}
             </div>
           </div>
 
           <button
+            type="button"
             className="btnp"
-            onClick={handlePrint}
+            onClick={() => printElement(previewRef.current)}
             style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={17} height={17}>
-              <polyline points="6 9 6 2 18 2 18 9"/>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-              <rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            Imprimir Receta
+            Reimprimir PDF
           </button>
         </div>
       )}

@@ -16,11 +16,12 @@ const DiseaseProtocols   = lazy(() => import('./components/diseases/DiseaseProto
 const Glossary           = lazy(() => import('./components/glossary/Glossary'))
 const AdminDashboard     = lazy(() => import('./components/admin/AdminDashboard'))
 const Prescription       = lazy(() => import('./components/prescription/Prescription'))
+const PrescriptionHistory = lazy(() => import('./components/prescription/PrescriptionHistory'))
 
 // Tabs que no requieren sesión para interactuar
 const FREE_TABS = new Set(['calc', 'glos', 'dil'])
 // Tabs válidos — todo lo demás cae en NotFound
-const VALID_TABS = new Set(['atlas', 'calc', 'dil', 'inter', 'enf', 'glos', 'receta', 'audit'])
+const VALID_TABS = new Set(['atlas', 'calc', 'dil', 'inter', 'enf', 'glos', 'receta', 'dashboard/recetas/historial', 'audit'])
 
 function TabLoader() {
   return (
@@ -130,6 +131,7 @@ function AppContent() {
               {activeTab === 'enf'    && <DiseaseProtocols onLoginRequired={!user ? openLogin : undefined} />}
               {activeTab === 'glos'   && <Glossary />}
               {activeTab === 'receta' && <Prescription />}
+              {activeTab === 'dashboard/recetas/historial' && <PrescriptionHistory />}
               {activeTab === 'audit'  && isElevated && <AdminDashboard />}
             </LazyBoundary>
           )}
