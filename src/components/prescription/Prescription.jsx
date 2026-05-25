@@ -9,6 +9,12 @@ import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
 const ROUTES = ['VO (oral)', 'IM (intramuscular)', 'IV (intravenosa)', 'SC (subcutánea)', 'Tópico', 'Intramamario', 'Intravaginal']
 const AGE_UNITS = ['días', 'meses', 'años']
 
+// Regex de validación — sin IA, puro cliente.
+const ALPHA_NAME = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\-'.]+$/   // nombres propios
+const PHONE_RE   = /^[\d\s+\-().]{6,25}$/                // teléfonos internacionales
+const HAS_LETTER = /[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]/              // contiene al menos una letra
+const HAS_DIGIT  = /\d/                                   // contiene al menos un dígito
+
 // EMPTY_DRUG: el campo route arranca vacío para que la cascada
 // fármaco→vía pueda imponer la primera opción válida.
 const EMPTY_DRUG = () => ({ name: '', dose: '', route: '', freq: '', duration: '', notes: '' })
@@ -172,56 +178,137 @@ export default function Prescription() {
   function validate() {
     const e = {}
 
-    if (!vetName.trim())    e.vetName = 'El nombre del veterinario es obligatorio.'
-    if (!vetReg.trim())     e.vetReg  = 'El N° de registro/matrícula es obligatorio.'
+    // ── Veterinario ────────────────────────────────────────────────────────────
+    if (!vetName.trim()) {
+      e.vetName = 'El nombre del veterinario es obligatorio.'
+    } else if (!ALPHA_NAME.test(vetName.trim())) {
+      e.vetName = 'Solo letras, espacios, puntos o guiones (sin números ni símbolos).'
+    } else if (vetName.trim().length < 4) {
+      e.vetName = 'El nombre es muy corto (mín. 4 caracteres).'
+    }
 
-    // Especie debe estar en el catálogo (no se permite texto libre).
+    if (!vetReg.trim()) {
+      e.vetReg = 'El N° de registro/matrícula es obligatorio.'
+    } else if (!HAS_DIGIT.test(vetReg.trim())) {
+      e.vetReg = 'La matrícula debe contener al menos un número (ej: MV-1234).'
+    } else if (vetReg.trim().length < 3) {
+      e.vetReg = 'Matrícula demasiado corta.'
+    }
+
+    // ── Especie (catálogo obligatorio — no texto libre) ────────────────────────
     if (!patient.species.trim()) {
       e.species = 'La especie es obligatoria.'
     } else if (!selectedAnimal) {
-      e.species = 'Especie no reconocida en el sistema. Selecciona una opción del catálogo.'
+      e.species = 'Especie no reconocida. Selecciona una opción del catálogo.'
     }
 
-    const validDrugs = drugs.filter(d => d.name.trim())
-    if (validDrugs.length === 0) {
-      e.drugs_global = 'Agrega al menos un medicamento con nombre.'
+    // ── Nombre del animal (opcional; si se ingresa, solo letras) ──────────────
+    if (patient.name.trim()) {
+      if (!ALPHA_NAME.test(patient.name.trim()))
+        e.name = 'El nombre del animal solo puede contener letras, espacios o guiones.'
+      else if (patient.name.trim().length > 80)
+        e.name = 'Nombre demasiado largo (máx. 80 caracteres).'
     }
 
-    // Validar medicamentos con nombre: deben tener dosis y frecuencia
-    drugs.forEach((d, idx) => {
-      if (!d.name.trim()) return
-      if (!d.dose.trim())     e[`drug_${idx}_dose`]     = 'Ingresa la dosis.'
-      if (!d.freq.trim())     e[`drug_${idx}_freq`]      = 'Ingresa la frecuencia.'
-      if (!d.duration.trim()) e[`drug_${idx}_duration`]  = 'Ingresa la duración.'
-      // Cascada fármaco→vía: si el fármaco tiene reglas y la vía no está permitida,
-      // bloquear submit con un error claro.
-      const match = matchDrugRules(d.name)
-      if (match && d.route && Array.isArray(match.rules.allowedRoutes)
-          && !match.rules.allowedRoutes.includes(d.route)) {
-        e[`drug_${idx}_route`] = `Vía no permitida para ${match.key}.`
-      }
-    })
+    // ── Raza (opcional; si se ingresa, solo letras) ────────────────────────────
+    if (patient.breed.trim()) {
+      if (!ALPHA_NAME.test(patient.breed.trim()))
+        e.breed = 'La raza solo puede contener letras, espacios o guiones.'
+      else if (patient.breed.trim().length > 60)
+        e.breed = 'Raza demasiado larga (máx. 60 caracteres).'
+    }
 
-    // Validar peso: debe ser número positivo y, si hay animal seleccionado,
-    // debe estar dentro del rango de la especie.
-    if (patient.weight !== '') {
+    // ── Peso (obligatorio) ────────────────────────────────────────────────────
+    if (!patient.weight || patient.weight === '') {
+      e.weight = 'El peso del paciente es obligatorio.'
+    } else {
       const w = parseFloat(patient.weight)
       if (isNaN(w) || w <= 0) {
         e.weight = 'El peso debe ser un número mayor a 0.'
       } else if (selectedAnimal) {
         const min = parseFloat(selectedAnimal.weight_range_min)
         const max = parseFloat(selectedAnimal.weight_range_max)
-        if (w < min || w > max) {
+        if (w < min || w > max)
           e.weight = `Peso fuera de rango para ${selectedAnimal.common_name} (${min}–${max} kg).`
-        }
       }
     }
 
-    // Edad: si se ingresó un valor, debe ser número positivo
-    if (patient.ageValue !== '' && patient.ageValue != null) {
+    // ── Edad (opcional; si se ingresa, rango razonable por unidad) ────────────
+    if (patient.ageValue !== '' && patient.ageValue != null && patient.ageValue !== undefined) {
       const a = parseFloat(patient.ageValue)
-      if (isNaN(a) || a <= 0) e.age = 'La edad debe ser un número mayor a 0.'
+      if (isNaN(a) || a <= 0) {
+        e.age = 'La edad debe ser un número mayor a 0.'
+      } else {
+        const maxAge = patient.ageUnit === 'días' ? 3650
+                     : patient.ageUnit === 'meses' ? 120
+                     : 50
+        if (a > maxAge)
+          e.age = `Edad fuera de rango para "${patient.ageUnit}" (máx. ${maxAge}).`
+      }
     }
+
+    // ── Propietario (opcional; si se ingresa, debe tener letras) ──────────────
+    if (patient.owner.trim()) {
+      if (!HAS_LETTER.test(patient.owner))
+        e.owner = 'El nombre del propietario debe contener letras.'
+      else if (patient.owner.trim().length > 80)
+        e.owner = 'Nombre demasiado largo (máx. 80 caracteres).'
+    }
+
+    // ── Teléfono (opcional; si se ingresa, solo dígitos y símbolos válidos) ───
+    if (patient.ownerPhone.trim() && !PHONE_RE.test(patient.ownerPhone.trim())) {
+      e.ownerPhone = 'Teléfono inválido. Use dígitos, +, -, paréntesis (6–25 caracteres).'
+    }
+
+    // ── Diagnóstico (opcional; si se ingresa, debe tener texto real) ──────────
+    if (diagnosis.trim()) {
+      if (!HAS_LETTER.test(diagnosis))
+        e.diagnosis = 'El diagnóstico debe contener texto descriptivo, no solo números.'
+      else if (diagnosis.trim().length < 5)
+        e.diagnosis = 'El diagnóstico es muy corto (mín. 5 caracteres).'
+    }
+
+    // ── Medicamentos ──────────────────────────────────────────────────────────
+    const validDrugs = drugs.filter(d => d.name.trim())
+    if (validDrugs.length === 0) {
+      e.drugs_global = 'Agrega al menos un medicamento con nombre.'
+    }
+
+    drugs.forEach((d, idx) => {
+      if (!d.name.trim()) return
+
+      // Nombre del fármaco: debe contener letras (no números ni símbolos solos)
+      if (!HAS_LETTER.test(d.name))
+        e['drug_' + idx + '_name'] = 'El nombre del fármaco debe contener letras.'
+
+      // Dosis: obligatoria y debe incluir un número
+      if (!d.dose.trim()) {
+        e['drug_' + idx + '_dose'] = 'Ingresa la dosis.'
+      } else if (!HAS_DIGIT.test(d.dose)) {
+        e['drug_' + idx + '_dose'] = 'La dosis debe incluir un valor numérico (ej: 5 mg/kg, 1 comprimido).'
+      }
+
+      // Frecuencia: obligatoria; debe tener número o término clínico reconocido
+      if (!d.freq.trim()) {
+        e['drug_' + idx + '_freq'] = 'Ingresa la frecuencia.'
+      } else if (!HAS_DIGIT.test(d.freq) && !/\b(SID|BID|TID|QID|PRN|STAT|cada|diario|diaria|semanal|quincenal)\b/i.test(d.freq)) {
+        e['drug_' + idx + '_freq'] = 'Incluye un número o término clínico (c/12h, SID, BID, cada 8h…).'
+      }
+
+      // Duración: obligatoria; debe tener número o palabra reconocida
+      if (!d.duration.trim()) {
+        e['drug_' + idx + '_duration'] = 'Ingresa la duración.'
+      } else if (!HAS_DIGIT.test(d.duration) && !/\b(una|dos|tres|cuatro|cinco|seis|siete|indefinid|cr[oó]n)/i.test(d.duration)) {
+        e['drug_' + idx + '_duration'] = 'Incluye un valor numérico (ej: 7 días, 2 semanas).'
+      }
+
+      // Cascada fármaco→vía
+      const match = matchDrugRules(d.name)
+      if (match && d.route && Array.isArray(match.rules.allowedRoutes)
+          && !match.rules.allowedRoutes.includes(d.route)) {
+        e['drug_' + idx + '_route'] = `Vía no permitida para ${match.key}.`
+      }
+    })
 
     setErrors(e)
     return Object.keys(e).length === 0
@@ -401,8 +488,9 @@ export default function Prescription() {
             <div className="receta-2col">
               <div className="fgrp">
                 <label className="flbl">Nombre del animal</label>
-                <input className="fc" value={patient.name}
+                <input className={`fc${errors.name ? ' fc--err' : ''}`} value={patient.name}
                   onChange={e => updatePatient('name', e.target.value)} placeholder="Ej: Luna" />
+                {errors.name && <p className="fc-err-msg">{errors.name}</p>}
               </div>
               <div className="fgrp" ref={speciesWrapRef} style={{ position: 'relative' }}>
                 <label className="flbl">Especie <span style={{ color: 'var(--blue)' }}>*</span></label>
@@ -448,8 +536,9 @@ export default function Prescription() {
             <div className="receta-3col">
               <div className="fgrp">
                 <label className="flbl">Raza</label>
-                <input className="fc" value={patient.breed}
+                <input className={`fc${errors.breed ? ' fc--err' : ''}`} value={patient.breed}
                   onChange={e => updatePatient('breed', e.target.value)} placeholder="Ej: Golden" />
+                {errors.breed && <p className="fc-err-msg">{errors.breed}</p>}
               </div>
               <div className="fgrp">
                 <label className="flbl">Peso (kg)</label>
@@ -486,13 +575,15 @@ export default function Prescription() {
             <div className="receta-2col">
               <div className="fgrp">
                 <label className="flbl">Propietario</label>
-                <input className="fc" value={patient.owner}
+                <input className={`fc${errors.owner ? ' fc--err' : ''}`} value={patient.owner}
                   onChange={e => updatePatient('owner', e.target.value)} placeholder="Nombre del dueño" />
+                {errors.owner && <p className="fc-err-msg">{errors.owner}</p>}
               </div>
               <div className="fgrp">
                 <label className="flbl">Teléfono</label>
-                <input className="fc" value={patient.ownerPhone}
+                <input className={`fc${errors.ownerPhone ? ' fc--err' : ''}`} value={patient.ownerPhone}
                   onChange={e => updatePatient('ownerPhone', e.target.value)} placeholder="+591 7..." />
+                {errors.ownerPhone && <p className="fc-err-msg">{errors.ownerPhone}</p>}
               </div>
             </div>
           </div>
@@ -500,10 +591,11 @@ export default function Prescription() {
           {/* Diagnóstico */}
           <div className="receta-section">
             <div className="receta-section-title">Diagnóstico / Indicación</div>
-            <textarea className="fc" rows={2} value={diagnosis}
-              onChange={e => setDiagnosis(e.target.value)}
+            <textarea className={`fc${errors.diagnosis ? ' fc--err' : ''}`} rows={2} value={diagnosis}
+              onChange={e => { setDiagnosis(e.target.value); if (errors.diagnosis) setErrors(p => { const c = { ...p }; delete c.diagnosis; return c }) }}
               placeholder="Diagnóstico clínico o indicación terapéutica..."
               style={{ resize: 'vertical' }} />
+            {errors.diagnosis && <p className="fc-err-msg">{errors.diagnosis}</p>}
           </div>
 
           {/* Medicamentos */}
@@ -526,9 +618,13 @@ export default function Prescription() {
                 <div className="receta-2col">
                   <div className="fgrp">
                     <label className="flbl">Fármaco <span style={{ color: 'var(--blue)' }}>*</span></label>
-                    <input className={`fc${errors.drugs_global ? ' fc--err' : ''}`}
+                    <input
+                      className={`fc${(errors.drugs_global || errors['drug_' + idx + '_name']) ? ' fc--err' : ''}`}
                       value={d.name} onChange={e => updateDrug(idx, 'name', e.target.value)}
                       placeholder="Ej: Amoxicilina 500 mg" />
+                    {errors['drug_' + idx + '_name'] && (
+                      <p className="fc-err-msg">{errors['drug_' + idx + '_name']}</p>
+                    )}
                   </div>
                   <div className="fgrp">
                     <label className="flbl">
