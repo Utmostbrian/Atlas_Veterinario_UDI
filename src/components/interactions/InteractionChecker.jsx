@@ -296,12 +296,26 @@ export default function InteractionChecker() {
             )}
 
             {result && (
-              <div>
-                <div className="crtitle">Análisis: {drugs.join(' + ')}</div>
-                <div
-                  className="ai-response"
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(result) }}
-                />
+              <div className="aip" style={{ marginBottom: 0 }}>
+                <div className="aiph" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)' }}>
+                  <div style={{ fontSize: '.67rem', opacity: .72, letterSpacing: '.09em', textTransform: 'uppercase', marginBottom: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <ZapIcon size={10} /> Análisis de Interacciones
+                  </div>
+                  <div className="ainame" style={{ fontSize: '1.05rem', paddingRight: 0 }}>
+                    {drugs.join(' + ')}
+                  </div>
+                  <div className="aitags" style={{ marginTop: 10 }}>
+                    {drugs.map(d => (
+                      <span key={d} className="aitag">{d}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="aibody">
+                  <div
+                    className="ai-response"
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(result) }}
+                  />
+                </div>
               </div>
             )}
           </div>

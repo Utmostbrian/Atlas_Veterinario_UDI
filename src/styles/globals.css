@@ -989,12 +989,21 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
 }
 
 /* ── AI RESPONSE FORMATTING ── */
-.ai-response h2,.ai-response h3 { color: var(--dark); margin: 12px 0 6px; line-height: 1.3; }
+.ai-response h2,.ai-response h3 {
+  font-family: 'Playfair Display', serif; font-weight: 600;
+  color: var(--blue); margin: 14px 0 7px; line-height: 1.3;
+  display: flex; align-items: center; gap: 6px;
+}
+.ai-response h2::before,.ai-response h3::before {
+  content: ''; display: block; width: 3px; height: 13px;
+  background: var(--red); border-radius: 2px; flex-shrink: 0;
+}
+.ai-response h2:first-child,.ai-response h3:first-child { margin-top: 0; }
 .ai-response h2 { font-size: 1rem; }
 .ai-response h3 { font-size: .9rem; }
-.ai-response p  { margin-bottom: 8px; color: var(--soft); font-size: .86rem; }
+.ai-response p  { margin-bottom: 8px; color: var(--soft); font-size: .86rem; line-height: 1.65; }
 .ai-response ul,.ai-response ol { padding-left: 18px; margin-bottom: 8px; }
-.ai-response li { color: var(--soft); font-size: .86rem; margin-bottom: 3px; }
+.ai-response li { color: var(--soft); font-size: .86rem; margin-bottom: 3px; line-height: 1.6; }
 .ai-response strong { color: var(--text); }
 .ai-response code {
   background: var(--gl); color: var(--red-dark);
@@ -1003,15 +1012,25 @@ footer { background: var(--dark); color: rgba(255,255,255,.6); margin-top: 48px;
 .ai-response .md-table,
 .md-table {
   width: 100%; border-collapse: collapse; margin: 10px 0 14px;
-  font-size: .82rem; color: var(--text);
+  font-size: .8rem; color: var(--text);
+  border-radius: var(--rs); overflow: hidden;
+  box-shadow: 0 1px 5px rgba(0,0,0,.06);
 }
 .md-table th, .md-table td {
-  border: 1px solid var(--border);
-  padding: 6px 10px; text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--gl);
+  padding: 8px 11px; text-align: left; vertical-align: top;
 }
-.md-table th { background: var(--gl); font-weight: 700; color: var(--dark); }
-.md-table tr:nth-child(even) td { background: rgba(0,0,0,.02); }
-.dark .md-table tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+.md-table th {
+  background: var(--blue); color: #fff;
+  font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
+  border-bottom: none;
+}
+.md-table td:first-child { font-weight: 600; color: var(--blue); }
+.md-table tr:last-child td { border-bottom: none; }
+.md-table tr:nth-child(even) td { background: var(--gl); }
+.dark .md-table th { background: var(--blue); }
+.dark .md-table tr:nth-child(even) td { background: rgba(255,255,255,.04); }
+.dark .md-table td { border-color: #334155; }
 
 /* ── HISTORIAL / AUDIT ── */
 .hist-hdr {
