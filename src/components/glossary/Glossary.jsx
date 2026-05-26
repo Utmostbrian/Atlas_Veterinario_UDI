@@ -63,7 +63,7 @@ export default function Glossary() {
       {/* Alphabet filter */}
       <div className="galpha">
         <button
-          className={`abtn${!letter ? ' on' : ''}`}
+          className={`abtn abtn-all${!letter ? ' on' : ''}`}
           onClick={() => setLetter(null)}
         >
           Todos
