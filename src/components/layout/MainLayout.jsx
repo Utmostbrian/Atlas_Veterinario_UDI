@@ -1,13 +1,32 @@
 import { useNavigate } from 'react-router-dom'
 import Header from './Header'
 import TabBar  from './TabBar'
-import { BookOpenIcon, CalculatorIcon, ZapIcon, BookIcon } from '../../Icons/Icons'
+import { useAuth } from '../../context/AuthContext'
+import { TABS } from '../../data/tabs'
+import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
+import { SunIcon, MoonIcon } from '../../Icons/Icons'
+
+// Tabs visible in the sidebar (all tabs available to all students)
+const SIDEBAR_GROUPS = [
+  {
+    label: 'Referencia',
+    tabs: ['atlas', 'glos', 'enf'],
+  },
+  {
+    label: 'Cálculo clínico',
+    tabs: ['calc', 'dil', 'inter'],
+  },
+  {
+    label: 'Herramientas',
+    tabs: ['receta', 'dashboard/recetas/historial'],
+  },
+]
 
 const MOB_TABS = [
-  { id: 'atlas',  label: 'Atlas',       Icon: BookOpenIcon   },
-  { id: 'calc',   label: 'Calculadora', Icon: CalculatorIcon },
-  { id: 'inter',  label: 'Interacc.',   Icon: ZapIcon        },
-  { id: 'glos',   label: 'Glosario',    Icon: BookIcon       },
+  { id: 'atlas',  label: 'Atlas',       Icon: TABS.find(t => t.id === 'atlas').Icon  },
+  { id: 'calc',   label: 'Calculadora', Icon: TABS.find(t => t.id === 'calc').Icon   },
+  { id: 'inter',  label: 'Interacc.',   Icon: TABS.find(t => t.id === 'inter').Icon  },
+  { id: 'glos',   label: 'Glosario',    Icon: TABS.find(t => t.id === 'glos').Icon   },
 ]
 
 export default function MainLayout({
@@ -19,11 +38,19 @@ export default function MainLayout({
   children,
 }) {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
-  function handleMobNav(id) {
+  function handleNav(id) {
     onTabChange(id)
     navigate(`/${id}`)
   }
+
+  // Build visible tabs for sidebar based on role
+  const visibleTabs = user
+    ? TABS.filter(t => t.roles.includes(user.role))
+    : TABS.filter(t => t.roles.includes('student'))
+
+  const visibleIds = new Set(visibleTabs.map(t => t.id))
 
   return (
     <>
@@ -33,23 +60,90 @@ export default function MainLayout({
         onToggleDark={onToggleDark}
         onOpenLogin={onOpenLogin}
       />
-      <TabBar activeTab={activeTab} onTabChange={onTabChange} />
 
-      <main style={{ minHeight: '60vh' }}>
-        {children}
-      </main>
+      <div className="app-shell">
+        {/* ── Desktop sidebar ── */}
+        <aside className="app-sidebar">
+          {/* Brand */}
+          <div className="asb-brand">
+            <img src={udiLogo} alt="UDI" />
+            <div>
+              <div className="asb-title">Atlas Farmacológico</div>
+              <div className="asb-sub">Veterinaria · UDI 2026</div>
+            </div>
+          </div>
 
+          {/* Nav */}
+          <nav className="asb-nav" aria-label="Navegación principal">
+            {SIDEBAR_GROUPS.map(group => {
+              const groupTabs = group.tabs
+                .map(id => visibleTabs.find(t => t.id === id))
+                .filter(Boolean)
+              if (groupTabs.length === 0) return null
+              return (
+                <div key={group.label}>
+                  <div className="asb-sect">{group.label}</div>
+                  {groupTabs.map(({ id, label, Icon }) => (
+                    <button
+                      key={id}
+                      className={`asb-btn${activeTab === id ? ' on' : ''}`}
+                      onClick={() => handleNav(id)}
+                      aria-current={activeTab === id ? 'page' : undefined}
+                    >
+                      <span className="asb-btn-icon"><Icon size={15} /></span>
+                      {label}
+                    </button>
+                  ))}
+                  <div className="asb-divider" />
+                </div>
+              )
+            })}
+
+            {/* Admin-only tab */}
+            {visibleIds.has('audit') && (
+              <button
+                className={`asb-btn${activeTab === 'audit' ? ' on' : ''}`}
+                onClick={() => handleNav('audit')}
+              >
+                <span className="asb-btn-icon">
+                  {TABS.find(t => t.id === 'audit').Icon && (
+                    (() => { const I = TABS.find(t => t.id === 'audit').Icon; return <I size={15} /> })()
+                  )}
+                </span>
+                Dashboard Admin
+              </button>
+            )}
+          </nav>
+
+          {/* Footer */}
+          <div className="asb-foot">
+            <button className="asb-foot-btn" onClick={onToggleDark}>
+              {darkMode
+                ? <><SunIcon size={14} /><span>Modo claro</span></>
+                : <><MoonIcon size={14} /><span>Modo oscuro</span></>}
+            </button>
+          </div>
+        </aside>
+
+        {/* ── Main content ── */}
+        <div className="app-main">
+          <TabBar activeTab={activeTab} onTabChange={onTabChange} />
+          <main style={{ minHeight: '60vh' }}>
+            {children}
+          </main>
+        </div>
+      </div>
+
+      {/* ── Mobile bottom nav ── */}
       <nav className="mobile-nav" aria-label="Navegación principal">
         {MOB_TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             className={`mnav-btn${activeTab === id ? ' on' : ''}`}
-            onClick={() => handleMobNav(id)}
+            onClick={() => handleNav(id)}
             aria-current={activeTab === id ? 'page' : undefined}
           >
-            <span className="mnav-ico">
-              <Icon size={20} />
-            </span>
+            <span className="mnav-ico"><Icon size={20} /></span>
             <span className="mnav-lbl">{label}</span>
           </button>
         ))}
