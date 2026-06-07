@@ -9,7 +9,7 @@
 }
 
 .title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--dark);
@@ -43,7 +43,7 @@
   border-radius: 8px;
   background: var(--white);
   font-size: .85rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   color: var(--text);
   outline: none;
   transition: border-color .15s;
@@ -58,7 +58,7 @@
   font-size: .85rem;
   color: var(--text);
   cursor: pointer;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
 }
 
 /* ─── Buttons ────────────────────────────────────────────────────────── */
@@ -70,7 +70,7 @@
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .85rem;
   font-weight: 700;
   cursor: pointer;
@@ -85,7 +85,7 @@
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .85rem;
   font-weight: 600;
   cursor: pointer;
@@ -105,7 +105,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .85rem;
 }
 .table th {
@@ -149,7 +149,7 @@
   letter-spacing: .04em;
 }
 
-.cellMono   { font-family: 'Source Sans 3', monospace; color: var(--soft); font-size: .82rem; }
+.cellMono   { font-family: 'Courier New', monospace; color: var(--soft); font-size: .82rem; }
 .cellMuted  { color: var(--gray); font-size: .78rem; white-space: nowrap; }
 
 /* ─── Badge ──────────────────────────────────────────────────────────── */
@@ -167,7 +167,7 @@
   border: 1.5px solid;
   border-radius: 12px;
   background: var(--white);
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .76rem;
   font-weight: 700;
   cursor: pointer;
@@ -186,7 +186,7 @@
 .emptyBox p  { margin: 0; font-size: .85rem; }
 
 .errorBox {
-  background: rgba(204, 0, 0, .08);
+  background: rgba(225,29,72,.08);
   border: 1px solid rgba(204, 0, 0, .25);
   color: #991b1b;
   padding: 10px 14px;
@@ -244,7 +244,7 @@
   border-bottom: 1px solid var(--border);
 }
 .modalHead h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--dark);
@@ -288,7 +288,7 @@
   border-radius: 8px;
   background: var(--gl);
   font-size: .85rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   color: var(--text);
   outline: none;
   transition: border-color .15s, background .15s;
@@ -319,7 +319,7 @@
   color: var(--soft);
   font-size: .72rem;
   cursor: pointer;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
 }
 .eyeBtn:hover { color: var(--text); }
 
@@ -334,7 +334,7 @@
   border: 2px solid var(--border);
   border-radius: 8px;
   color: var(--soft);
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .8rem;
   font-weight: 600;
   cursor: pointer;
@@ -363,10 +363,10 @@
   gap: 5px;
   padding: 5px 11px;
   background: transparent;
-  color: #CC0000;
-  border: 1.5px solid rgba(204, 0, 0, .3);
+  color: var(--red);
+  border: 1.5px solid rgba(225,29,72,.3);
   border-radius: 7px;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .75rem;
   font-weight: 600;
   cursor: pointer;
@@ -374,8 +374,8 @@
   white-space: nowrap;
 }
 .btnDanger:hover:not(:disabled) {
-  background: rgba(204, 0, 0, .08);
-  border-color: #CC0000;
+  background: rgba(225,29,72,.08);
+  border-color: var(--red);
 }
 .btnDanger:disabled { opacity: .4; cursor: not-allowed; }
 

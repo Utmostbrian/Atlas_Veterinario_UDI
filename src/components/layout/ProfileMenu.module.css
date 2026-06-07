@@ -17,7 +17,7 @@
   justify-content: center;
   font-weight: 700;
   color: #fff;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   flex-shrink: 0;
   line-height: 1;
   letter-spacing: 0;
@@ -26,9 +26,9 @@
   transition: border-color .2s;
 }
 
-.avatarAdmin   { background: linear-gradient(135deg, #CC0000, #ff2222); }
-.avatarDocente { background: linear-gradient(135deg, #7c3aed, #a855f7); }
-.avatarStudent { background: linear-gradient(135deg, #1e3a5f, #2563eb); }
+.avatarAdmin   { background: #E11D48; }
+.avatarDocente { background: #7c3aed; }
+.avatarStudent { background: #2563eb; }
 
 /* ── TRIGGER BUTTON ── */
 .trigger {
@@ -41,7 +41,7 @@
   background: rgba(255, 255, 255, .08);
   color: rgba(255, 255, 255, .88);
   font-size: .8rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-weight: 500;
   cursor: pointer;
   transition: background .2s, border-color .2s;
@@ -110,7 +110,7 @@
   align-items: center;
   gap: 14px;
   padding: 18px 18px 16px;
-  background: linear-gradient(135deg, #1a2535 0%, #1e2d3d 100%);
+  background: #1e293b;
 }
 
 .photoZone {
@@ -200,7 +200,7 @@
   color: rgba(255, 255, 255, .45);
   font-size: .7rem;
   cursor: pointer;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   padding: 0;
   transition: color .2s;
   text-decoration: underline;
@@ -275,7 +275,7 @@
   border: 2px solid var(--border);
   border-radius: var(--rs);
   font-size: .86rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   color: var(--text);
   background: var(--gl);
   outline: none;
@@ -382,10 +382,10 @@
   border-radius: var(--rs);
   border: 1px solid transparent;
   background: none;
-  color: #CC0000;
+  color: var(--red);
   font-size: .85rem;
   font-weight: 600;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   cursor: pointer;
   transition: background .15s, border-color .15s;
   text-align: left;
@@ -415,7 +415,7 @@
 
 :global(.dark) .fieldInput:focus {
   background: #0f172a;
-  border-color: #CC0000;
+  border-color: var(--red);
 }
 
 :global(.dark) .fieldInputLocked {
@@ -532,7 +532,7 @@
   border-radius: 20px;
   background: var(--gl);
   color: var(--text);
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .76rem;
   font-weight: 600;
   cursor: pointer;
@@ -569,7 +569,7 @@
   border-radius: var(--rs);
   background: none;
   color: var(--text);
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .86rem;
   font-weight: 600;
   cursor: pointer;
@@ -591,7 +591,7 @@
   border-radius: var(--rs);
   background: var(--blue);
   color: #fff;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .86rem;
   font-weight: 700;
   cursor: pointer;

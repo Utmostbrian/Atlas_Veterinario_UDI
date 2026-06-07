@@ -23,14 +23,14 @@ const ROLE_LABEL = {
   unknown: 'Sin asignar',
 }
 const ROLE_COLOR = {
-  admin:   '#CC0000',
+  admin:   '#E11D48',
   docente: '#7c3aed',
   student: '#003087',
   unknown: '#9ca3af',
 }
 
 const SPECIES_PALETTE = [
-  '#003087', '#CC0000', '#16a34a', '#d97706', '#7c3aed',
+  '#003087', '#0D9488', '#16a34a', '#d97706', '#7c3aed',
   '#0891b2', '#db2777', '#65a30d', '#9a3412', '#475569',
 ]
 
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
               label="Consultas IA"
               value={aiConsultations.toLocaleString('es-BO')}
               sub={periodSub}
-              accent="#CC0000"
+              accent="#0D9488"
             />
             <KpiCard
               Icon={CalculatorIcon}
@@ -331,8 +331,8 @@ export default function AdminDashboard() {
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
                 <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, axisMax]} tickCount={5} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                <Tooltip cursor={{ fill: 'rgba(204,0,0,.06)' }} contentStyle={tooltipStyle} />
-                <Bar dataKey="total" fill="#CC0000" radius={[0, 4, 4, 0]} maxBarSize={22} />
+                <Tooltip cursor={{ fill: 'rgba(13,148,136,.06)' }} contentStyle={tooltipStyle} />
+                <Bar dataKey="total" fill="#0D9488" radius={[0, 4, 4, 0]} maxBarSize={22} />
               </BarChart>
             </ChartCard>
 

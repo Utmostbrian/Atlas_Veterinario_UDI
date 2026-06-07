@@ -10,7 +10,7 @@ const ROLE_LABEL = {
   student: 'Estudiante',
 }
 const ROLE_COLOR = {
-  admin:   '#CC0000',
+  admin:   '#E11D48',
   docente: '#7c3aed',
   student: '#003087',
 }

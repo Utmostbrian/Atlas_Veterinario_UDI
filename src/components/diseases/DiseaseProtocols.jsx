@@ -14,7 +14,7 @@ import {
 import { EXTENDED_DISEASE_NAMES, DISEASE_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
 import { logAiConsultation, logDiseaseProtocolView } from '../../services/auditService'
 
-const SEVERITY_COLOR  = { 'Muy Alta': '#CC0000', Alta: '#d97706', Media: '#003087' }
+const SEVERITY_COLOR  = { 'Muy Alta': '#E11D48', Alta: '#d97706', Media: '#003087' }
 const CATALOG_NAMES   = DISEASES.map(d => d.name)
 const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DISEASE_NAMES])]
 

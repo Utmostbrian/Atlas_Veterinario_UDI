@@ -89,7 +89,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 11px 14px;
-  background: linear-gradient(135deg, #1a2535 0%, #1e2d3d 100%);
+  background: #1e293b;
   flex-shrink: 0;
 }
 
@@ -106,7 +106,7 @@
 }
 
 .headerName {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .88rem;
   font-weight: 700;
   color: #fff;
@@ -172,7 +172,7 @@
 }
 
 .welcome h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .98rem;
   font-weight: 700;
   color: var(--dark);
@@ -194,7 +194,7 @@
   border-radius: var(--rs);
   color: var(--soft);
   font-size: .78rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   text-align: left;
   transition: .15s;
   line-height: 1.4;
@@ -390,7 +390,7 @@
   padding: 8px 12px;
   color: var(--text);
   font-size: .84rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   resize: none;
   max-height: 110px;
   transition: border-color .15s;
@@ -456,7 +456,7 @@
   width: 64px; height: 64px;
   border-radius: 50%;
   background: #fff;
-  border: 4px solid #CC0000;
+  border: 4px solid var(--blue);
   cursor: pointer;
   transition: transform .15s;
 }
@@ -498,7 +498,7 @@
 }
 
 .authGate h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 700;
   color: var(--dark);
@@ -520,7 +520,7 @@
   color: #fff;
   border: none;
   border-radius: var(--rs);
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .88rem;
   font-weight: 700;
   cursor: pointer;
@@ -557,11 +557,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 11px 14px;
-  background: linear-gradient(135deg, #1a2535 0%, #1e2d3d 100%);
+  background: #1e293b;
   flex-shrink: 0;
 }
 .historyTitle {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .88rem;
   font-weight: 700;
   color: #fff;
@@ -587,7 +587,7 @@
   color: #fff;
   border: none;
   border-radius: var(--rs);
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: .82rem;
   font-weight: 700;
   cursor: pointer;
@@ -620,7 +620,7 @@
   text-align: left;
   cursor: pointer;
   transition: background .12s, border-color .12s;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
 }
 .historyItem:hover {
   background: rgba(204,0,0,.05);

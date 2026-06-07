@@ -1,6 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import Header from './Header'
 import TabBar  from './TabBar'
+import { BookOpenIcon, CalculatorIcon, ZapIcon, BookIcon } from '../../Icons/Icons'
+
+const MOB_TABS = [
+  { id: 'atlas',  label: 'Atlas',       Icon: BookOpenIcon   },
+  { id: 'calc',   label: 'Calculadora', Icon: CalculatorIcon },
+  { id: 'inter',  label: 'Interacc.',   Icon: ZapIcon        },
+  { id: 'glos',   label: 'Glosario',    Icon: BookIcon       },
+]
 
 export default function MainLayout({
   activeTab,
@@ -11,6 +19,12 @@ export default function MainLayout({
   children,
 }) {
   const navigate = useNavigate()
+
+  function handleMobNav(id) {
+    onTabChange(id)
+    navigate(`/${id}`)
+  }
+
   return (
     <>
       <Header
@@ -24,6 +38,22 @@ export default function MainLayout({
       <main style={{ minHeight: '60vh' }}>
         {children}
       </main>
+
+      <nav className="mobile-nav" aria-label="Navegación principal">
+        {MOB_TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            className={`mnav-btn${activeTab === id ? ' on' : ''}`}
+            onClick={() => handleMobNav(id)}
+            aria-current={activeTab === id ? 'page' : undefined}
+          >
+            <span className="mnav-ico">
+              <Icon size={20} />
+            </span>
+            <span className="mnav-lbl">{label}</span>
+          </button>
+        ))}
+      </nav>
 
       <footer>
         <div className="fstripe" />

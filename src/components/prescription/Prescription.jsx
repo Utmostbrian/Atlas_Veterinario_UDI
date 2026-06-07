@@ -101,11 +101,11 @@ function printElement(element, title = 'Receta Veterinaria UDI') {
   <meta charset="utf-8" />
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --blue:#CC0000; --dark:#1a1a2e; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
+    :root { --blue:#0D9488; --dark:#0F172A; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'EB Garamond',serif; background:#fff; padding:32px; color:var(--text); }
+    body { font-family:'Figtree',system-ui,sans-serif; background:#fff; padding:32px; color:var(--text); }
     strong { font-weight:700; }
     button { display:none !important; }
     @media print { body { padding:16px; } }
@@ -690,7 +690,7 @@ export default function Prescription() {
             <button
               type="button"
               onClick={addDrug}
-              style={{ width: '100%', padding: '9px', border: '1px dashed var(--border)', borderRadius: 'var(--rs)', color: 'var(--soft)', fontSize: '.82rem', background: 'none', cursor: 'pointer', marginTop: 4, transition: '.2s', fontFamily: "'Source Sans 3',sans-serif" }}
+              style={{ width: '100%', padding: '9px', border: '1px dashed var(--border)', borderRadius: 'var(--rs)', color: 'var(--soft)', fontSize: '.82rem', background: 'none', cursor: 'pointer', marginTop: 4, transition: '.2s', fontFamily: "'Figtree',system-ui,sans-serif" }}
             >
               + Agregar medicamento
             </button>
@@ -764,16 +764,16 @@ export default function Prescription() {
 
       {generated && validDrugsForPreview.length > 0 && (
         <div>
-          <div ref={previewRef} className="receta-preview show" style={{ fontFamily: "'EB Garamond',serif" }}>
+          <div ref={previewRef} className="receta-preview show" style={{ fontFamily: "'Figtree',system-ui,sans-serif" }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, paddingBottom: 16, borderBottom: '2px solid var(--blue)' }}>
               <img src={udiLogo} alt="UDI" style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }} />
               <div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>Facultad de Veterinaria - UDI</div>
+                <div style={{ fontFamily: "'Figtree',system-ui,sans-serif", fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>Facultad de Veterinaria - UDI</div>
                 <div style={{ fontSize: 12, color: 'var(--soft)' }}>Universidad para el Desarrollo y la Innovacion - Santa Cruz</div>
               </div>
             </div>
 
-            <h2 style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', color: 'var(--dark)', marginBottom: 4, letterSpacing: '.04em', fontFamily: "'Playfair Display',serif" }}>
+            <h2 style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', color: 'var(--dark)', marginBottom: 4, letterSpacing: '.04em', fontFamily: "'Figtree',system-ui,sans-serif" }}>
               RECETA MEDICO-VETERINARIA
             </h2>
             <div style={{ fontSize: 12, color: 'var(--soft)', textAlign: 'right', marginBottom: 16 }}>Fecha: {today}</div>

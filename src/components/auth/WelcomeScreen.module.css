@@ -22,7 +22,7 @@
   width: 72px;
   height: 72px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #CC0000 0%, #991111 100%);
+  background: #0D9488;
   color: #fff;
   display: flex;
   align-items: center;
@@ -32,7 +32,7 @@
 }
 
 .heroTitle {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--text);
@@ -55,13 +55,13 @@
   gap: 8px;
   margin-top: 8px;
   padding: 13px 28px;
-  background: #CC0000;
+  background: var(--blue);
   color: #fff;
   border: none;
   border-radius: 10px;
   font-size: .92rem;
   font-weight: 700;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
   cursor: pointer;
   transition: background .2s, transform .15s, box-shadow .2s;
   box-shadow: 0 4px 16px rgba(204, 0, 0, .28);
@@ -106,12 +106,12 @@
   border-radius: var(--r);
   cursor: pointer;
   transition: border-color .2s, box-shadow .2s, transform .15s;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: 'Figtree', system-ui, sans-serif;
 }
 
 .featureCard:hover {
-  border-color: #CC0000;
-  box-shadow: 0 4px 16px rgba(204, 0, 0, .1);
+  border-color: var(--blue);
+  box-shadow: 0 4px 16px rgba(13,148,136,.1);
   transform: translateY(-2px);
 }
 
@@ -129,7 +129,7 @@
 
 .featureCard:hover .featureIcon {
   background: rgba(204, 0, 0, .08);
-  color: #CC0000;
+  color: var(--blue);
 }
 
 .featureLabel {
@@ -180,7 +180,7 @@
 }
 
 :global(.dark) .featureCard:hover {
-  border-color: #CC0000;
+  border-color: var(--blue);
 }
 
 :global(.dark) .featureIcon {

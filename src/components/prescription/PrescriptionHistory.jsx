@@ -90,11 +90,11 @@ function printPrescription(row) {
   <meta charset="utf-8" />
   <title>Receta Veterinaria UDI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --blue:#CC0000; --dark:#1a1a2e; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
+    :root { --blue:#0D9488; --dark:#0F172A; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'EB Garamond',serif; background:#fff; padding:32px; color:var(--text); }
+    body { font-family:'Figtree',system-ui,sans-serif; background:#fff; padding:32px; color:var(--text); }
     strong { font-weight:700; }
     @media print { body { padding:16px; } }
   </style>
@@ -102,10 +102,10 @@ function printPrescription(row) {
 <body>
   <div style="border:2px solid var(--blue);border-radius:8px;padding:28px 32px">
     <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:2px solid var(--blue)">
-      <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:800;color:var(--blue)">Facultad de Veterinaria - UDI</div>
+      <div style="font-family:'Figtree',system-ui,sans-serif;font-size:15px;font-weight:800;color:var(--blue)">Facultad de Veterinaria - UDI</div>
       <div style="font-size:12px;color:var(--soft)">Universidad para el Desarrollo y la Innovacion - Santa Cruz</div>
     </div>
-    <h2 style="font-size:14px;font-weight:800;text-align:center;color:var(--dark);margin-bottom:4px;letter-spacing:.04em;font-family:'Playfair Display',serif">RECETA MEDICO-VETERINARIA</h2>
+    <h2 style="font-size:14px;font-weight:800;text-align:center;color:var(--dark);margin-bottom:4px;letter-spacing:.04em;font-family:'Figtree',system-ui,sans-serif">RECETA MEDICO-VETERINARIA</h2>
     <div style="font-size:12px;color:var(--soft);text-align:right;margin-bottom:16px">Fecha: ${escapeHtml(date)}</div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid var(--gl)">PACIENTE</div>

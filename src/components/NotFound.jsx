@@ -6,14 +6,14 @@ export default function NotFound() {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', minHeight: '60vh', padding: '2rem',
-      textAlign: 'center', fontFamily: 'Source Sans 3, sans-serif',
+      textAlign: 'center', fontFamily: "'Figtree', system-ui, sans-serif",
     }}>
       <div style={{
-        fontFamily: 'Playfair Display, serif',
+        fontFamily: "'Figtree', system-ui, sans-serif",
         fontSize: '5rem', fontWeight: 800,
-        color: 'var(--blue, #CC0000)', marginBottom: '0.5rem', lineHeight: 1,
+        color: 'var(--blue, #0D9488)', marginBottom: '0.5rem', lineHeight: 1,
       }}>404</div>
-      <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: 'var(--dark, #1a2535)', marginBottom: '0.75rem' }}>
+      <h2 style={{ fontFamily: "'Figtree', system-ui, sans-serif", fontSize: '1.5rem', color: 'var(--dark, #0F172A)', marginBottom: '0.75rem' }}>
         Página no encontrada
       </h2>
       <p style={{ color: 'var(--soft, #6b7280)', maxWidth: 420, lineHeight: 1.6, marginBottom: '1.5rem' }}>
@@ -22,7 +22,7 @@ export default function NotFound() {
       <button
         onClick={() => navigate('/atlas')}
         style={{
-          padding: '10px 28px', background: 'var(--blue, #CC0000)', color: '#fff',
+          padding: '10px 28px', background: 'var(--blue, #0D9488)', color: '#fff',
           border: 'none', borderRadius: 8, fontSize: '.9rem',
           fontWeight: 700, cursor: 'pointer',
         }}
