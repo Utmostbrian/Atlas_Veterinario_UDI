@@ -34,7 +34,7 @@ class ChunkErrorBoundary extends Component {
           <button
             onClick={() => window.location.reload()}
             style={{
-              padding: '9px 22px', background: 'var(--blue, #0D9488)', color: '#fff',
+              padding: '9px 22px', background: 'var(--blue, #CC0000)', color: '#fff',
               border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '.85rem', cursor: 'pointer',
             }}
           >

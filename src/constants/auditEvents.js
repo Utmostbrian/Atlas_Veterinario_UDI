@@ -32,7 +32,7 @@ export const AUDIT_EVENT_META = {
   AI_CONSULTATION: {
     label: 'Consulta IA',
     plural: 'Consultas IA',
-    color: '#0D9488',
+    color: '#CC0000',
   },
   PRESCRIPTION_GEN: {
     label: 'Receta generada',

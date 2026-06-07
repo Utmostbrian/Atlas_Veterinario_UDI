@@ -92,7 +92,7 @@ function printPrescription(row) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --blue:#0D9488; --dark:#0F172A; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
+    :root { --blue:#CC0000; --dark:#0F172A; --text:#374151; --soft:#6B7280; --gl:#f8f9fa; --border:#e5e7eb; }
     * { box-sizing:border-box; margin:0; padding:0; }
     body { font-family:'Figtree',system-ui,sans-serif; background:#fff; padding:32px; color:var(--text); }
     strong { font-weight:700; }

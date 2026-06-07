@@ -22,7 +22,7 @@
   width: 72px;
   height: 72px;
   border-radius: 20px;
-  background: #0D9488;
+  background: var(--blue);
   color: #fff;
   display: flex;
   align-items: center;
@@ -111,7 +111,7 @@
 
 .featureCard:hover {
   border-color: var(--blue);
-  box-shadow: 0 4px 16px rgba(13,148,136,.1);
+  box-shadow: 0 4px 16px rgba(204,0,0,.1);
   transform: translateY(-2px);
 }
 

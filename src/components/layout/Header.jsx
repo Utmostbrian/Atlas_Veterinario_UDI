@@ -79,7 +79,7 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
                     {user.name}
                   </div>
                   <span style={{
-                    background: 'rgba(13,148,136,.12)', fontSize: '.62rem', padding: '1px 6px',
+                    background: 'rgba(204,0,0,.1)', fontSize: '.62rem', padding: '1px 6px',
                     borderRadius: 3, fontWeight: 700, textTransform: 'uppercase',
                     color: 'var(--blue)',
                   }}>
