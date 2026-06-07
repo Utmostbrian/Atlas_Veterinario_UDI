@@ -1210,3 +1210,187 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   UI REWORK 2026 — iOS-style medical app layout
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── PAGE INNER (replaces .wrap + .twocol) ── */
+.page-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 28px;
+}
+
+/* ── SEARCH BLOCK ── */
+.search-block {
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--sh);
+}
+.dark .search-block { background: #1C1C1E; border-color: #38383A; }
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.search-input-wrap input {
+  flex: 1;
+  padding: 12px 14px 12px 42px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: .93rem;
+  font-family: 'Figtree', system-ui, sans-serif;
+  background: var(--gl);
+  color: var(--text);
+  outline: none;
+  transition: .2s;
+}
+.search-input-wrap input:focus {
+  border-color: var(--blue);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(204,0,0,.1);
+}
+.search-input-wrap input::placeholder { color: var(--gray); }
+.dark .search-input-wrap input { background: #000; color: #fff; border-color: #48484A; }
+.search-ico {
+  position: absolute; left: 13px; top: 50%;
+  transform: translateY(-50%); color: var(--gray); pointer-events: none;
+}
+.search-clear {
+  padding: 10px 16px; background: var(--gl);
+  border: 1.5px solid var(--border); border-radius: 12px;
+  font-size: .84rem; font-weight: 600; color: var(--soft); transition: .18s;
+  white-space: nowrap;
+}
+.search-clear:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* ── CLINICAL NOTICE ── */
+.clinical-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(204,0,0,.05);
+  border: 1px solid rgba(204,0,0,.15);
+  border-radius: var(--rs);
+  padding: 9px 13px;
+  font-size: .78rem;
+  color: var(--soft);
+  margin-bottom: 12px;
+}
+.dark .clinical-notice { background: rgba(204,0,0,.1); border-color: rgba(204,0,0,.2); }
+
+/* ── RECENT SEARCHES ── */
+.recent-searches {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.recent-label {
+  font-size: .72rem;
+  color: var(--gray);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+}
+.recent-chip {
+  padding: 4px 11px;
+  background: var(--gl);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: .76rem;
+  font-weight: 500;
+  color: var(--blue);
+  transition: .15s;
+}
+.recent-chip:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* ── RESULTS HEADER ── */
+.results-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+.results-hdr .stitle { font-size: 1rem; font-weight: 700; color: var(--dark); }
+.results-hdr .scnt  { font-size: .74rem; color: var(--soft); }
+
+/* ── DRUG LIST (replaces .dgrid) ── */
+.dlist {
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--sh);
+}
+.dark .dlist { background: #1C1C1E; border-color: #38383A; }
+
+/* ── DRUG ROW (replaces .dcard) ── */
+.drow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .15s;
+  animation: fadeUp .22s ease both;
+}
+.drow:last-child { border-bottom: none; }
+.drow:hover { background: rgba(204,0,0,.03); }
+.dark .drow:hover { background: rgba(255,255,255,.03); }
+.dark .drow { border-color: #38383A; }
+
+.drow-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+/* reuse .ab .ap .ai .an .af .ho for dot colors */
+
+.drow-body { flex: 1; min-width: 0; }
+.drow-name {
+  font-size: .93rem; font-weight: 700;
+  color: var(--dark); line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.drow-latin {
+  font-size: .76rem; font-style: italic;
+  color: var(--soft); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.drow-meta {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;
+}
+.drow-dose {
+  font-size: .72rem; color: var(--soft); white-space: nowrap;
+}
+
+.drow-arr {
+  color: var(--gray); font-size: 1.1rem; flex-shrink: 0; line-height: 1;
+}
+
+/* Expanded detail panel inside list */
+.drow-panel {
+  border-bottom: 1px solid var(--border);
+}
+.dark .drow-panel { border-color: #38383A; }
+
+/* ── RESPONSIVE for page-inner ── */
+@media (max-width: 768px) {
+  .page-inner { padding: 14px; }
+  .search-block { padding: 14px; }
+  .drow { padding: 12px 14px; gap: 10px; }
+  .drow-meta { display: none; }
+}

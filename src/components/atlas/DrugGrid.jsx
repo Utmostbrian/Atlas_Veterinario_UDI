@@ -155,200 +155,176 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
   }, [trimmedQuery, canSearchAI, filtered.length, fuzzySuggestion])
 
   return (
-    <div className="wrap">
-      <div className="twocol">
+    <div className="page-inner">
 
-        {/* ── Sidebar ── */}
-        <aside className="sb">
-          <div className="sbc">
-            <div className="sbh red" style={{ display:'flex', alignItems:'center', gap:6 }}><WarningIcon size={13} /> Aviso Clínico</div>
-            <div className="sbb">
-              Las dosis son <strong>orientativas</strong>. Ajustar siempre según especie,
-              peso, estado clínico y criterio veterinario. No reemplaza la prescripción profesional.
-            </div>
-          </div>
+      {/* ── Search block ── */}
+      <div className="search-block">
+        <div className="clinical-notice">
+          <WarningIcon size={13} />
+          <span>Dosis orientativas. Ajustar según criterio veterinario profesional.</span>
+        </div>
 
-          {recentSearches.length > 0 && (
-            <div className="sbc">
-              <div className="sbh">Búsquedas recientes</div>
-              <div className="sbb" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {recentSearches.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => handleQueryChange(s)}
-                    style={{
-                      background: 'none', border: 'none', textAlign: 'left',
-                      padding: '4px 0', fontSize: '.8rem',
-                      color: 'var(--blue)', cursor: 'pointer',
-                    }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </aside>
-
-        {/* ── Main content ── */}
-        <div>
-          {/* Search bar */}
-          <div className="sbar">
-            <label htmlFor="si" className="slbl2">Buscar fármaco</label>
-            <div className="srow">
-              <div className="swrap">
-                <SearchIcon size={15} className="sic" style={{ left: 12, color: 'var(--gray)', pointerEvents: 'none' }} />
-                <input
-                  id="si"
-                  type="text"
-                  placeholder="Nombre, especie, indicación..."
-                  value={query}
-                  onChange={e => handleQueryChange(e.target.value)}
-                  maxLength={60}
-                />
-              </div>
-              {query && (
-                <button id="sb" onClick={() => handleQueryChange('')}>Limpiar</button>
-              )}
-            </div>
-
-            {/* Category chips */}
-            <div className="chips">
-              <button
-                className={`chip${activeCategory === 'ALL' ? ' on' : ''}`}
-                onClick={() => setActiveCategory('ALL')}
-              >
-                Todos
-              </button>
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat.key}
-                  className={`chip${activeCategory === cat.key ? ' on' : ''}`}
-                  onClick={() => setActiveCategory(cat.key)}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Results header */}
-          <div className="shdr">
-            <span className="stitle">Fármacos</span>
-            <span className="scnt">
-              {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {/* Grid */}
-          {filtered.length > 0 ? (
-            <div className="dgrid">
-              {filtered.map(drug => (
-                <DrugCard
-                  key={drug.id}
-                  drug={drug}
-                  expanded={expandedDrugId === drug.id}
-                  onExpandedChange={(open) => setExpandedDrugId(open ? drug.id : null)}
-                  onChatOpen={onChatOpen}
-                  onAskAI={() => addRecent(drug.name)}
-                  onLoginRequired={onLoginRequired}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="empty">
-              <h3>Sin resultados en el catálogo</h3>
-              <p>No se encontraron fármacos para <strong>"{query}"</strong> en la base local.</p>
-
-              {fuzzySuggestion ? (
-                /* Typo detectado contra catálogo o diccionario extendido — sin tokens */
-                <>
-                  <p style={{ marginTop: 10, fontSize: '.92rem' }}>
-                    ¿Quisiste decir <strong>{fuzzySuggestion.name}</strong>?
-                  </p>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <button
-                      className="btnp"
-                      onClick={() => handleQueryChange(fuzzySuggestion.name)}
-                      style={{ width: 'auto', padding: '10px 22px', background: 'var(--blue)', color: '#fff' }}
-                    >
-                      Sí, buscar {fuzzySuggestion.name}
-                    </button>
-                    <button
-                      className="btnp"
-                      onClick={() => handleQueryChange('')}
-                      style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
-                    >
-                      No, limpiar búsqueda
-                    </button>
-                  </div>
-                </>
-
-              ) : !canSearchAI ? (
-                <p style={{ marginTop: 10, fontSize: '.82rem', color: 'var(--soft)' }}>
-                  Escribe al menos 3 caracteres para buscar con IA.
-                </p>
-
-              ) : aiGate?.allowed ? (
-                /* Pasa el gate: es un nombre conocido o encaja con patrón farmacéutico */
-                <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button
-                    className="btnp"
-                    onClick={handleAISearch}
-                    disabled={aiLoading}
-                    style={{
-                      width: 'auto', padding: '10px 22px',
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      background: 'var(--blue)', color: '#fff',
-                    }}
-                  >
-                    <SparklesIcon size={15} />
-                    {aiLoading ? 'Consultando IA...' : `Buscar "${trimmedQuery}" con IA`}
-                  </button>
-                  <button
-                    className="btnp"
-                    onClick={() => { handleQueryChange(''); setActiveCategory('ALL') }}
-                    style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
-                  >
-                    Ver todos los fármacos
-                  </button>
-                </div>
-
-              ) : (
-                /* No matchea diccionario ni patrón: bloqueo duro, sin tokens */
-                <div style={{ marginTop: 12 }}>
-                  <div className="abox rr" style={{ display: 'inline-block', textAlign: 'left', maxWidth: 480 }}>
-                    <p style={{ fontSize: '.86rem', margin: 0 }}>
-                      <strong>"{trimmedQuery}"</strong> no parece un fármaco reconocido. Verifica la ortografía o usa el nombre genérico / DCI (ej. <em>Amoxicilina</em>, <em>Meloxicam</em>, <em>Ivermectina</em>).
-                    </p>
-                  </div>
-                  <div style={{ marginTop: 12 }}>
-                    <button
-                      className="btnp"
-                      onClick={() => { handleQueryChange(''); setActiveCategory('ALL') }}
-                      style={{ width: 'auto', padding: '9px 22px', background: 'var(--gray-light)' }}
-                    >
-                      Ver todos los fármacos
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Resultado IA inline */}
-          {aiTerm && (
-            <AIDrugResult
-              query={aiTerm}
-              aiData={aiData}
-              loading={aiLoading}
-              error={aiError}
-              onClose={closeAI}
-              onAskAI={user && onChatOpen ? (name => { addRecent(name); onChatOpen(true) }) : null}
-            />
+        <label htmlFor="si" className="slbl2">Buscar fármaco</label>
+        <div className="search-input-wrap">
+          <SearchIcon size={15} className="search-ico" />
+          <input
+            id="si"
+            type="text"
+            placeholder="Nombre, especie, indicación..."
+            value={query}
+            onChange={e => handleQueryChange(e.target.value)}
+            maxLength={60}
+          />
+          {query && (
+            <button className="search-clear" onClick={() => handleQueryChange('')}>Limpiar</button>
           )}
         </div>
+
+        {/* Category chips */}
+        <div className="chips">
+          <button
+            className={`chip${activeCategory === 'ALL' ? ' on' : ''}`}
+            onClick={() => setActiveCategory('ALL')}
+          >
+            Todos
+          </button>
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat.key}
+              className={`chip${activeCategory === cat.key ? ' on' : ''}`}
+              onClick={() => setActiveCategory(cat.key)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Recent searches */}
+        {recentSearches.length > 0 && (
+          <div className="recent-searches">
+            <span className="recent-label">Recientes:</span>
+            {recentSearches.map(s => (
+              <button key={s} className="recent-chip" onClick={() => handleQueryChange(s)}>{s}</button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Results header */}
+      <div className="results-hdr">
+        <span className="stitle">Fármacos</span>
+        <span className="scnt">
+          {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Drug list */}
+      {filtered.length > 0 ? (
+        <div className="dlist">
+          {filtered.map(drug => (
+            <DrugCard
+              key={drug.id}
+              drug={drug}
+              expanded={expandedDrugId === drug.id}
+              onExpandedChange={(open) => setExpandedDrugId(open ? drug.id : null)}
+              onChatOpen={onChatOpen}
+              onAskAI={() => addRecent(drug.name)}
+              onLoginRequired={onLoginRequired}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="empty">
+          <h3>Sin resultados en el catálogo</h3>
+          <p>No se encontraron fármacos para <strong>"{query}"</strong> en la base local.</p>
+
+          {fuzzySuggestion ? (
+            /* Typo detectado contra catálogo o diccionario extendido — sin tokens */
+            <>
+              <p style={{ marginTop: 10, fontSize: '.92rem' }}>
+                ¿Quisiste decir <strong>{fuzzySuggestion.name}</strong>?
+              </p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  className="btnp"
+                  onClick={() => handleQueryChange(fuzzySuggestion.name)}
+                  style={{ width: 'auto', padding: '10px 22px', background: 'var(--blue)', color: '#fff' }}
+                >
+                  Sí, buscar {fuzzySuggestion.name}
+                </button>
+                <button
+                  className="btnp"
+                  onClick={() => handleQueryChange('')}
+                  style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
+                >
+                  No, limpiar búsqueda
+                </button>
+              </div>
+            </>
+
+          ) : !canSearchAI ? (
+            <p style={{ marginTop: 10, fontSize: '.82rem', color: 'var(--soft)' }}>
+              Escribe al menos 3 caracteres para buscar con IA.
+            </p>
+
+          ) : aiGate?.allowed ? (
+            /* Pasa el gate: es un nombre conocido o encaja con patrón farmacéutico */
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                className="btnp"
+                onClick={handleAISearch}
+                disabled={aiLoading}
+                style={{
+                  width: 'auto', padding: '10px 22px',
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: 'var(--blue)', color: '#fff',
+                }}
+              >
+                <SparklesIcon size={15} />
+                {aiLoading ? 'Consultando IA...' : `Buscar "${trimmedQuery}" con IA`}
+              </button>
+              <button
+                className="btnp"
+                onClick={() => { handleQueryChange(''); setActiveCategory('ALL') }}
+                style={{ width: 'auto', padding: '10px 22px', background: 'var(--gray-light)' }}
+              >
+                Ver todos los fármacos
+              </button>
+            </div>
+
+          ) : (
+            /* No matchea diccionario ni patrón: bloqueo duro, sin tokens */
+            <div style={{ marginTop: 12 }}>
+              <div className="abox rr" style={{ display: 'inline-block', textAlign: 'left', maxWidth: 480 }}>
+                <p style={{ fontSize: '.86rem', margin: 0 }}>
+                  <strong>"{trimmedQuery}"</strong> no parece un fármaco reconocido. Verifica la ortografía o usa el nombre genérico / DCI (ej. <em>Amoxicilina</em>, <em>Meloxicam</em>, <em>Ivermectina</em>).
+                </p>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <button
+                  className="btnp"
+                  onClick={() => { handleQueryChange(''); setActiveCategory('ALL') }}
+                  style={{ width: 'auto', padding: '9px 22px', background: 'var(--gray-light)' }}
+                >
+                  Ver todos los fármacos
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resultado IA inline */}
+      {aiTerm && (
+        <AIDrugResult
+          query={aiTerm}
+          aiData={aiData}
+          loading={aiLoading}
+          error={aiError}
+          onClose={closeAI}
+          onAskAI={user && onChatOpen ? (name => { addRecent(name); onChatOpen(true) }) : null}
+        />
+      )}
     </div>
   )
 }
