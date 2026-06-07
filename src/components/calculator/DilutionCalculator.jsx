@@ -50,7 +50,7 @@ export default function DilutionCalculator() {
   }
 
   return (
-    <div className="wrap">
+    <div className="page-inner">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <FlaskIcon size={20} style={{ color: 'var(--blue)' }} /> Dilución y Goteo IV

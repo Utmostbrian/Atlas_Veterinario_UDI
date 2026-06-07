@@ -125,7 +125,7 @@ export default function DiseaseProtocols({ onLoginRequired }) {
   }, [trimmedQuery, canSearchAI, filtered.length, fuzzySuggestion])
 
   return (
-    <div className="wrap">
+    <div className="page-inner">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ActivityIcon size={20} style={{ color: 'var(--blue)' }} /> Protocolos por Enfermedad

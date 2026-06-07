@@ -197,7 +197,7 @@ export default function InteractionChecker() {
 
 
   return (
-    <div className="wrap">
+    <div className="page-inner">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ZapIcon size={20} style={{ color: 'var(--blue)' }} /> Verificador de Interacciones
@@ -297,7 +297,7 @@ export default function InteractionChecker() {
 
             {result && (
               <div className="aip" style={{ marginBottom: 0 }}>
-                <div className="aiph" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)' }}>
+                <div className="aiph" style={{ background: 'var(--blue)' }}>
                   <div style={{ fontSize: '.67rem', opacity: .72, letterSpacing: '.09em', textTransform: 'uppercase', marginBottom: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <ZapIcon size={10} /> Análisis de Interacciones
                   </div>

@@ -206,7 +206,7 @@ export default function PrescriptionHistory() {
   }
 
   return (
-    <div className="wrap hist-page-wrap">
+    <div className="page-inner hist-page-wrap">
       <div className="hist-hdr">
         <div>
           <h2>

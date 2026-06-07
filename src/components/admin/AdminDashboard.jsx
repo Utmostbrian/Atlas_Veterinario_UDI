@@ -237,7 +237,7 @@ export default function AdminDashboard() {
 
   if (tab === 'log') {
     return (
-      <div className="wrap">
+      <div className="page-inner">
         <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} role={me?.role} hideControls />
         <Suspense fallback={<div className="ld"><div className="sp" /><p>Cargando log...</p></div>}>
           <ConsultationHistory />
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
 
   if (tab === 'users' && me?.role === 'admin') {
     return (
-      <div className="wrap">
+      <div className="page-inner">
         <DashboardHeader period={period} onPeriodChange={setPeriod} tab={tab} setTab={setTab} role={me?.role} hideControls />
         <Suspense fallback={<div className="ld"><div className="sp" /><p>Cargando usuarios...</p></div>}>
           <UsersPanel />

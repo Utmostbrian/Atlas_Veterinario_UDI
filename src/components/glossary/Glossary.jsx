@@ -35,7 +35,7 @@ export default function Glossary() {
   }
 
   return (
-    <div className="wrap">
+    <div className="page-inner">
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BookIcon size={20} style={{ color: 'var(--blue)' }} /> Glosario Farmacológico

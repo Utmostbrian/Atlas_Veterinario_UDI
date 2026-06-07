@@ -365,7 +365,7 @@ export default function Prescription() {
   const validDrugsForPreview = drugs.filter((drug) => drug.name.trim())
 
   return (
-    <div className="wrap">
+    <div className="page-inner">
       <datalist id="atlas-drug-list">
         {ATLAS_DRUG_NAMES.map((name) => <option key={name} value={name} />)}
       </datalist>
