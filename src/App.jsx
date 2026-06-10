@@ -38,7 +38,7 @@ function AuthLoader() {
       style={{ minHeight: '100vh', justifyContent: 'center', alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 16 }}
       aria-busy="true" aria-live="polite">
       <div className="sp" />
-      <p style={{ color: 'var(--text-muted, #6b7280)', fontSize: '0.9rem' }}>Restaurando sesión...</p>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Restaurando sesión...</p>
     </div>
   )
 }

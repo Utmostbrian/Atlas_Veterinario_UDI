@@ -204,7 +204,12 @@
 }
 
 :global(.dark) .sectionLabel {
-  color: #64748b;
+  color: #94a3b8;
+}
+
+:global(.dark) .featureLock {
+  color: #94a3b8;
+  opacity: .7;
 }
 
 /* ── RESPONSIVE ── */

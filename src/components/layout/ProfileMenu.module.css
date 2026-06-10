@@ -420,13 +420,26 @@
 
 :global(.dark) .fieldInputLocked {
   background: #0f172a;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 :global(.dark) .lockBadge {
   background: #0f172a;
   border-color: #334155;
-  color: #64748b;
+  color: #94a3b8;
+}
+
+:global(.dark) .sectionTitle,
+:global(.dark) .fieldLabel,
+:global(.dark) .cropTitle {
+  color: #e2e8f0;
+}
+
+:global(.dark) .fieldHint,
+:global(.dark) .photoHint,
+:global(.dark) .cropHint,
+:global(.dark) .cropSizesLabel {
+  color: #94a3b8;
 }
 
 :global(.dark) .logoutBtn:hover {

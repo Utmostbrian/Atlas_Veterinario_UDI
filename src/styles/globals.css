@@ -43,6 +43,7 @@
   --gray:   #8B95A1;          /* texto desactivado = ink-mute */
   --dark:   #15202E;          /* texto principal fuerte = ink/navy */
   --text:   #15202E;          /* = ink */
+  --text-muted: #6B7280;
   --soft:   #5A6573;          /* texto secundario = ink-soft */
   --border: #E4DFD4;          /* separadores = rule */
 
@@ -74,10 +75,22 @@
   --dark:   #f1f5f9;
   --soft:   #94a3b8;
   --gray:   #64748b;
+  --text-muted: #94a3b8;
   --border: #334155;
   --white:  #1e293b;
   --sh:   0 4px 24px rgba(0,0,0,.4);
   --shlg: 0 12px 40px rgba(0,0,0,.6);
+
+  /* Tokens AV en modo oscuro — antes faltaban y dejaban texto oscuro sobre fondo oscuro */
+  --ink:         #e2e8f0;
+  --ink-soft:    #94a3b8;
+  --ink-mute:    #7c8aa0;
+  --surface:     #1e293b;
+  --paper:       #0f172a;
+  --paper-warm:  #1e293b;
+  --paper-cream: #1e293b;
+  --rule:        #334155;
+  --rule-strong: #475569;
 }
 
 .dark body { background: var(--cream); color: var(--text); }
@@ -122,18 +135,18 @@
 
 .dark .dcard { background: #1e293b; border-color: #334155; }
 .dark .dct   { background: #1e293b; }
-.dark .dn    { color: #F2F2F7; }
-.dark .dd    { color: #8E8E93; }
+.dark .dn    { color: var(--dark); }
+.dark .dd    { color: var(--soft); }
 
-.dark .hist-hdr h2 { color: #F2F2F7; }
-.dark .hist-hdr p  { color: #8E8E93; }
-.dark .stat-val    { color: #F2F2F7; }
-.dark .stat-lbl    { color: #8E8E93; }
+.dark .hist-hdr h2 { color: var(--dark); }
+.dark .hist-hdr p  { color: var(--soft); }
+.dark .stat-val    { color: var(--dark); }
+.dark .stat-lbl    { color: var(--soft); }
 .dark .hist-tbl td { color: #e2e8f0; border-color: #334155; }
 .dark .hist-tbl th { background: var(--blue); }
 .dark .sp-box      { background: #1e293b; border-color: #334155; }
-.dark .sp-box h4   { color: #F2F2F7; }
-.dark .sp-box p    { color: #8E8E93; }
+.dark .sp-box h4   { color: var(--dark); }
+.dark .sp-box p    { color: var(--soft); }
 .dark .sp-box code { background: rgba(218,41,28,.14); color: #ff8080; }
 .dark .sp-badge    { background: rgba(218,41,28,.14); color: #ff8080; }
 .dark .hist-page button { background: #0f172a; border-color: #334155; color: #e2e8f0; }
@@ -629,7 +642,7 @@ header {
 .fc-err-msg { font-size: .74rem; color: #FF3B30; margin-top: 4px; font-weight: 500; }
 .fc-warn-msg { font-size: .74rem; color: var(--color-warning); margin-top: 4px; font-weight: 600; }
 .fc-hint-msg { font-size: .72rem; color: var(--soft); margin-top: 3px; }
-.dark .fc-hint-msg { color: #636366; }
+.dark .fc-hint-msg { color: var(--soft); }
 
 .fc-autocomplete-list {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
@@ -865,7 +878,7 @@ header {
 .abtn:hover,.abtn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 .abtn:focus-visible  { outline: 2px solid var(--blue); outline-offset: 2px; }
 .abtn:disabled { opacity: .3; cursor: default; }
-.dark .abtn { background: #1e293b; border-color: #334155; color: #8E8E93; }
+.dark .abtn { background: #1e293b; border-color: #334155; color: var(--soft); }
 
 .abtn-all {
   width: auto; padding: 0 12px; border-radius: 8px;
@@ -1727,10 +1740,10 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   background: var(--navy);
   border: none;
   border-radius: 0;
-  color: var(--surface);
+  color: #fff;
   padding: 22px;
 }
-.dark .cres { background: var(--navy); border: none; color: var(--surface); }
+.dark .cres { background: var(--navy); border: none; color: #fff; }
 .cres .crtitle {
   font-family: var(--mono);
   font-size: .64rem;
@@ -1740,8 +1753,8 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   margin-bottom: 12px;
 }
 .cres .crow { border-color: rgba(255,255,255,.12); color: rgba(255,255,255,.8); }
-.cres .crow span:last-child { font-family: var(--serif); font-weight: 400; font-size: 1.05rem; color: var(--surface); }
-.cres .crow:last-child { color: var(--surface); }
+.cres .crow span:last-child { font-family: var(--serif); font-weight: 400; font-size: 1.05rem; color: #fff; }
+.cres .crow:last-child { color: #fff; }
 
 /* Ficha de fármaco (panel expandido): cabecera editorial, no roja */
 .aiph {
@@ -1787,7 +1800,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   transition: border-color .15s, transform .15s;
 }
 .spec-card:hover { border-color: var(--rule-strong); transform: translateY(-2px); }
-.spec-card.on { background: var(--navy); border-color: var(--navy); color: var(--surface); }
+.spec-card.on { background: var(--navy); border-color: var(--navy); color: #fff; }
 .spec-card-top {
   display: flex; align-items: center; justify-content: space-between;
   font-family: var(--mono); font-size: .62rem; letter-spacing: .16em; color: var(--ink-mute);
