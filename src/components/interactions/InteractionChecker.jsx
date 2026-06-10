@@ -197,7 +197,8 @@ export default function InteractionChecker() {
 
 
   return (
-    <div className="wrap">
+    <div className="page-inner">
+      <div className="page-kicker">Seguridad · 04</div>
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ZapIcon size={20} style={{ color: 'var(--blue)' }} /> Verificador de Interacciones
@@ -297,11 +298,11 @@ export default function InteractionChecker() {
 
             {result && (
               <div className="aip" style={{ marginBottom: 0 }}>
-                <div className="aiph" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)' }}>
-                  <div style={{ fontSize: '.67rem', opacity: .72, letterSpacing: '.09em', textTransform: 'uppercase', marginBottom: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div className="aiph">
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: '.62rem', color: 'var(--av-red)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <ZapIcon size={10} /> Análisis de Interacciones
                   </div>
-                  <div className="ainame" style={{ fontSize: '1.05rem', paddingRight: 0 }}>
+                  <div className="ainame" style={{ fontSize: '1.5rem', paddingRight: 0 }}>
                     {drugs.join(' + ')}
                   </div>
                   <div className="aitags" style={{ marginTop: 10 }}>

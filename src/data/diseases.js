@@ -3,7 +3,7 @@ export const DISEASES = [
     id: 1,
     name: 'Mastitis Bovina',
     species: 'Bovino',
-    color: '#003087',
+    color: '#15202E',
     description:
       'Inflamación de la glándula mamaria de origen infeccioso. Principal causa de pérdidas económicas en ganadería lechera.',
     drugs: ['Amoxicilina', 'Oxitetraciclina', 'Meloxicam', 'Flunixin Meglumina'],
@@ -27,7 +27,7 @@ export const DISEASES = [
     id: 3,
     name: 'Anaplasmosis',
     species: 'Bovino',
-    color: '#CC0000',
+    color: '#E11D48',
     description:
       'Enfermedad hemoparasitaria transmitida por garrapatas. Causada por Anaplasma marginale. Cursa con anemia hemolítica.',
     drugs: ['Oxitetraciclina'],
@@ -39,7 +39,7 @@ export const DISEASES = [
     id: 4,
     name: 'Fasciolosis Hepática',
     species: 'Bovinos, Ovinos',
-    color: '#CC0000',
+    color: '#E11D48',
     description:
       'Parasitosis hepática por Fasciola hepatica. Causa pérdidas productivas severas y decomisos en matadero.',
     drugs: ['Closantel', 'Albendazol'],
@@ -99,7 +99,7 @@ export const DISEASES = [
     id: 9,
     name: 'Hiperadrenocorticismo (Cushing)',
     species: 'Perro',
-    color: '#003087',
+    color: '#15202E',
     description:
       'Exceso crónico de cortisol por neoplasia hipofisaria (PDH 80%) o adrenal. Signos: PU/PD, alopecia, abdomen péndulo.',
     drugs: ['Ketoconazol'],
@@ -111,7 +111,7 @@ export const DISEASES = [
     id: 10,
     name: 'Verminosis Gastrointestinal',
     species: 'Bovinos, Ovinos, Caprinos',
-    color: '#CC0000',
+    color: '#E11D48',
     description:
       'Parasitosis por nematodos GI (Haemonchus, Ostertagia, Trichostrongylus). Causa pérdidas productivas severas.',
     drugs: ['Ivermectina', 'Albendazol', 'Closantel'],

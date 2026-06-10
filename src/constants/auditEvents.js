@@ -7,7 +7,7 @@ export const AUDIT_EVENT_META = {
   DRUG_SEARCH: {
     label: 'Busqueda real',
     plural: 'Busquedas reales',
-    color: '#003087',
+    color: '#15202E',
   },
   DRUG_CARD_OPEN: {
     label: 'Ficha consultada',
@@ -32,7 +32,7 @@ export const AUDIT_EVENT_META = {
   AI_CONSULTATION: {
     label: 'Consulta IA',
     plural: 'Consultas IA',
-    color: '#CC0000',
+    color: '#DA291C',
   },
   PRESCRIPTION_GEN: {
     label: 'Receta generada',

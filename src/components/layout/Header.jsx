@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { TABS } from '../../data/tabs'
 import { useAuth } from '../../context/AuthContext'
 import ProfileMenu, { Avatar } from './ProfileMenu'
-import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
+import AVMark from './AVMark'
 import { MenuIcon, CloseIcon, SunIcon, MoonIcon } from '../../Icons/Icons'
 
 const ROLE_LABEL_SHORT = {
@@ -24,20 +24,20 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
     <>
       <header>
         <div className="htop">
-          Universidad para el Desarrollo y la Innovación · Sede Santa Cruz · 2026
+          Herramienta de referencia clínica · Dosis orientativas
         </div>
 
         <div className="hmain">
-          {/* Logo */}
+          {/* Marca AV */}
           <div className="hlogo">
-            <img src={udiLogo} alt="UDI" />
+            <AVMark size={38} />
           </div>
 
           {/* Title */}
           <div className="htext">
             <h1>Atlas Farmacológico Veterinario</h1>
-            <p>Guía de referencia clínica con IA · UDI 2026</p>
-            <span className="badge">Carrera de Veterinaria</span>
+            <p>Guía de referencia clínica con IA · AV 2026</p>
+            <span className="badge">Veterinaria</span>
           </div>
 
           {/* Desktop utility nav */}
@@ -68,20 +68,20 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
           {/* Info de usuario o botón de login */}
           <div style={{
             padding: '4px 14px 14px',
-            borderBottom: '1px solid rgba(255,255,255,.15)',
+            borderBottom: '1px solid var(--border)',
             marginBottom: 8,
           }}>
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar user={user} size={40} />
                 <div>
-                  <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#fff' }}>
+                  <div style={{ fontSize: '.88rem', fontWeight: 700, color: 'var(--dark)' }}>
                     {user.name}
                   </div>
                   <span style={{
-                    background: 'rgba(255,255,255,.2)', fontSize: '.62rem', padding: '1px 6px',
+                    background: 'rgba(204,0,0,.1)', fontSize: '.62rem', padding: '1px 6px',
                     borderRadius: 3, fontWeight: 700, textTransform: 'uppercase',
-                    color: 'rgba(255,255,255,.9)',
+                    color: 'var(--blue)',
                   }}>
                     {roleBadge}
                   </span>
@@ -93,10 +93,10 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   width: '100%', padding: '10px 14px',
-                  background: '#CC0000', color: '#fff',
+                  background: 'var(--blue)', color: '#fff',
                   border: 'none', borderRadius: 8,
                   fontWeight: 700, fontSize: '.88rem',
-                  fontFamily: 'Source Sans 3, sans-serif',
+                  fontFamily: 'var(--sans)',
                   cursor: 'pointer',
                 }}
               >
@@ -128,7 +128,7 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
           {user && (
             <button
               onClick={() => { setMenuOpen(false); logout() }}
-              style={{ color: 'rgba(255,200,200,.9)' }}
+              style={{ color: 'var(--red)' }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 strokeLinecap="round" strokeLinejoin="round" width="17" height="17"
@@ -163,15 +163,16 @@ function LoginButton({ onClick }) {
         gap: 6,
         padding: '7px 15px',
         borderRadius: 20,
-        border: '1px solid rgba(255,255,255,.35)',
-        background: hover ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.1)',
-        color: '#fff',
+        border: '1.5px solid var(--blue)',
+        background: hover ? 'var(--blue)' : 'transparent',
+        color: hover ? '#fff' : 'var(--blue)',
         fontWeight: 700,
         fontSize: '.82rem',
         cursor: 'pointer',
-        transition: 'background .2s',
+        transition: 'background .2s, color .2s',
         whiteSpace: 'nowrap',
         flexShrink: 0,
+        fontFamily: 'var(--sans)',
       }}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

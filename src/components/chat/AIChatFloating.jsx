@@ -57,7 +57,7 @@ function Message({ msg }) {
     return (
       <div className={styles.typingWrap}>
         <div className={styles.avatar}>
-          <img src={chatIAIcon} alt="IA" style={{ width: 54, height: 54, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          <img src={chatIAIcon} alt="IA" className={styles.avatarIcon} />
         </div>
         <div className={styles.typingBubble}>
           <span className={styles.dot} />
@@ -72,7 +72,7 @@ function Message({ msg }) {
     <div className={`${styles.msgRow} ${isUser ? styles.userRow : styles.botRow}`}>
       {!isUser && (
         <div className={styles.avatar}>
-          <img src={chatIAIcon} alt="IA" style={{ width: 54, height: 54, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          <img src={chatIAIcon} alt="IA" className={styles.avatarIcon} />
         </div>
       )}
 
@@ -666,7 +666,7 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
         title={isAuthenticated ? 'Abrir Asistente IA' : 'Asistente IA — Inicia sesión para usar'}
         aria-label="Abrir chat con IA"
       >
-        <img src={chatIAIcon} alt="IA" style={{ width: 100, height: 100, objectFit: 'contain', display: 'block', filter: 'brightness(0) invert(1)' }} />
+        <img src={chatIAIcon} alt="IA" className={styles.fabIcon} />
         {!isAuthenticated && (
           <span className={styles.fabWarning} title="Requiere inicio de sesión">
             <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">

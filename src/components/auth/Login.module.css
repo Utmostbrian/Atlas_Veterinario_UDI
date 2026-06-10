@@ -63,7 +63,7 @@
 
 /* ── CARD HEAD ── */
 .cardHead {
-  background: linear-gradient(135deg, #1a2535 0%, #1e2d3d 100%);
+  background: #1e293b;
   padding: 28px 28px 24px;
   display: flex;
   align-items: center;
@@ -82,7 +82,7 @@
 }
 
 .title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--sans);
   font-size: 1rem;
   font-weight: 700;
   color: #fff;
@@ -98,7 +98,7 @@
 
 .badge {
   display: inline-block;
-  background: #CC0000;
+  background: var(--blue);
   color: #fff;
   font-size: .6rem;
   padding: 2px 7px;
@@ -148,7 +148,7 @@
   border: 2px solid var(--border);
   border-radius: 8px;
   font-size: .88rem;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: var(--sans);
   color: var(--text);
   background: var(--gl);
   outline: none;
@@ -156,7 +156,7 @@
 }
 
 .input:focus {
-  border-color: #CC0000;
+  border-color: var(--blue);
   background: #fff;
   box-shadow: 0 0 0 3px rgba(204, 0, 0, .1);
 }
@@ -184,7 +184,7 @@
   gap: 7px;
   background: #FFF0F0;
   border: 1px solid #FECACA;
-  border-left: 4px solid #CC0000;
+  border-left: 4px solid var(--blue);
   border-radius: 7px;
   padding: 9px 12px;
   font-size: .83rem;
@@ -196,20 +196,20 @@
 .submitBtn {
   width: 100%;
   padding: 12px;
-  background: #CC0000;
+  background: var(--blue);
   color: #fff;
   border: none;
   border-radius: 8px;
   font-size: .9rem;
   font-weight: 700;
-  font-family: 'Source Sans 3', sans-serif;
+  font-family: var(--sans);
   cursor: pointer;
   transition: .2s;
   margin-top: 2px;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #AA0000;
+  background: #A8200F;
   box-shadow: 0 4px 16px rgba(204, 0, 0, .3);
   transform: translateY(-1px);
 }
@@ -266,7 +266,7 @@
 
 :global(.dark) .input:focus {
   background: #0f172a;
-  border-color: #CC0000;
+  border-color: var(--blue);
 }
 
 :global(.dark) .error {

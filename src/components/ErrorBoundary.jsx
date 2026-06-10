@@ -20,15 +20,15 @@ export default class ErrorBoundary extends Component {
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', minHeight: '100vh', padding: '2rem',
-          textAlign: 'center', fontFamily: 'Source Sans 3, sans-serif', background: '#f9f5f0',
+          textAlign: 'center', fontFamily: 'var(--sans)', background: 'var(--cream, #F4F6F8)',
         }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CC0000"
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#E11D48"
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}>
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <h2 style={{ color: '#1a2535', fontFamily: 'Playfair Display, serif', marginBottom: '.5rem' }}>
+          <h2 style={{ color: 'var(--dark, #0F172A)', fontFamily: 'var(--sans)', marginBottom: '.5rem' }}>
             Algo salió mal
           </h2>
           <p style={{ color: '#6b7280', marginBottom: '1.5rem', maxWidth: '360px', lineHeight: 1.6 }}>
@@ -37,7 +37,7 @@ export default class ErrorBoundary extends Component {
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
-              padding: '10px 28px', background: '#CC0000', color: '#fff',
+              padding: '10px 28px', background: 'var(--blue, #DA291C)', color: '#fff',
               border: 'none', borderRadius: '8px', fontSize: '.9rem',
               fontWeight: 700, cursor: 'pointer',
             }}
