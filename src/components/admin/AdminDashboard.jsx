@@ -25,12 +25,12 @@ const ROLE_LABEL = {
 const ROLE_COLOR = {
   admin:   '#E11D48',
   docente: '#7c3aed',
-  student: '#003087',
+  student: '#15202E',
   unknown: '#9ca3af',
 }
 
 const SPECIES_PALETTE = [
-  '#003087', '#CC0000', '#16a34a', '#d97706', '#7c3aed',
+  '#15202E', '#DA291C', '#16a34a', '#d97706', '#7c3aed',
   '#0891b2', '#db2777', '#65a30d', '#9a3412', '#475569',
 ]
 
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
               label={`Total (últimos ${kpis?.period_days ?? period} días)`}
               value={(kpis?.total ?? 0).toLocaleString('es-BO')}
               sub={periodSub}
-              accent="#003087"
+              accent="#15202E"
             />
             <KpiCard
               Icon={FileTextIcon}
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
               label="Consultas IA"
               value={aiConsultations.toLocaleString('es-BO')}
               sub={periodSub}
-              accent="#CC0000"
+              accent="#DA291C"
             />
             <KpiCard
               Icon={CalculatorIcon}
@@ -332,7 +332,7 @@ export default function AdminDashboard() {
                 <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, axisMax]} tickCount={5} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
                 <Tooltip cursor={{ fill: 'rgba(204,0,0,.06)' }} contentStyle={tooltipStyle} />
-                <Bar dataKey="total" fill="#CC0000" radius={[0, 4, 4, 0]} maxBarSize={22} />
+                <Bar dataKey="total" fill="#DA291C" radius={[0, 4, 4, 0]} maxBarSize={22} />
               </BarChart>
             </ChartCard>
 
@@ -482,9 +482,9 @@ export default function AdminDashboard() {
                 <Line
                   type="monotone"
                   dataKey="total"
-                  stroke="#003087"
+                  stroke="#15202E"
                   strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#003087' }}
+                  dot={{ r: 3, fill: '#15202E' }}
                   activeDot={{ r: 5 }}
                 />
               </LineChart>

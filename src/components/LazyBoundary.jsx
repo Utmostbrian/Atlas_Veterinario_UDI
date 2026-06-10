@@ -25,7 +25,7 @@ class ChunkErrorBoundary extends Component {
           justifyContent: 'center', minHeight: '40vh', padding: '2rem',
           textAlign: 'center', gap: 14,
         }}>
-          <h3 style={{ color: 'var(--dark, #0F172A)', fontFamily: "'Figtree', system-ui, sans-serif" }}>
+          <h3 style={{ color: 'var(--dark, #0F172A)', fontFamily: 'var(--sans)' }}>
             No se pudo cargar esta sección
           </h3>
           <p style={{ color: 'var(--soft, #6b7280)', maxWidth: 380, fontSize: '.9rem' }}>
@@ -34,7 +34,7 @@ class ChunkErrorBoundary extends Component {
           <button
             onClick={() => window.location.reload()}
             style={{
-              padding: '9px 22px', background: 'var(--blue, #CC0000)', color: '#fff',
+              padding: '9px 22px', background: 'var(--blue, #DA291C)', color: '#fff',
               border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '.85rem', cursor: 'pointer',
             }}
           >

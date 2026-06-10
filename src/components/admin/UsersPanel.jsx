@@ -12,7 +12,7 @@ const ROLE_LABEL = {
 const ROLE_COLOR = {
   admin:   '#E11D48',
   docente: '#7c3aed',
-  student: '#003087',
+  student: '#15202E',
 }
 
 const ROLE_OPTIONS = [

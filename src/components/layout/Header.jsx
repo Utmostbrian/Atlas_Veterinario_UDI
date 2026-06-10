@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { TABS } from '../../data/tabs'
 import { useAuth } from '../../context/AuthContext'
 import ProfileMenu, { Avatar } from './ProfileMenu'
-import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
+import AVMark from './AVMark'
 import { MenuIcon, CloseIcon, SunIcon, MoonIcon } from '../../Icons/Icons'
 
 const ROLE_LABEL_SHORT = {
@@ -24,20 +24,20 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
     <>
       <header>
         <div className="htop">
-          Universidad para el Desarrollo y la Innovación · Sede Santa Cruz · 2026
+          Herramienta de referencia clínica · Dosis orientativas
         </div>
 
         <div className="hmain">
-          {/* Logo */}
+          {/* Marca AV */}
           <div className="hlogo">
-            <img src={udiLogo} alt="UDI" />
+            <AVMark size={38} />
           </div>
 
           {/* Title */}
           <div className="htext">
             <h1>Atlas Farmacológico Veterinario</h1>
-            <p>Guía de referencia clínica con IA · UDI 2026</p>
-            <span className="badge">Carrera de Veterinaria</span>
+            <p>Guía de referencia clínica con IA · AV 2026</p>
+            <span className="badge">Veterinaria</span>
           </div>
 
           {/* Desktop utility nav */}
@@ -96,7 +96,7 @@ export default function Header({ onTabChange, darkMode, onToggleDark, onOpenLogi
                   background: 'var(--blue)', color: '#fff',
                   border: 'none', borderRadius: 8,
                   fontWeight: 700, fontSize: '.88rem',
-                  fontFamily: "'Figtree', system-ui, sans-serif",
+                  fontFamily: 'var(--sans)',
                   cursor: 'pointer',
                 }}
               >
@@ -172,7 +172,7 @@ function LoginButton({ onClick }) {
         transition: 'background .2s, color .2s',
         whiteSpace: 'nowrap',
         flexShrink: 0,
-        fontFamily: "'Figtree', system-ui, sans-serif",
+        fontFamily: 'var(--sans)',
       }}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

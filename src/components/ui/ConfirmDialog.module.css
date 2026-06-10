@@ -28,7 +28,7 @@
   max-width: 420px;
   padding: 28px 26px 22px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   animation: cardIn .22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
@@ -64,16 +64,16 @@
 }
 .iconDestructive {
   background: rgba(204, 0, 0, 0.10);
-  color: var(--blue, #CC0000);
+  color: var(--blue, #DA291C);
 }
 .iconInfo {
-  background: rgba(0, 48, 135, 0.10);
-  color: #003087;
+  background: rgba(21, 32, 46, 0.08);
+  color: #15202E;
 }
 
 /* ─── Tipografía ───────────────────────────────────────────────────── */
 .title {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--dark, #111827);
@@ -103,7 +103,7 @@
   min-width: 110px;
   padding: 11px 20px;
   border-radius: 9px;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
@@ -126,16 +126,16 @@
 }
 
 .btnPrimary {
-  background: #003087;
+  background: #15202E;
   color: #fff;
   border: 1px solid transparent;
 }
 .btnPrimary:hover:not(:disabled) {
-  background: #002566;
+  background: #0D1A2A;
 }
 
 .btnDestructive {
-  background: var(--blue, #CC0000);
+  background: var(--blue, #DA291C);
 }
 .btnDestructive:hover:not(:disabled) {
   background: var(--blue-mid, #AA0000);

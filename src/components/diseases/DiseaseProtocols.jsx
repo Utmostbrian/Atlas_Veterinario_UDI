@@ -14,7 +14,7 @@ import {
 import { EXTENDED_DISEASE_NAMES, DISEASE_SUFFIX_PATTERNS } from '../../data/extendedDictionaries'
 import { logAiConsultation, logDiseaseProtocolView } from '../../services/auditService'
 
-const SEVERITY_COLOR  = { 'Muy Alta': '#E11D48', Alta: '#d97706', Media: '#003087' }
+const SEVERITY_COLOR  = { 'Muy Alta': '#DA291C', Alta: '#C8881C', Media: '#15202E' }
 const CATALOG_NAMES   = DISEASES.map(d => d.name)
 const FUZZY_DICTIONARY = [...new Set([...CATALOG_NAMES, ...EXTENDED_DISEASE_NAMES])]
 
@@ -126,6 +126,7 @@ export default function DiseaseProtocols({ onLoginRequired }) {
 
   return (
     <div className="page-inner">
+      <div className="page-kicker">Protocolos · 05</div>
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ActivityIcon size={20} style={{ color: 'var(--blue)' }} /> Protocolos por Enfermedad
@@ -315,7 +316,7 @@ function DiseaseCard({ disease, expanded: controlledExpanded, onExpandedChange, 
   return (
     <>
       <div className="ecard" onClick={handleExpand}>
-        <div className="ech" style={{ background: disease.color || 'var(--blue)' }}>{disease.name}</div>
+        <div className="ech" style={{ borderLeftColor: disease.color || 'var(--av-red)' }}>{disease.name}</div>
         <div className="ecb">
           {disease.description && disease.description.length > 90
             ? disease.description.slice(0, 90) + '...'

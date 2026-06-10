@@ -36,6 +36,7 @@ export default function Glossary() {
 
   return (
     <div className="page-inner">
+      <div className="page-kicker">Referencia · 06</div>
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BookIcon size={20} style={{ color: 'var(--blue)' }} /> Glosario Farmacológico

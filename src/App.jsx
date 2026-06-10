@@ -169,7 +169,7 @@ function AppContent() {
             color: '#fff',
             fontSize: '.84rem',
             fontWeight: 600,
-            fontFamily: "'Figtree', system-ui, sans-serif",
+            fontFamily: 'var(--sans)',
             cursor: 'pointer',
             boxShadow: '0 4px 28px rgba(0,0,0,.45)',
             whiteSpace: 'nowrap',

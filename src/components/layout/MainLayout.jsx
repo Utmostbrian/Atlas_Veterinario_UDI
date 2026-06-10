@@ -3,23 +3,20 @@ import Header from './Header'
 import TabBar  from './TabBar'
 import { useAuth } from '../../context/AuthContext'
 import { TABS } from '../../data/tabs'
-import udiLogo from '../../Icons/icons_final/UDILOGOSVG.svg'
 import { SunIcon, MoonIcon } from '../../Icons/Icons'
 
-// Tabs visible in the sidebar (all tabs available to all students)
-const SIDEBAR_GROUPS = [
-  {
-    label: 'Referencia',
-    tabs: ['atlas', 'glos', 'enf'],
-  },
-  {
-    label: 'Cálculo clínico',
-    tabs: ['calc', 'dil', 'inter'],
-  },
-  {
-    label: 'Herramientas',
-    tabs: ['receta', 'dashboard/recetas/historial'],
-  },
+// Navegación lateral editorial (estilo prototipo AV): nombre corto + subtítulo + código.
+// El icono y el rol se toman de TABS; el orden y los códigos definen la numeración 01–09.
+const SIDEBAR_NAV = [
+  { id: 'atlas',  name: 'Atlas',         sub: 'Fármacos · Especialidades',   code: '01' },
+  { id: 'calc',   name: 'Calculadora',   sub: 'Dosis por peso',              code: '02' },
+  { id: 'dil',    name: 'Dilución',      sub: 'Goteo · Infusión',            code: '03' },
+  { id: 'inter',  name: 'Interacciones', sub: 'Seguridad por combinación',   code: '04' },
+  { id: 'enf',    name: 'Protocolos',    sub: 'Enfermedades y especie',      code: '05' },
+  { id: 'glos',   name: 'Glosario',      sub: 'Términos farmacológicos',     code: '06' },
+  { id: 'receta', name: 'Recetas',       sub: 'Generador profesional',       code: '07' },
+  { id: 'dashboard/recetas/historial', name: 'Historial', sub: 'Recetas previas', code: '08' },
+  { id: 'audit',  name: 'Auditoría',     sub: 'Uso · Roles · Riesgo',        code: '09' },
 ]
 
 const MOB_TABS = [
@@ -50,83 +47,65 @@ export default function MainLayout({
     ? TABS.filter(t => t.roles.includes(user.role))
     : TABS.filter(t => t.roles.includes('student'))
 
-  const visibleIds = new Set(visibleTabs.map(t => t.id))
-
   return (
     <>
-      <Header
-        onTabChange={onTabChange}
-        darkMode={darkMode}
-        onToggleDark={onToggleDark}
-        onOpenLogin={onOpenLogin}
-      />
-
       <div className="app-shell">
-        {/* ── Desktop sidebar ── */}
+        {/* ── Desktop sidebar (editorial AV) ── */}
         <aside className="app-sidebar">
           {/* Brand */}
           <div className="asb-brand">
-            <img src={udiLogo} alt="UDI" />
-            <div>
-              <div className="asb-title">Atlas Farmacológico</div>
-              <div className="asb-sub">Veterinaria · UDI 2026</div>
-            </div>
+            <span className="asb-logo">AV</span>
+            <div className="asb-brand-sub">Atlas Farmacológico<br />Veterinario</div>
           </div>
 
           {/* Nav */}
           <nav className="asb-nav" aria-label="Navegación principal">
-            {SIDEBAR_GROUPS.map(group => {
-              const groupTabs = group.tabs
-                .map(id => visibleTabs.find(t => t.id === id))
-                .filter(Boolean)
-              if (groupTabs.length === 0) return null
+            {SIDEBAR_NAV.map(({ id, name, sub, code }) => {
+              const tab = visibleTabs.find(t => t.id === id)
+              if (!tab) return null
+              const Icon = tab.Icon
+              const on = activeTab === id
               return (
-                <div key={group.label}>
-                  <div className="asb-sect">{group.label}</div>
-                  {groupTabs.map(({ id, label, Icon }) => (
-                    <button
-                      key={id}
-                      className={`asb-btn${activeTab === id ? ' on' : ''}`}
-                      onClick={() => handleNav(id)}
-                      aria-current={activeTab === id ? 'page' : undefined}
-                    >
-                      <span className="asb-btn-icon"><Icon size={15} /></span>
-                      {label}
-                    </button>
-                  ))}
-                  <div className="asb-divider" />
-                </div>
+                <button
+                  key={id}
+                  className={`asb-item${on ? ' on' : ''}`}
+                  onClick={() => handleNav(id)}
+                  aria-current={on ? 'page' : undefined}
+                >
+                  <span className="asb-item-ico"><Icon size={18} /></span>
+                  <span className="asb-item-txt">
+                    <span className="asb-item-name">{name}</span>
+                    <span className="asb-item-sub">{sub}</span>
+                  </span>
+                  <span className="asb-item-code">{code}</span>
+                </button>
               )
             })}
-
-            {/* Admin-only tab */}
-            {visibleIds.has('audit') && (
-              <button
-                className={`asb-btn${activeTab === 'audit' ? ' on' : ''}`}
-                onClick={() => handleNav('audit')}
-              >
-                <span className="asb-btn-icon">
-                  {TABS.find(t => t.id === 'audit').Icon && (
-                    (() => { const I = TABS.find(t => t.id === 'audit').Icon; return <I size={15} /> })()
-                  )}
-                </span>
-                Dashboard Admin
-              </button>
-            )}
           </nav>
 
-          {/* Footer */}
+          {/* Footer — aviso clínico + tema */}
           <div className="asb-foot">
+            <div className="asb-aviso">
+              <span className="asb-aviso-kicker">Aviso</span>
+              <p>Atlas es una herramienta educativa y de apoyo. No reemplaza el criterio del veterinario profesional.</p>
+            </div>
             <button className="asb-foot-btn" onClick={onToggleDark}>
               {darkMode
                 ? <><SunIcon size={14} /><span>Modo claro</span></>
                 : <><MoonIcon size={14} /><span>Modo oscuro</span></>}
             </button>
+            <div className="asb-meta"><span>AV · 2026</span><span>v1.1.0</span></div>
           </div>
         </aside>
 
         {/* ── Main content ── */}
         <div className="app-main">
+          <Header
+            onTabChange={onTabChange}
+            darkMode={darkMode}
+            onToggleDark={onToggleDark}
+            onOpenLogin={onOpenLogin}
+          />
           <TabBar activeTab={activeTab} onTabChange={onTabChange} />
           <main style={{ minHeight: '60vh' }}>
             {children}
@@ -153,11 +132,10 @@ export default function MainLayout({
         <div className="fstripe" />
         <div className="fbody">
           <div className="fbrand">
-            <h3>Atlas Farmacológico Veterinario</h3>
+            <h3>Atlas Farmacológico Veterinario · AV</h3>
             <p>
-              Herramienta docente de referencia farmacológica para la Facultad de Veterinaria
-              de la Universidad UDI. Orientada a la formación clínica integral del
-              médico veterinario.
+              Atlas AV — herramienta de referencia farmacológica veterinaria orientada a la
+              formación y la práctica clínica. Información de apoyo académico, sobria y verificable.
             </p>
             <p style={{ fontSize: '.72rem', color: 'rgba(255,255,255,.35)' }}>
               Dosis orientativas. Consulte siempre con un veterinario profesional antes de administrar cualquier fármaco.

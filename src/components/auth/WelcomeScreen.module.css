@@ -32,7 +32,7 @@
 }
 
 .heroTitle {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--text);
@@ -61,14 +61,14 @@
   border-radius: 10px;
   font-size: .92rem;
   font-weight: 700;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   cursor: pointer;
   transition: background .2s, transform .15s, box-shadow .2s;
   box-shadow: 0 4px 16px rgba(204, 0, 0, .28);
 }
 
 .loginBtn:hover {
-  background: #AA0000;
+  background: #A8200F;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(204, 0, 0, .35);
 }
@@ -106,7 +106,7 @@
   border-radius: var(--r);
   cursor: pointer;
   transition: border-color .2s, box-shadow .2s, transform .15s;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
 }
 
 .featureCard:hover {

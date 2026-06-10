@@ -17,7 +17,7 @@
   justify-content: center;
   font-weight: 700;
   color: #fff;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   flex-shrink: 0;
   line-height: 1;
   letter-spacing: 0;
@@ -41,7 +41,7 @@
   background: rgba(255, 255, 255, .08);
   color: rgba(255, 255, 255, .88);
   font-size: .8rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-weight: 500;
   cursor: pointer;
   transition: background .2s, border-color .2s;
@@ -200,7 +200,7 @@
   color: rgba(255, 255, 255, .45);
   font-size: .7rem;
   cursor: pointer;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   padding: 0;
   transition: color .2s;
   text-decoration: underline;
@@ -275,7 +275,7 @@
   border: 2px solid var(--border);
   border-radius: var(--rs);
   font-size: .86rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   color: var(--text);
   background: var(--gl);
   outline: none;
@@ -385,7 +385,7 @@
   color: var(--red);
   font-size: .85rem;
   font-weight: 600;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   cursor: pointer;
   transition: background .15s, border-color .15s;
   text-align: left;
@@ -532,7 +532,7 @@
   border-radius: 20px;
   background: var(--gl);
   color: var(--text);
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .76rem;
   font-weight: 600;
   cursor: pointer;
@@ -569,7 +569,7 @@
   border-radius: var(--rs);
   background: none;
   color: var(--text);
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .86rem;
   font-weight: 600;
   cursor: pointer;
@@ -591,7 +591,7 @@
   border-radius: var(--rs);
   background: var(--blue);
   color: #fff;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .86rem;
   font-weight: 700;
   cursor: pointer;

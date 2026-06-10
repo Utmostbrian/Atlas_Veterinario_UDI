@@ -10,7 +10,7 @@
 
 .dashTitle {
   display: flex; align-items: center; gap: 10px;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.45rem;
   font-weight: 700;
   color: var(--dark);
@@ -44,7 +44,7 @@
   background: var(--white);
   color: var(--text);
   font-size: .82rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   cursor: pointer;
 }
 
@@ -60,7 +60,7 @@
   background: none;
   border: none;
   padding: 6px 14px;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .82rem;
   font-weight: 600;
   color: var(--soft);
@@ -113,7 +113,7 @@
 .kpiBody { min-width: 0; }
 
 .kpiValue {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.45rem;
   font-weight: 800;
   color: var(--dark);
@@ -139,7 +139,7 @@
 
 /* ─── Section titles ─────────────────────────────────────────────────── */
 .sectionTitle {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--dark);
@@ -174,7 +174,7 @@
   margin-bottom: 10px;
 }
 .chartHead h3 {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .9rem;
   font-weight: 700;
   color: var(--dark);
@@ -240,7 +240,7 @@
 .heatmapLabel {
   font-size: 9px;
   color: var(--gray);
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   line-height: 1;
   flex-shrink: 0;
 }
@@ -271,7 +271,7 @@
   align-items: baseline;
 }
 .securityHead h3 {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .9rem;
   font-weight: 700;
   color: var(--dark);

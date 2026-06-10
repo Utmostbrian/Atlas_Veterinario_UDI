@@ -51,6 +51,7 @@ export default function DilutionCalculator() {
 
   return (
     <div className="page-inner">
+      <div className="page-kicker">Cálculo clínico · 03</div>
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <FlaskIcon size={20} style={{ color: 'var(--blue)' }} /> Dilución y Goteo IV

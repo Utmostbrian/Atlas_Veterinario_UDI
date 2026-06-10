@@ -1,40 +1,64 @@
 /* =====================================================================
-   ATLAS FARMACOLÓGICO VETERINARIO — Design System v3.0
-   Rojo institucional · Figtree · Sin degradados · Mobile-first
+   ATLAS FARMACOLÓGICO VETERINARIO — AV Design System
+   Marca AV · Rojo #DA291C + Navy + Paper · Editorial · Sobrio · Clínico
+   Tipografía: DM Serif Display (display) · IBM Plex Sans (UI) · IBM Plex Mono (meta)
+   Fuente de verdad de tokens: brand.css del prototipo AV
    ===================================================================== */
 
 :root {
-  /* ── Color primario — rojo institucional Atlas ── */
-  --blue:      #CC0000;
-  --blue-mid:  #991111;
+  /* ── Tipografía AV ── */
+  --serif: 'DM Serif Display', 'Times New Roman', serif;
+  --sans:  'IBM Plex Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono:  'IBM Plex Mono', 'SF Mono', Menlo, monospace;
 
-  /* ── Semánticos ── */
-  --red:       #CC0000;
-  --red-dark:  #991111;
+  /* ── Marca AV (paleta canónica de brand.css) ── */
+  --av-red:       #DA291C;   /* acento principal, acciones, estado activo */
+  --av-red-dark:  #A8200F;   /* hover / profundidad */
+  --av-red-soft:  #F9E3E1;   /* fondo suave de aviso */
+  --navy:         #15202E;   /* texto fuerte, fondos oscuros, encabezados */
+  --navy-soft:    #2A3848;   /* superficie oscura secundaria */
+  --ink:          #15202E;   /* texto principal */
+  --ink-soft:     #5A6573;   /* texto secundario */
+  --ink-mute:     #8B95A1;   /* metadatos, placeholders */
+  --surface:      #FFFFFF;   /* superficie principal */
+  --paper:        #FAF7F1;   /* fondo editorial claro */
+  --paper-warm:   #F2EEE4;   /* fondo de apoyo */
+  --paper-cream:  #EFE9DA;   /* secciones suaves */
+  --rule:         #E4DFD4;   /* separadores y bordes finos */
+  --rule-strong:  #C9C2B2;   /* bordes con más presencia */
+  --eit-blue:     #1BA3E1;   /* acento secundario técnico, uso limitado */
+  --accent-amber: #C8881C;   /* avisos / revisar */
+  --accent-olive: #6B7A3F;   /* soporte de estados */
+  --accent-clay:  #B5613A;   /* apoyo editorial puntual */
 
-  /* ── Neutrales ── */
-  --white:  #FFFFFF;
-  --cream:  #F8F5F0;        /* fondo principal — crema cálida Atlas */
-  --gl:     #EEF0F4;        /* fondo secundario */
-  --gray:   #9AA0AF;        /* texto desactivado */
-  --dark:   #111827;        /* texto principal */
-  --text:   #1F2937;
-  --soft:   #4B5563;        /* texto secundario */
-  --border: #D1D5DB;        /* separadores */
+  /* ── Aliases semánticos: mantienen los nombres que ya usan las clases ── */
+  --blue:      #DA291C;      /* acento primario = AV-red */
+  --blue-mid:  #A8200F;
+  --red:       #DA291C;
+  --red-dark:  #A8200F;
 
-  /* ── Elevación ── */
-  --sh:   0 4px 24px rgba(204,0,0,.10);
-  --shlg: 0 12px 40px rgba(204,0,0,.18);
+  --white:  #FFFFFF;          /* = surface */
+  --cream:  #FAF7F1;          /* fondo principal = paper */
+  --gl:     #F2EEE4;          /* fondo secundario = paper-warm */
+  --gray:   #8B95A1;          /* texto desactivado = ink-mute */
+  --dark:   #15202E;          /* texto principal fuerte = ink/navy */
+  --text:   #15202E;          /* = ink */
+  --soft:   #5A6573;          /* texto secundario = ink-soft */
+  --border: #E4DFD4;          /* separadores = rule */
 
-  /* ── Radios ── */
+  /* ── Elevación — sombras neutras mínimas (guía: mínima o inexistente) ── */
+  --sh:   0 1px 2px rgba(21,32,46,.04), 0 1px 3px rgba(21,32,46,.06);
+  --shlg: 0 4px 16px rgba(21,32,46,.08);
+
+  /* ── Radios — moderados ── */
   --r:  12px;
   --rs: 8px;
 
-  /* ── Colores semánticos ── */
-  --color-success: #34C759;  /* verde sistema iOS */
-  --color-warning: #FF9500;  /* naranja sistema iOS */
-  --color-danger:  #FF3B30;  /* rojo sistema iOS */
-  --color-info:    #0071E3;  /* azul sistema */
+  /* ── Colores semánticos clínicos ── */
+  --color-success: #16A34A;  /* seguro */
+  --color-warning: #C8881C;  /* revisar — amber AV */
+  --color-danger:  #DA291C;  /* peligroso — rojo AV */
+  --color-info:    #1BA3E1;  /* info técnica */
 
   /* ── Alturas de layout ── */
   --header-h:     78px;   /* htop ~22px + hmain 56px */
@@ -70,7 +94,7 @@
 }
 .dark .fc:focus,.dark #si:focus,.dark #chi:focus {
   border-color: var(--blue-mid);
-  box-shadow: 0 0 0 3px rgba(204,0,0,.18);
+  box-shadow: 0 0 0 3px rgba(218,41,28,.18);
 }
 
 .dark .tabbar { background: #1e293b; border-color: #334155; }
@@ -110,19 +134,19 @@
 .dark .sp-box      { background: #1e293b; border-color: #334155; }
 .dark .sp-box h4   { color: #F2F2F7; }
 .dark .sp-box p    { color: #8E8E93; }
-.dark .sp-box code { background: rgba(204,0,0,.14); color: #ff8080; }
-.dark .sp-badge    { background: rgba(204,0,0,.14); color: #ff8080; }
+.dark .sp-box code { background: rgba(218,41,28,.14); color: #ff8080; }
+.dark .sp-badge    { background: rgba(218,41,28,.14); color: #ff8080; }
 .dark .hist-page button { background: #0f172a; border-color: #334155; color: #e2e8f0; }
 .dark .hist-search input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 .dark .mobile-nav { background: #1e293b; border-color: #334155; }
-.dark .tbtn.on { background: rgba(204,0,0,.12); }
+.dark .tbtn.on { background: rgba(218,41,28,.12); }
 
 /* ── RESET ── */
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+  font-family: var(--sans);
   background: var(--cream);
   color: var(--text);
   line-height: 1.55;
@@ -130,7 +154,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button { font-family: 'Figtree', system-ui, -apple-system, sans-serif; cursor: pointer; }
+button { font-family: var(--sans); cursor: pointer; }
 img { max-width: 100%; }
 a { color: var(--blue); text-decoration: none; }
 
@@ -270,7 +294,7 @@ header {
 .tbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .tbtn.on {
   color: var(--blue);
-  background: rgba(204,0,0,.1);
+  background: rgba(218,41,28,.1);
   font-weight: 700;
 }
 
@@ -315,7 +339,7 @@ header {
   color: var(--text); font-size: .81rem; transition: .15s;
 }
 .catlist button:hover,.catlist button.on {
-  background: rgba(204,0,0,.06); color: var(--blue); font-weight: 600;
+  background: rgba(218,41,28,.06); color: var(--blue); font-weight: 600;
 }
 .catlist button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 
@@ -352,20 +376,20 @@ header {
 #si {
   width: 100%; padding: 10px 14px 10px 38px;
   border: 1.5px solid var(--border); border-radius: 10px;
-  font-size: .88rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .88rem; font-family: var(--sans);
   background: var(--gl); color: var(--text); transition: .2s; outline: none;
 }
-#si:focus { border-color: var(--blue); background: var(--white); box-shadow: 0 0 0 3px rgba(204,0,0,.1); }
+#si:focus { border-color: var(--blue); background: var(--white); box-shadow: 0 0 0 3px rgba(218,41,28,.1); }
 #si::placeholder { color: var(--gray); }
 .dark #si { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 
 #enfSearch {
   width: 100%; padding: 10px 14px 10px 38px;
   border: 1.5px solid var(--border); border-radius: 10px;
-  font-size: .88rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .88rem; font-family: var(--sans);
   background: var(--gl); color: var(--text); transition: .2s; outline: none;
 }
-#enfSearch:focus { border-color: var(--blue); background: var(--white); box-shadow: 0 0 0 3px rgba(204,0,0,.1); }
+#enfSearch:focus { border-color: var(--blue); background: var(--white); box-shadow: 0 0 0 3px rgba(218,41,28,.1); }
 #enfSearch::placeholder { color: var(--gray); }
 .dark #enfSearch { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 
@@ -452,7 +476,7 @@ header {
 
 /* Banda de color superior — sólida, sin degradados */
 .ds { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-.ab { background: #CC0000; }
+.ab { background: #DA291C; }
 .ap { background: #E11D48; }
 .ai { background: #7C3AED; }
 .an { background: #6D28D9; }
@@ -470,7 +494,7 @@ header {
   font-size: .61rem; padding: 3px 8px; border-radius: 6px;
   font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
 }
-.tc2 { background: rgba(204,0,0,.08); color: var(--blue); }
+.tc2 { background: rgba(218,41,28,.08); color: var(--blue); }
 .tv  { background: #F0FFF4; color: #166534; }
 .td  { background: #FFF7ED; color: #9A3412; }
 
@@ -595,10 +619,10 @@ header {
 .fc {
   width: 100%; padding: 10px 13px;
   border: 1.5px solid var(--border); border-radius: var(--rs);
-  font-size: .87rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .87rem; font-family: var(--sans);
   color: var(--text); background: var(--white); outline: none; transition: .2s;
 }
-.fc:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(204,0,0,.1); }
+.fc:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(218,41,28,.1); }
 .dark .fc { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 .fc--err { border-color: #FF3B30 !important; }
 .fc--err:focus { box-shadow: 0 0 0 3px rgba(255,59,48,.15) !important; }
@@ -620,10 +644,10 @@ header {
   cursor: pointer; transition: background .12s;
 }
 .fc-autocomplete-item.is-active,
-.fc-autocomplete-item:hover { background: rgba(204,0,0,.07); }
+.fc-autocomplete-item:hover { background: rgba(218,41,28,.07); }
 .dark .fc-autocomplete-item { color: #e2e8f0; }
 .dark .fc-autocomplete-item.is-active,
-.dark .fc-autocomplete-item:hover { background: rgba(204,0,0,.15); }
+.dark .fc-autocomplete-item:hover { background: rgba(218,41,28,.15); }
 
 .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 
@@ -719,10 +743,10 @@ header {
 .iarow input {
   flex: 1; padding: 10px 13px;
   border: 1.5px solid var(--border); border-radius: var(--rs);
-  font-size: .85rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .85rem; font-family: var(--sans);
   outline: none; transition: .2s; background: var(--white); color: var(--text);
 }
-.iarow input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(204,0,0,.1); }
+.iarow input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(218,41,28,.1); }
 .dark .iarow input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 .iarow button {
   padding: 10px 16px; background: var(--blue-mid);
@@ -791,7 +815,7 @@ header {
 #chi {
   flex: 1; padding: 10px 14px;
   border: 1.5px solid var(--border); border-radius: 22px;
-  font-size: .85rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .85rem; font-family: var(--sans);
   outline: none; transition: .2s; background: var(--gl); color: var(--text);
 }
 #chi:focus { border-color: var(--blue); background: var(--white); }
@@ -825,10 +849,10 @@ header {
 .gsearch input {
   width: 100%; padding: 10px 14px 10px 40px;
   border: 1.5px solid var(--border); border-radius: var(--rs);
-  font-size: .87rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .87rem; font-family: var(--sans);
   outline: none; transition: .2s; background: var(--white); color: var(--text);
 }
-.gsearch input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(204,0,0,.1); }
+.gsearch input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(218,41,28,.1); }
 .dark .gsearch input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 
 .galpha { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
@@ -953,7 +977,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 .fcol a, .footer-link {
   color: rgba(255,255,255,.45); text-decoration: none; font-size: .78rem; transition: .18s;
   background: none; border: none; padding: 0; cursor: pointer;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
 }
 .fcol a:hover, .footer-link:hover { color: rgba(255,255,255,.85); }
 
@@ -978,7 +1002,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 .ai-response ul,.ai-response ol { padding-left: 18px; margin-bottom: 9px; }
 .ai-response li { color: var(--soft); font-size: .85rem; margin-bottom: 3px; line-height: 1.6; }
 .ai-response strong { color: var(--text); }
-.ai-response code { background: rgba(204,0,0,.07); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-size: .8em; }
+.ai-response code { background: rgba(218,41,28,.07); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-size: .8em; }
 
 .ai-response .md-table, .md-table {
   width: 100%; border-collapse: collapse; margin: 10px 0 14px;
@@ -1027,10 +1051,10 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 .hist-search input {
   width: 100%; padding: 9px 12px 9px 36px;
   border: 1.5px solid var(--border); border-radius: var(--rs);
-  font-size: .84rem; font-family: 'Figtree', system-ui, sans-serif;
+  font-size: .84rem; font-family: var(--sans);
   background: var(--white); color: var(--text); outline: none; transition: .2s;
 }
-.hist-search input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(204,0,0,.08); }
+.hist-search input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(218,41,28,.08); }
 .dark .hist-search input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 
 .hist-tbl-wrap {
@@ -1062,7 +1086,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 .hist-page button {
   padding: 6px 16px; background: var(--gl); border: 1px solid var(--border); border-radius: var(--rs);
   color: var(--text); font-size: .78rem; font-weight: 600; transition: .15s;
-  font-family: 'Figtree', system-ui, sans-serif; cursor: pointer;
+  font-family: var(--sans); cursor: pointer;
 }
 .hist-page button:hover:not(:disabled) { background: var(--blue); color: #fff; border-color: var(--blue); }
 .hist-page button:disabled { opacity: .4; cursor: default; }
@@ -1131,7 +1155,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 }
 .sp-box h4 { font-size: .92rem; color: var(--dark); margin-bottom: 7px; font-weight: 700; }
 .sp-box p { font-size: .81rem; color: var(--soft); margin-bottom: 10px; }
-.sp-box code { background: rgba(204,0,0,.07); color: var(--blue); padding: 1px 5px; border-radius: 3px; font-size: .8em; }
+.sp-box code { background: rgba(218,41,28,.07); color: var(--blue); padding: 1px 5px; border-radius: 3px; font-size: .8em; }
 .sp-code {
   background: #0f172a; color: #e2e8f0; border-radius: var(--rs);
   padding: 14px 16px; font-family: 'Courier New', monospace;
@@ -1139,7 +1163,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 }
 .sp-badge {
   display: inline-flex; align-items: center;
-  background: rgba(204,0,0,.07); color: var(--blue);
+  background: rgba(218,41,28,.07); color: var(--blue);
   font-size: .68rem; font-weight: 700; padding: 2px 8px;
   border-radius: 10px; margin-left: 8px; letter-spacing: .04em;
 }
@@ -1253,7 +1277,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   border: 1.5px solid var(--border);
   border-radius: 12px;
   font-size: .93rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   background: var(--gl);
   color: var(--text);
   outline: none;
@@ -1262,7 +1286,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
 .search-input-wrap input:focus {
   border-color: var(--blue);
   background: var(--white);
-  box-shadow: 0 0 0 3px rgba(204,0,0,.1);
+  box-shadow: 0 0 0 3px rgba(218,41,28,.1);
 }
 .search-input-wrap input::placeholder { color: var(--gray); }
 .dark .search-input-wrap input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
@@ -1283,15 +1307,15 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background: rgba(204,0,0,.05);
-  border: 1px solid rgba(204,0,0,.15);
+  background: rgba(218,41,28,.05);
+  border: 1px solid rgba(218,41,28,.15);
   border-radius: var(--rs);
   padding: 9px 13px;
   font-size: .78rem;
   color: var(--soft);
   margin-bottom: 12px;
 }
-.dark .clinical-notice { background: rgba(204,0,0,.1); border-color: rgba(204,0,0,.2); }
+.dark .clinical-notice { background: rgba(218,41,28,.1); border-color: rgba(218,41,28,.2); }
 
 /* ── RECENT SEARCHES ── */
 .recent-searches {
@@ -1354,7 +1378,7 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   animation: fadeUp .22s ease both;
 }
 .drow:last-child { border-bottom: none; }
-.drow:hover { background: rgba(204,0,0,.03); }
+.drow:hover { background: rgba(218,41,28,.03); }
 .dark .drow:hover { background: rgba(255,255,255,.03); }
 .dark .drow { border-color: #334155; }
 
@@ -1422,139 +1446,484 @@ footer { background: var(--dark); color: rgba(255,255,255,.55); margin-top: 56px
   .app-sidebar {
     display: flex;
     flex-direction: column;
-    width: 220px;
+    width: 268px;
     flex-shrink: 0;
     position: sticky;
-    top: var(--header-h);
-    height: calc(100vh - var(--header-h));
+    top: 0;
+    height: 100vh;
     overflow-y: auto;
-    background: var(--white);
-    border-right: 1px solid var(--border);
+    background: var(--paper);
+    border-right: 1px solid var(--rule);
     z-index: 100;
   }
 
   /* Hide horizontal tab bar — sidebar replaces it */
   .tabbar { display: none !important; }
 
+  /* Header → topbar utilitario: la marca y la franja viven en el sidebar */
+  .htop { display: none; }
+  .hlogo, .htext { display: none; }
+  header { position: sticky; top: 0; z-index: 120; }
+  .hmain { justify-content: flex-end; }
+
   /* Restore two-column for calculators since there's room */
   .cgrid { grid-template-columns: 1fr 1fr; }
 }
 
-/* ── Sidebar brand strip ── */
+/* ── Sidebar brand (lockup serif AV) ── */
 .asb-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 4px 28px 24px;
+  border-bottom: 1px solid var(--rule);
   flex-shrink: 0;
 }
-.asb-brand img {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  flex-shrink: 0;
+.asb-logo {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--ink);
 }
-.asb-title {
-  font-size: .78rem;
-  font-weight: 800;
-  color: var(--dark);
-  line-height: 1.2;
-  letter-spacing: -.01em;
-}
-.asb-sub {
-  font-size: .62rem;
-  color: var(--soft);
-  margin-top: 1px;
-}
-
-/* ── Sidebar section label ── */
-.asb-sect {
-  padding: 10px 12px 3px;
-  font-size: .58rem;
-  font-weight: 700;
-  color: var(--gray);
+.asb-brand-sub {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  letter-spacing: .1em;
+  color: var(--ink-soft);
+  line-height: 1.5;
 }
 
-/* ── Sidebar nav area ── */
+/* ── Sidebar nav ── */
 .asb-nav {
   flex: 1;
-  padding: 6px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow-y: auto;
-}
-
-/* ── Sidebar nav button ── */
-.asb-btn {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 10px;
-  border-radius: var(--rs);
-  border: none;
-  background: none;
-  color: var(--soft);
-  font-size: .81rem;
-  font-weight: 500;
-  font-family: 'Figtree', system-ui, sans-serif;
-  cursor: pointer;
-  transition: background .15s, color .15s;
-  text-align: left;
-  width: 100%;
-  white-space: nowrap;
-}
-.asb-btn:hover { background: var(--gl); color: var(--dark); }
-.asb-btn.on {
-  background: rgba(204,0,0,.09);
-  color: var(--blue);
-  font-weight: 700;
-}
-.asb-btn-icon { flex-shrink: 0; display: flex; align-items: center; }
-
-/* ── Sidebar divider ── */
-.asb-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 6px 10px;
-}
-
-/* ── Sidebar footer ── */
-.asb-foot {
-  padding: 8px 6px;
-  border-top: 1px solid var(--border);
+  padding: 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
+}
+
+/* ── Sidebar nav item (icono · nombre/sub · código) ── */
+.asb-item {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--sans);
+  color: var(--ink);
+  width: 100%;
+  transition: background .15s, border-color .15s;
+}
+.asb-item:hover { background: rgba(21,32,46,.03); }
+.asb-item.on {
+  background: var(--surface);
+  border-color: var(--rule);
+  border-left-color: var(--av-red);
+}
+.asb-item-ico {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  transition: background .15s, color .15s;
+}
+.asb-item.on .asb-item-ico { background: var(--paper-warm); color: var(--av-red); }
+.asb-item-txt { min-width: 0; }
+.asb-item-name { display: block; font-size: 14px; font-weight: 500; line-height: 1.15; color: var(--ink); }
+.asb-item-sub {
+  display: block; font-size: 11px; color: var(--ink-mute); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.asb-item-code { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--ink-mute); }
+
+/* ── Sidebar footer — aviso clínico ── */
+.asb-foot {
+  padding: 16px 28px;
+  border-top: 1px solid var(--rule);
   flex-shrink: 0;
 }
+.asb-aviso { margin-bottom: 14px; }
+.asb-aviso-kicker {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--av-red);
+  margin-bottom: 6px;
+}
+.asb-aviso p { margin: 0; font-size: 11px; line-height: 1.5; color: var(--ink-soft); }
 .asb-foot-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: var(--rs);
+  padding: 8px 0;
   border: none;
   background: none;
-  color: var(--soft);
-  font-size: .79rem;
-  font-weight: 500;
-  font-family: 'Figtree', system-ui, sans-serif;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-family: var(--sans);
   cursor: pointer;
-  transition: background .15s;
+  transition: color .15s;
   width: 100%;
-  white-space: nowrap;
 }
-.asb-foot-btn:hover { background: var(--gl); color: var(--dark); }
+.asb-foot-btn:hover { color: var(--av-red); }
+.asb-meta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--ink-mute);
+}
 
 /* ── Dark mode overrides for sidebar ── */
-.dark .app-sidebar { background: #1e293b; border-color: #334155; }
-.dark .asb-brand { border-color: #334155; }
-.dark .asb-btn.on { background: rgba(204,0,0,.14); }
-.dark .asb-btn:hover,
-.dark .asb-foot-btn:hover { background: rgba(255,255,255,.06); color: var(--dark); }
-.dark .asb-divider { background: #334155; }
-.dark .asb-foot { border-color: #334155; }
+.dark .app-sidebar { background: #0f172a; border-color: #1e293b; }
+.dark .asb-brand { border-color: #1e293b; }
+.dark .asb-logo,
+.dark .asb-item-name { color: #e2e8f0; }
+.dark .asb-item { color: #e2e8f0; }
+.dark .asb-item:hover { background: rgba(255,255,255,.04); }
+.dark .asb-item.on { background: #1e293b; border-color: #334155; border-left-color: var(--av-red); }
+.dark .asb-item.on .asb-item-ico { background: rgba(218,41,28,.16); }
+.dark .asb-foot { border-color: #1e293b; }
+
+/* ═══════════════════════════════════════════════════════════════
+   AV REBRAND — capa editorial (roles tipográficos, superficies, estados)
+   Aplica la identidad del prototipo: serif en títulos, mono en metadatos,
+   bordes finos, sin banda de color, estados clínicos por borde lateral.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Display serif: títulos prominentes (DM Serif Display, peso único 400) ── */
+.htext h1,
+.stitle,
+.ainame,
+.hist-hdr h2,
+.empty h3,
+.rx-modal-head h3,
+.stat-val,
+.ai-response h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+}
+.htext h1 { letter-spacing: -.01em; }
+
+/* ── Mono: metadatos, etiquetas, encabezados de tabla, badges, códigos ── */
+.htop,
+.badge,
+.sbh,
+.scnt,
+.tg, .aitag,
+.asb-sect,
+.asb-sub,
+.recent-label,
+.evt-badge,
+.sp-badge,
+.rx-detail-section h4,
+.abtn-all,
+.dtbl th,
+.ctbl th,
+.hist-tbl th,
+.md-table th {
+  font-family: var(--mono);
+}
+.scnt, .evt-badge, .sp-badge { letter-spacing: .04em; }
+
+/* ── Franja superior: navy sobrio, no compite con el rojo AV (guía §6.3) ── */
+.htop {
+  background: var(--navy);
+  color: rgba(255,255,255,.82);
+  letter-spacing: .14em;
+  font-weight: 500;
+}
+.dark .htop { background: #0a0e1a; }
+
+/* ── Estados clínicos: indicador por borde lateral + color (guía §6.8) ── */
+.abox { border-left-width: 3px; border-left-style: solid; }
+.abox.g  { background: var(--surface);    border-color: var(--rule);        border-left-color: var(--accent-olive); }
+.abox.rr { background: var(--av-red-soft); border-color: var(--av-red);      border-left-color: var(--av-red); }
+.abox.o  { background: var(--paper-warm);  border-color: var(--rule-strong); border-left-color: var(--accent-amber); }
+.abox.b  { background: var(--surface);     border-color: var(--rule);        border-left-color: var(--navy); }
+
+/* ── Chat: burbuja del usuario en navy (acento secundario del prototipo) ── */
+.cmsg.u .cbub { background: var(--navy); }
+.dark .cmsg.u .cbub { background: var(--navy-soft); }
+
+/* ═══════════════════════════════════════════════════════════════
+   AV REBRAND — encabezados editoriales y superficies de contenido
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Más aire en el contenido (escritorio) */
+@media (min-width: 1024px) {
+  .page-inner { max-width: 1120px; padding: 36px 40px; }
+}
+
+/* ── Page head: kicker mono · título serif · lead ── */
+.page-head {
+  margin-bottom: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+}
+.page-kicker {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--av-red);
+  margin-bottom: 12px;
+}
+.page-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4vw, 2.85rem);
+  line-height: 1.04;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  margin: 0;
+}
+.page-title em { font-style: italic; color: var(--av-red); }
+.page-lead {
+  margin-top: 14px;
+  font-size: .98rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 680px;
+}
+
+/* Etiqueta de campo como kicker editorial (sustituye la barrita roja) */
+.slbl2 {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 500;
+}
+.slbl2::before { display: none; }
+
+/* Cabecera de tarjeta: limpia, serif, regla inferior (sin banda de color) */
+.ch, .ch.red {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.12rem;
+  border-bottom: 1px solid var(--rule);
+}
+.dark .ch, .dark .ch.red { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+
+/* Resultado del calculador: caja navy (firma del prototipo) */
+.cres {
+  background: var(--navy);
+  border: none;
+  border-radius: 0;
+  color: var(--surface);
+  padding: 22px;
+}
+.dark .cres { background: var(--navy); border: none; color: var(--surface); }
+.cres .crtitle {
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 12px;
+}
+.cres .crow { border-color: rgba(255,255,255,.12); color: rgba(255,255,255,.8); }
+.cres .crow span:last-child { font-family: var(--serif); font-weight: 400; font-size: 1.05rem; color: var(--surface); }
+.cres .crow:last-child { color: var(--surface); }
+
+/* Ficha de fármaco (panel expandido): cabecera editorial, no roja */
+.aiph {
+  background: var(--surface);
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding: 26px 26px 20px;
+}
+.dark .aiph { background: #1e293b; border-color: #334155; }
+.aiph .ainame { font-size: 1.95rem; color: var(--ink); margin-bottom: 4px; }
+.dark .aiph .ainame { color: #e2e8f0; }
+.aiph .ailat { color: var(--ink-soft); }
+.aiph .aitag {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+.aiph .aitag.ia { border-color: var(--av-red); color: var(--av-red); background: transparent; }
+.aiph .aiclose {
+  background: var(--paper-warm);
+  color: var(--ink-soft);
+}
+.aiph .aiclose:hover { background: var(--rule); color: var(--ink); }
+
+/* ── Rejilla de tarjetas de especialidad (Atlas) ── */
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+.spec-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 18px 18px 16px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--sans);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .15s, transform .15s;
+}
+.spec-card:hover { border-color: var(--rule-strong); transform: translateY(-2px); }
+.spec-card.on { background: var(--navy); border-color: var(--navy); color: var(--surface); }
+.spec-card-top {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .16em; color: var(--ink-mute);
+}
+.spec-card.on .spec-card-top { color: rgba(255,255,255,.5); }
+.spec-count { color: var(--av-red); font-weight: 600; }
+.spec-card.on .spec-count { color: #fff; }
+.spec-name { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; line-height: 1.1; letter-spacing: -.01em; }
+.spec-go { font-family: var(--mono); font-size: .62rem; letter-spacing: .12em; color: var(--ink-mute); }
+.spec-card.on .spec-go { color: rgba(255,255,255,.55); }
+.dark .spec-card { background: #1e293b; border-color: #334155; }
+.dark .spec-card.on { background: var(--navy); border-color: var(--navy); }
+
+/* Encabezado de sección de cada módulo → título editorial serif grande */
+.shdr { align-items: flex-end; margin-bottom: 22px; padding-bottom: 18px; }
+.stitle { font-size: clamp(1.55rem, 3vw, 2.05rem); line-height: 1.06; }
+.hist-hdr h2 { font-size: clamp(1.55rem, 3vw, 2.05rem); line-height: 1.06; }
+/* el subencabezado de resultados queda más pequeño que el título de página */
+.results-hdr .stitle { font-size: 1.05rem; }
+
+/* ═══════════════════════════════════════════════════════════════
+   AV REBRAND — módulos restantes (Protocolos · Glosario · Recetas · Interacciones)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tarjetas de enfermedad (Protocolos) ── */
+.ecard { background: var(--surface); border: 1px solid var(--rule); box-shadow: none; }
+.ecard:hover { box-shadow: var(--shlg); border-color: var(--rule-strong); }
+.ech {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.3rem;
+  line-height: 1.12;
+  padding: 16px 18px 12px;
+  border-left: 3px solid var(--av-red);
+}
+.dark .ech { background: #1e293b; color: #e2e8f0; }
+.ecb { color: var(--ink-soft); }
+.ecf {
+  background: var(--paper-warm);
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  color: var(--ink-mute);
+}
+.dark .ecf { background: #0f172a; }
+
+/* ── Glosario ── */
+.abtn.on, .abtn:hover, .abtn-all.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.gi { background: var(--surface); border: 1px solid var(--rule); }
+.gterm { font-family: var(--serif); font-weight: 400; font-size: 1.18rem; color: var(--ink); }
+.gterm .gar { color: var(--av-red); }
+.gdef { color: var(--ink-soft); }
+
+/* ── Recetas ── */
+.receta-hdr { background: var(--navy); }
+.receta-section-title {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--av-red);
+  font-weight: 500;
+}
+.receta-section-title::before { display: none; }
+.receta-preview { border-color: var(--rule); }
+
+/* ── Interacciones: chips de lista activa en navy (rojo reservado) ── */
+.idc { background: var(--navy); }
+.iarow button { background: var(--navy); }
+.iarow button:hover { background: var(--navy-soft); }
+
+/* ═══════════════════════════════════════════════════════════════
+   AV REBRAND — PRIMITIVAS (formularios, inputs, botones, tarjetas)
+   Reestiliza el CUERPO de todos los módulos al lenguaje del prototipo.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Etiqueta de campo → kicker mono uppercase */
+.flbl {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 500;
+  margin-bottom: 7px;
+}
+
+/* Inputs / selects → borde fino, esquinas sobrias */
+.fc {
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface);
+  font-family: var(--sans);
+}
+.fc:focus { border-color: var(--av-red); box-shadow: 0 0 0 3px rgba(218,41,28,.08); }
+/* valores numéricos en serif (firma del prototipo) */
+input.fc[type="number"] { font-family: var(--serif); font-size: 1.15rem; }
+.dark .fc { background: #0f172a; border-color: #334155; }
+
+/* Botón primario → rectángulo rojo editorial (no píldora) */
+.btnp {
+  border-radius: 3px;
+  background: var(--av-red);
+  font-family: var(--sans);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+.btnp:hover { background: var(--av-red-dark); }
+
+/* Tarjetas → superficie limpia, borde fino, sombra mínima */
+.card2 { border: 1px solid var(--rule); box-shadow: none; border-radius: 4px; }
+.card2:hover { box-shadow: var(--sh); }
+.cb { padding: 22px; }
+
+/* Barras de búsqueda y bloques → sobrios */
+.sbar, .search-block { border-radius: 4px; box-shadow: none; border: 1px solid var(--rule); }
+#si, #enfSearch, .search-input-wrap input, .gsearch input, .iarow input, .receta-form .fc {
+  border-radius: 3px;
+}
+
+/* Chips / botones de filtro → rectangulares editoriales */
+.chip, .recent-chip { border-radius: 3px; }
+.chip.on, .chip:hover { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* Botón "Limpiar" memoria → contorno sobrio */
+.memory-clear-btn {
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.memory-clear-btn:hover { background: var(--navy); border-color: var(--navy); }
+
+/* Selects: mantener sans aunque sean .fc */
+select.fc { font-family: var(--sans); font-size: .9rem; }

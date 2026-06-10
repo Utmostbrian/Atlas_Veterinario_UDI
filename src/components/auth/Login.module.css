@@ -82,7 +82,7 @@
 }
 
 .title {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1rem;
   font-weight: 700;
   color: #fff;
@@ -148,7 +148,7 @@
   border: 2px solid var(--border);
   border-radius: 8px;
   font-size: .88rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   color: var(--text);
   background: var(--gl);
   outline: none;
@@ -202,14 +202,14 @@
   border-radius: 8px;
   font-size: .9rem;
   font-weight: 700;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   cursor: pointer;
   transition: .2s;
   margin-top: 2px;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #AA0000;
+  background: #A8200F;
   box-shadow: 0 4px 16px rgba(204, 0, 0, .3);
   transform: translateY(-1px);
 }

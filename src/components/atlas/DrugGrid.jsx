@@ -157,6 +157,16 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
   return (
     <div className="page-inner">
 
+      {/* ── Page head editorial ── */}
+      <div className="page-head">
+        <div className="page-kicker">Atlas · Módulo 01</div>
+        <h1 className="page-title">Formulario por <em>especialidad</em></h1>
+        <p className="page-lead">
+          Catálogo de fármacos veterinarios con dosis por especie y búsqueda asistida por IA.
+          Información orientativa de apoyo clínico y académico.
+        </p>
+      </div>
+
       {/* ── Search block ── */}
       <div className="search-block">
         <div className="clinical-notice">
@@ -180,25 +190,6 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
           )}
         </div>
 
-        {/* Category chips */}
-        <div className="chips">
-          <button
-            className={`chip${activeCategory === 'ALL' ? ' on' : ''}`}
-            onClick={() => setActiveCategory('ALL')}
-          >
-            Todos
-          </button>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.key}
-              className={`chip${activeCategory === cat.key ? ' on' : ''}`}
-              onClick={() => setActiveCategory(cat.key)}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
         {/* Recent searches */}
         {recentSearches.length > 0 && (
           <div className="recent-searches">
@@ -208,6 +199,31 @@ export default function DrugGrid({ onChatOpen, onLoginRequired }) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Rejilla de especialidades (estilo prototipo AV) */}
+      <div className="spec-grid">
+        {[{ key: 'ALL', label: 'Todos los fármacos' }, ...CATEGORIES].map((cat, i) => {
+          const on = activeCategory === cat.key
+          const count = cat.key === 'ALL'
+            ? DRUGS.length
+            : DRUGS.filter(d => d.category === cat.key).length
+          const code = cat.key === 'ALL' ? 'TODOS' : `${cat.key} · 0${i}`
+          return (
+            <button
+              key={cat.key}
+              className={`spec-card${on ? ' on' : ''}`}
+              onClick={() => setActiveCategory(cat.key)}
+            >
+              <div className="spec-card-top">
+                <span className="spec-code">{code}</span>
+                <span className="spec-count">● {count}</span>
+              </div>
+              <div className="spec-name">{cat.label}</div>
+              <div className="spec-go">Ver fármacos →</div>
+            </button>
+          )
+        })}
       </div>
 
       {/* Results header */}

@@ -126,6 +126,7 @@ export default function DosageCalculator({ onLoginRequired }) {
 
   return (
     <div className="page-inner">
+      <div className="page-kicker">Cálculo clínico · 02</div>
       <div className="shdr">
         <span className="stitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalculatorIcon size={24} style={{ color: 'var(--blue)' }} /> Calculadora de Dosis

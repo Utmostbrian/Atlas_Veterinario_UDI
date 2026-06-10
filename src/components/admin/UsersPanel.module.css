@@ -9,7 +9,7 @@
 }
 
 .title {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--dark);
@@ -43,7 +43,7 @@
   border-radius: 8px;
   background: var(--white);
   font-size: .85rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   color: var(--text);
   outline: none;
   transition: border-color .15s;
@@ -58,7 +58,7 @@
   font-size: .85rem;
   color: var(--text);
   cursor: pointer;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
 }
 
 /* ─── Buttons ────────────────────────────────────────────────────────── */
@@ -70,7 +70,7 @@
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .85rem;
   font-weight: 700;
   cursor: pointer;
@@ -85,7 +85,7 @@
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .85rem;
   font-weight: 600;
   cursor: pointer;
@@ -105,7 +105,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .85rem;
 }
 .table th {
@@ -167,7 +167,7 @@
   border: 1.5px solid;
   border-radius: 12px;
   background: var(--white);
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .76rem;
   font-weight: 700;
   cursor: pointer;
@@ -244,7 +244,7 @@
   border-bottom: 1px solid var(--border);
 }
 .modalHead h3 {
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--dark);
@@ -288,7 +288,7 @@
   border-radius: 8px;
   background: var(--gl);
   font-size: .85rem;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   color: var(--text);
   outline: none;
   transition: border-color .15s, background .15s;
@@ -319,7 +319,7 @@
   color: var(--soft);
   font-size: .72rem;
   cursor: pointer;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
 }
 .eyeBtn:hover { color: var(--text); }
 
@@ -334,7 +334,7 @@
   border: 2px solid var(--border);
   border-radius: 8px;
   color: var(--soft);
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .8rem;
   font-weight: 600;
   cursor: pointer;
@@ -366,7 +366,7 @@
   color: var(--red);
   border: 1.5px solid rgba(225,29,72,.3);
   border-radius: 7px;
-  font-family: 'Figtree', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: .75rem;
   font-weight: 600;
   cursor: pointer;
