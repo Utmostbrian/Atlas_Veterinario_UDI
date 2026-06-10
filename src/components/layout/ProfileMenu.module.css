@@ -6,7 +6,7 @@
 
 /* ── AVATAR base ── */
 .avatar {
-  border: 2px solid rgba(255, 255, 255, .25);
+  border: 2px solid var(--border);
   transition: border-color .2s;
 }
 
@@ -22,7 +22,7 @@
   line-height: 1;
   letter-spacing: 0;
   user-select: none;
-  border: 2px solid rgba(255, 255, 255, .25);
+  border: 2px solid var(--border);
   transition: border-color .2s;
 }
 
@@ -37,27 +37,29 @@
   gap: 8px;
   padding: 5px 10px 5px 5px;
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, .18);
-  background: rgba(255, 255, 255, .08);
-  color: rgba(255, 255, 255, .88);
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text);
   font-size: .8rem;
   font-family: var(--sans);
   font-weight: 500;
   cursor: pointer;
-  transition: background .2s, border-color .2s;
+  transition: background .2s, border-color .2s, color .2s, box-shadow .2s;
   white-space: nowrap;
   max-width: 200px;
+  box-shadow: var(--sh);
 }
 
 .trigger:hover,
 .triggerOpen {
-  background: rgba(255, 255, 255, .16);
-  border-color: rgba(255, 255, 255, .35);
+  background: var(--gl);
+  border-color: var(--rule-strong, var(--border));
+  color: var(--dark);
 }
 
 .triggerOpen .avatar,
 .triggerOpen .avatarInitials {
-  border-color: rgba(255, 255, 255, .6);
+  border-color: var(--blue);
 }
 
 .triggerName {
@@ -69,8 +71,9 @@
 
 .chevron {
   flex-shrink: 0;
-  opacity: .65;
+  opacity: .75;
   transition: transform .2s;
+  color: var(--soft);
 }
 
 .chevronUp {
@@ -110,7 +113,7 @@
   align-items: center;
   gap: 14px;
   padding: 18px 18px 16px;
-  background: #1e293b;
+  background: var(--navy);
 }
 
 .photoZone {
@@ -403,6 +406,34 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
 }
 
+:global(.dark) .avatar,
+:global(.dark) .avatarInitials {
+  border-color: rgba(255, 255, 255, .25);
+}
+
+:global(.dark) .trigger {
+  border-color: rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .08);
+  color: rgba(255, 255, 255, .88);
+  box-shadow: none;
+}
+
+:global(.dark) .trigger:hover,
+:global(.dark) .triggerOpen {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .35);
+  color: #fff;
+}
+
+:global(.dark) .triggerOpen .avatar,
+:global(.dark) .triggerOpen .avatarInitials {
+  border-color: rgba(255, 255, 255, .6);
+}
+
+:global(.dark) .chevron {
+  color: rgba(255, 255, 255, .72);
+}
+
 :global(.dark) .divider {
   background: #334155;
 }
@@ -667,17 +698,26 @@
     background: transparent;
     border-color: transparent;
     border-radius: 50%;
+    box-shadow: none;
   }
 
   .trigger:hover,
   .triggerOpen {
-    background: rgba(255, 255, 255, .15);
-    border-color: rgba(255, 255, 255, .3);
+    background: var(--gl);
+    border-color: var(--border);
   }
 
   .dropdown {
     right: -8px;
     width: 290px;
+  }
+}
+
+@media (max-width: 768px) {
+  :global(.dark) .trigger:hover,
+  :global(.dark) .triggerOpen {
+    background: rgba(255, 255, 255, .15);
+    border-color: rgba(255, 255, 255, .3);
   }
 }
 
