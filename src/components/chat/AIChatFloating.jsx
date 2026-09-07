@@ -8,6 +8,7 @@ import { refineVoiceTranscript } from '../../services/anthropicService'
 import styles from './AIChatFloating.module.css'
 import chatIAIcon from '../../Icons/icons_final/CHATIA.svg'
 import { markdownToHtml } from '../../utils/markdownToHtml'
+import { resizeImageFile } from '../../utils/imageResize'
 import { CloseIcon, MicIcon, SpeakIcon } from '../../Icons/Icons'
 import HistoryPanel from './HistoryPanel'
 import VoiceCallModal from './VoiceCallModal'
@@ -568,15 +569,16 @@ export default function AIChatFloating({ open, onToggle, onOpenLogin }) {
     ta.style.height = `${Math.min(ta.scrollHeight, 110)}px`
   }
 
-  function processImageFile(file) {
+  async function processImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return
     if (file.size > 5 * 1024 * 1024) { alert('La imagen no puede superar 5 MB.'); return }
+    const resized = await resizeImageFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target.result
-      setImageData({ base64: dataUrl.split(',')[1], mediaType: file.type, previewUrl: dataUrl, fileName: file.name })
+      setImageData({ base64: dataUrl.split(',')[1], mediaType: resized.type, previewUrl: dataUrl, fileName: file.name })
     }
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(resized)
   }
 
   function handleImageSelect(e) {
